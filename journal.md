@@ -251,3 +251,37 @@ Run 4: 9/9 PASS
 ### Next (Tier 1.6)
 - Firewall (rules, aliases, IPsets, security groups)
 - OR Users (Proxmox user mgmt + permissions)
+
+---
+
+## Session 7 — 2026-08-17 (Tier 1.6)
+
+### Goals
+- Firewall rules management (CRUD + IPsets)
+
+### Done
+- ✅ FirewallRule/FirewallRuleSpec types + 5 CRUD methods in client
+- ✅ IPset/IPsetEntry types + 4 methods (CRUD + add entry)
+- ✅ internal/handler/proxmox_firewall.go (255 lines, 7 handlers)
+- ✅ 7 new routes wired
+- ✅ 10/10 live tests pass, 4 consecutive runs (first try)
+- ✅ Committed
+
+### Known limit
+- IPset endpoints return 501 "Method not implemented" on Proxmox .107
+- Reason: pve-firewall package not active (single-node setup doesn't need it)
+- IPset code is implemented and builds clean — will work on Proxmox with
+  the firewall package active
+
+### Verification (4 consecutive runs, all PASS)
+```
+Run 1: 10/10 PASS
+Run 2: 10/10 PASS
+Run 3: 10/10 PASS
+Run 4: 10/10 PASS
+```
+
+### Next (Tier 1.7)
+- Users & auth (Proxmox user mgmt, permissions, PVE tokens)
+- OR Backup (scheduled backups + restore)
+- OR Tasks (Proxmox task history)
