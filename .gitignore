@@ -1,0 +1,53 @@
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Editors
+.vscode/
+.idea/
+*.iml
+
+# Backups (FORBIDDEN — block PRs)
+*.bak
+*.bak-*
+*.orig
+*.rej
+
+# Go
+vendor/
+*.test
+*.out
+coverage.out
+coverage.html
+bin/
+*.exe
+
+# Node
+node_modules/
+dist/
+.next/
+out/
+*.log
+.npm
+.env
+.env.local
+
+# Build outputs
+build/
+target/
+*.tar.gz
+*.zip
+
+# Secrets
+*.key
+*.pem
+*.p8
+*.pfx
+secrets/
+.env.production
+
+# OS junk
+*~
+.cache/
