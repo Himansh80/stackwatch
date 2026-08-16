@@ -181,3 +181,39 @@ Run 4: 11/11 PASS
 - Storage management (ZFS/LVM/Ceph/directory create/delete)
 - Storage content (ISO, templates, backups)
 - Storage upload
+
+---
+
+## Session 5 — 2026-08-17 (Tier 1.4)
+
+### Goals
+- Storage management: list/create/delete + content list/delete
+
+### Done
+- ✅ StorageSpec/Entry/Content types + CRUD in client
+- ✅ postForm/deleteForm helpers (sync endpoints — Proxmox returns resource, not UPID)
+- ✅ internal/handler/proxmox_storage.go (150 lines, 5 handlers)
+- ✅ 5 new routes wired
+- ✅ Removed duplicate GET /storage route from Tier 1.1
+- ✅ 9/9 live tests pass, 4 consecutive runs
+- ✅ Committed (8cbbba7)
+
+### Bugs caught + fixed
+19. Route conflict: GET /proxmox/hosts/:id/storage registered twice (Tier 1.1 + Tier 1.4)
+20. Proxmox /storage POST/DELETE is synchronous — returns resource/null, not UPID
+    - Added postForm/deleteForm to client
+21. Verifier expected task ID; storage returns no task — accept empty task as success
+22. Unused imports/variables from refactor — cleaned up
+
+### Verification (4 consecutive runs, all PASS)
+```
+Run 1: 9/9 PASS
+Run 2: 9/9 PASS
+Run 3: 9/9 PASS
+Run 4: 9/9 PASS
+```
+
+### Next (Tier 1.5)
+- Networking (bridges, VLANs, bonds)
+- Firewall (rules, aliases, IPsets, security groups)
+- DNS
