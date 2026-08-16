@@ -29,6 +29,7 @@ func RequireAuth(issuer *auth.Issuer) gin.HandlerFunc {
 			return
 		}
 		c.Set(userCtxKey, claims)
+		setTenantInContext(c, claims)
 		c.Next()
 	}
 }
