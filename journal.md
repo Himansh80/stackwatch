@@ -146,3 +146,38 @@ Run 4: 12/12 PASS
 - LXC lifecycle (same pattern as VM, but for /nodes/.../lxc/...)
 - Storage create/delete
 - Networking (bridges, VLANs)
+
+---
+
+## Session 4 — 2026-08-17 (Tier 1.3)
+
+### Goals
+- LXC lifecycle: create/start/stop/reboot/delete/configure
+
+### Done
+- ✅ LXCStatus/CreateLXC/DeleteLXC/GetLXCConfig/UpdateLXCConfig in client
+- ✅ internal/handler/proxmox_lxc.go (165 lines, 5 handlers)
+- ✅ 5 new routes wired in routes.go
+- ✅ proxmox_errors.go: added CT not running + config file missing patterns
+- ✅ 11/11 live tests pass, 4 consecutive runs
+- ✅ Committed (bd1a8f0)
+
+### Bugs caught + fixed during this session
+14. `net0,gw` is not a valid property — removed
+15. LXC creation with password+unprivileged triggered WARNINGS:1 — removed from test
+16. Proxmox adds trailing `\n` to PUT values — strip() before compare
+17. Stop on stopped CT returns 500 "CT not running" — accept as no-op
+18. LXC WARNINGS:1 is success (template extraction warning, not failure)
+
+### Verification (4 consecutive runs, all PASS)
+```
+Run 1: 11/11 PASS
+Run 2: 11/11 PASS
+Run 3: 11/11 PASS
+Run 4: 11/11 PASS
+```
+
+### Next (Tier 1.4)
+- Storage management (ZFS/LVM/Ceph/directory create/delete)
+- Storage content (ISO, templates, backups)
+- Storage upload
