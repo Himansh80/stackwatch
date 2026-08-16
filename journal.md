@@ -285,3 +285,40 @@ Run 4: 10/10 PASS
 - Users & auth (Proxmox user mgmt, permissions, PVE tokens)
 - OR Backup (scheduled backups + restore)
 - OR Tasks (Proxmox task history)
+
+---
+
+## Session 8 — 2026-08-17 (Tier 1.7)
+
+### Goals
+- Disk management: list physical disks + ZFS pool CRUD
+
+### Done
+- ✅ DiskInfo/ZFSPool types + 5 methods
+- ✅ internal/handler/proxmox_disks.go (130 lines, 4 handlers)
+- ✅ 4 new routes wired
+- ✅ Input validation: devices must match /dev/X, raidlevel ∈ allowed set
+- ✅ 8/8 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Bugs caught + fixed
+28. DiskInfo.OSType renamed to remove conflict with old osdid (was actually OS disk ID)
+29. Added Wearout/GPT/OSDID/OSDIDList fields for full JSON shape
+30. fmt.Errorf returns 500, but my code expected 400 for invalid input — fixed to use ErrBadRequest
+
+### Verification (4 consecutive runs, all PASS)
+```
+Run 1: 8/8 PASS
+Run 2: 8/8 PASS
+Run 3: 8/8 PASS
+Run 4: 8/8 PASS
+```
+
+### Caveat: ZFS create NOT tested live
+- .107 has only 1 disk (OS disk sda) — destructive ZFS create would corrupt
+- Created code + validation; manual end-to-end test deferred until we have spare disks
+
+### Next (Tier 1.8)
+- Users & auth (Proxmox user mgmt, permissions, PVE tokens)
+- OR Tasks (Proxmox task history)
+- OR Backup (scheduled backups + restore)
