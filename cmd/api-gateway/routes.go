@@ -91,6 +91,15 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/nodes/:node/disks/zfs", proxmoxH.ListZFSPools)
 	protected.POST("/proxmox/hosts/:id/nodes/:node/disks/zfs", proxmoxH.CreateZFSPool)
 	protected.DELETE("/proxmox/hosts/:id/nodes/:node/disks/zfs/:name", proxmoxH.DestroyZFSPool)
+	// Tier 1.8: Users & tokens
+	protected.GET("/proxmox/hosts/:id/access/users", proxmoxH.ListUsers)
+	protected.POST("/proxmox/hosts/:id/access/users", proxmoxH.CreateUser)
+	protected.GET("/proxmox/hosts/:id/access/users/:userid", proxmoxH.GetUser)
+	protected.PUT("/proxmox/hosts/:id/access/users/:userid", proxmoxH.UpdateUser)
+	protected.DELETE("/proxmox/hosts/:id/access/users/:userid", proxmoxH.DeleteUser)
+	protected.GET("/proxmox/hosts/:id/access/users/:userid/token", proxmoxH.ListAPITokens)
+	protected.POST("/proxmox/hosts/:id/access/users/:userid/token", proxmoxH.CreateAPIToken)
+	protected.DELETE("/proxmox/hosts/:id/access/users/:userid/token/:tokenid", proxmoxH.DeleteAPIToken)
 
 	return r
 }
