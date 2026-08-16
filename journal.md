@@ -322,3 +322,48 @@ Run 4: 8/8 PASS
 - Users & auth (Proxmox user mgmt, permissions, PVE tokens)
 - OR Tasks (Proxmox task history)
 - OR Backup (scheduled backups + restore)
+
+---
+
+## Session 9 — 2026-08-17 (Tier 1.8)
+
+### Goals
+- Proxmox user mgmt + API tokens
+
+### Done
+- ✅ PVEUser/PVEAPIToken types with custom Groups unmarshal (accepts string OR array)
+- ✅ APITokenCreateResponse separate from APIToken (POST has secret value, GET doesn't)
+- ✅ 8 client methods: list/get/create/update/delete users + tokens
+- ✅ 9 handlers + input validation (userid must contain @realm, password 5-64 chars)
+- ✅ 9 routes wired
+- ✅ 14/14 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Proxmox quirks caught + fixed (7!)
+31. POST /access/users returns 500 \"change password failed\" even on success → swallowed
+32. GET /access/users/{userid} does NOT include userid in response → injected
+33. groups field is array in GET, string in LIST → custom UnmarshalJSON
+34. token POST response is special shape (not flat APIToken) → dedicated struct
+35. privsep field is int (1) OR string ("0") depending on what was set
+36. Token secret value must be REDACTED on GET but returned on POST → handler layer
+37. userid must have @realm (no @ = bad request)
+
+### Verification (4 consecutive runs, all PASS)
+```
+Run 1: 14/14 PASS
+Run 2: 14/14 PASS
+Run 3: 14/14 PASS
+Run 4: 14/14 PASS
+```
+
+### Caveat
+- LIST/GET tokens on non-root users fails with permission denied (Proxmox quirk —
+  Permissions.Modify perm required, only granted on root@pam in this cluster)
+- Create/delete token WORK on root@pam and on freshly-created test users
+- Password NOT set via API (Proxmox POST /access/users doesn't accept password field
+  in schema; password must be set via PAM backend directly or /access/password)
+
+### Next (Tier 1.9)
+- Tasks (Proxmox task history + status polling)
+- OR Backup (vzdump + restore)
+- OR Replication (Proxmox replication jobs)
