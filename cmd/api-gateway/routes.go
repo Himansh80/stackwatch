@@ -86,6 +86,11 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/firewall/ipsets", proxmoxH.ListIPsets)
 	protected.POST("/proxmox/hosts/:id/firewall/ipsets", proxmoxH.CreateIPset)
 	protected.DELETE("/proxmox/hosts/:id/firewall/ipsets/:name", proxmoxH.DeleteIPset)
+	// Tier 1.7: Disks
+	protected.GET("/proxmox/hosts/:id/nodes/:node/disks/list", proxmoxH.ListDisks)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/disks/zfs", proxmoxH.ListZFSPools)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/disks/zfs", proxmoxH.CreateZFSPool)
+	protected.DELETE("/proxmox/hosts/:id/nodes/:node/disks/zfs/:name", proxmoxH.DestroyZFSPool)
 
 	return r
 }
