@@ -78,6 +78,14 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.POST("/proxmox/hosts/:id/nodes/:node/network", proxmoxH.CreateNetwork)
 	protected.PUT("/proxmox/hosts/:id/nodes/:node/network/:iface", proxmoxH.UpdateNetwork)
 	protected.DELETE("/proxmox/hosts/:id/nodes/:node/network/:iface", proxmoxH.DeleteNetwork)
+	// Tier 1.6: Firewall
+	protected.GET("/proxmox/hosts/:id/nodes/:node/firewall/rules", proxmoxH.ListFirewallRules)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/firewall/rules", proxmoxH.CreateFirewallRule)
+	protected.PUT("/proxmox/hosts/:id/nodes/:node/firewall/rules/:pos", proxmoxH.UpdateFirewallRule)
+	protected.DELETE("/proxmox/hosts/:id/nodes/:node/firewall/rules/:pos", proxmoxH.DeleteFirewallRule)
+	protected.GET("/proxmox/hosts/:id/firewall/ipsets", proxmoxH.ListIPsets)
+	protected.POST("/proxmox/hosts/:id/firewall/ipsets", proxmoxH.CreateIPset)
+	protected.DELETE("/proxmox/hosts/:id/firewall/ipsets/:name", proxmoxH.DeleteIPset)
 
 	return r
 }
