@@ -68,8 +68,18 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 // Unlike doTask, this just returns the error if any (for sync endpoints
 // like /storage that return the resource, not a UPID).
 func (c *Client) postForm(ctx context.Context, path string, form url.Values, out any) error {
+	return c.doForm(ctx, "POST", path, form, out)
+}
+
+// putForm executes a PUT with form-encoded body.
+func (c *Client) putForm(ctx context.Context, path string, form url.Values, out any) error {
+	return c.doForm(ctx, "PUT", path, form, out)
+}
+
+// doForm is the shared body for postForm/putForm.
+func (c *Client) doForm(ctx context.Context, method, path string, form url.Values, out any) error {
 	u := c.baseURL + "/api2/json" + path
-	req, err := newFormRequestWithContext(ctx, "POST", u, form, c.apiToken)
+	req, err := newFormRequestWithContext(ctx, method, u, form, c.apiToken)
 	if err != nil {
 		return err
 	}

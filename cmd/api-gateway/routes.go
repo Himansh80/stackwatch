@@ -73,6 +73,11 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.DELETE("/proxmox/hosts/:id/storage/:name", proxmoxH.DeleteStorage)
 	protected.GET("/proxmox/hosts/:id/nodes/:node/storage/:storage/content", proxmoxH.ListStorageContent)
 	protected.DELETE("/proxmox/hosts/:id/nodes/:node/storage/:storage/content", proxmoxH.DeleteStorageContent)
+	// Tier 1.5: Networking
+	protected.GET("/proxmox/hosts/:id/nodes/:node/network", proxmoxH.ListNetwork)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/network", proxmoxH.CreateNetwork)
+	protected.PUT("/proxmox/hosts/:id/nodes/:node/network/:iface", proxmoxH.UpdateNetwork)
+	protected.DELETE("/proxmox/hosts/:id/nodes/:node/network/:iface", proxmoxH.DeleteNetwork)
 
 	return r
 }
