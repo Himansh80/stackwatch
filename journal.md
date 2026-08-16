@@ -107,3 +107,42 @@ Estimated 3-4 sessions.
 ### User actions
 - Test Tier 0 by following `docs/TESTING.md`
 - Report errors or say "next" to start Tier 1
+
+---
+
+## Session 3 — 2026-08-16 (Tier 1.2)
+
+### Goals
+- VM lifecycle: create/start/stop/reboot/delete/configure
+- Strictly modular, all files <500 lines
+
+### Done
+- ✅ internal/client/proxmox/vm.go (VMStatus, CreateVM, DeleteVM, GetVMConfig, UpdateVMConfig)
+- ✅ internal/client/proxmox/task.go (form requests, task polling)
+- ✅ internal/handler/proxmox_vm.go (HTTP handlers)
+- ✅ internal/handler/promox_errors.go (Proxmox error → HTTP code)
+- ✅ GET /tasks/:upid endpoint for async polling
+- ✅ 12/12 live tests pass, 4 consecutive runs
+- ✅ Committed (bdb8e99)
+
+### Bugs caught + fixed during this session (continuing from session 2)
+7. Proxmox PUT /config is synchronous — no UPID returned. Removed waitForTaskBrief call.
+8. `force` param invalid on /status/* endpoints in current Proxmox — silently dropped.
+9. DELETE on /qemu/:vmid doesn't accept form body — switched to query string ?purge=1.
+10. VMConfig memory/cores fields can be string OR number depending on Proxmox version — use `any` type.
+11. Storage 'local' is dir-only — VM disks need 'local-lvm'.
+12. Reboot/shutdown on busy Proxmox host (9 running VMs) takes >60s — bumped polling to 180s.
+13. Async pattern: all mutating endpoints return task ID immediately + status_url for polling.
+
+### Verification (4 consecutive runs, all PASS)
+```
+Run 1: 12/12 PASS
+Run 2: 12/12 PASS
+Run 3: 12/12 PASS
+Run 4: 12/12 PASS
+```
+
+### Next (Tier 1.3)
+- LXC lifecycle (same pattern as VM, but for /nodes/.../lxc/...)
+- Storage create/delete
+- Networking (bridges, VLANs)
