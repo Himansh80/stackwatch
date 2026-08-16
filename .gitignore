@@ -30,9 +30,11 @@ dist/
 .next/
 out/
 *.log
+*.lock
 .npm
 .env
 .env.local
+package-lock.json
 
 # Build outputs
 build/

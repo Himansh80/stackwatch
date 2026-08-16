@@ -1,0 +1,67 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ios
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ios
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Gofmt
+        run: gofmt -l . | (! grep .)
+
+      - name: Lint
+        run: golangci-lint run ./...
+
+      - name: File size check
+        run: bash scripts/file-size-check.sh
+
+      - name: Test
+        run: go test ./internal/... -count=1 -race -timeout 60s
+
+      - name: Cross-compile all services
+        run: |
+          mkdir -p bin
+          for svc in api-gateway; do
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/${svc}-linux ./cmd/${svc}
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-binaries
+          path: bin/
