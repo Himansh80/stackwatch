@@ -7,14 +7,15 @@ import (
 
 // Me returns the current user + tenant.
 func (h *AuthHandler) Me(c *gin.Context) {
-	u, ok := userFromContext(c)
+	claimsUser, ok := userFromContext(c)
 	if !ok {
 		kernel.RespondError(c, kernel.ErrUnauthorized)
 		return
 	}
-	t, err := h.lookupTenant(c.Request.Context(), u.TenantID)
+	// Fetch full user from DB so we get the latest full_name, status, etc.
+	u, t, err := h.lookupUserAndTenant(c.Request.Context(), claimsUser.Email)
 	if err != nil {
-		kernel.RespondError(c, err)
+		kernel.RespondError(c, kernel.ErrUnauthorized)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"user": u, "tenant": t})

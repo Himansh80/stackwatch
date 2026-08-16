@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stackwatch/platform/internal/auth"
@@ -72,15 +73,18 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		kernel.RespondError(c, err)
 		return
 	}
+	now := time.Now().UTC()
 	kernel.RespondCreated(c, LoginResponse{
 		Token: tok,
 		User: &kernel.User{
 			ID: userID, TenantID: tenantID, Email: email, FullName: req.FullName,
 			Role: kernel.RoleAdmin, Status: kernel.UserActive,
+			CreatedAt: now, UpdatedAt: now,
 		},
 		Tenant: &kernel.Tenant{
 			ID: tenantID, Name: req.TenantName, Slug: slugify(req.TenantName),
 			Plan: kernel.PlanFree, Status: kernel.TenantActive,
+			CreatedAt: now, UpdatedAt: now,
 		},
 	})
 }
