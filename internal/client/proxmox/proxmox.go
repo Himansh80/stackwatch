@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -61,6 +62,71 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 		return err
 	}
 	return json.Unmarshal(wrapper.Data, out)
+}
+
+// postForm executes a POST with form-encoded body and decodes data field.
+// Unlike doTask, this just returns the error if any (for sync endpoints
+// like /storage that return the resource, not a UPID).
+func (c *Client) postForm(ctx context.Context, path string, form url.Values, out any) error {
+	u := c.baseURL + "/api2/json" + path
+	req, err := newFormRequestWithContext(ctx, "POST", u, form, c.apiToken)
+	if err != nil {
+		return err
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 401 {
+		return fmt.Errorf("proxmox: unauthorized")
+	}
+	if resp.StatusCode == 403 {
+		return fmt.Errorf("proxmox: forbidden")
+	}
+	if resp.StatusCode == 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("proxmox: bad request: %s", string(body))
+	}
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("proxmox: HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	if out == nil {
+		return nil
+	}
+	var wrapper struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+		return err
+	}
+	return json.Unmarshal(wrapper.Data, out)
+}
+
+// deleteForm executes a DELETE (no body) and ignores the result.
+// Returns error if HTTP >= 400.
+func (c *Client) deleteForm(ctx context.Context, path string) error {
+	u := c.baseURL + "/api2/json" + path
+	req, err := http.NewRequestWithContext(ctx, "DELETE", u, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", c.apiToken)
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 401 {
+		return fmt.Errorf("proxmox: unauthorized")
+	}
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("proxmox: HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
 }
 
 // Ping checks the host is reachable and the token works.

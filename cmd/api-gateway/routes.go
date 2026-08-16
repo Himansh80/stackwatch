@@ -54,7 +54,6 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/test", proxmoxH.TestHost)
 	protected.GET("/proxmox/hosts/:id/nodes", proxmoxH.ListNodes)
 	protected.GET("/proxmox/hosts/:id/vms", proxmoxH.ListVMs)
-	protected.GET("/proxmox/hosts/:id/storage", proxmoxH.ListStorage)
 	// Tier 1.2: VM lifecycle
 	protected.GET("/proxmox/hosts/:id/nodes/:node/qemu/:vmid", proxmoxH.GetVMConfig)
 	protected.PUT("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/config", proxmoxH.UpdateVMConfig)
@@ -68,6 +67,12 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.PUT("/proxmox/hosts/:id/nodes/:node/lxc/:vmid/config", proxmoxH.UpdateLXCConfig)
 	protected.DELETE("/proxmox/hosts/:id/nodes/:node/lxc/:vmid", proxmoxH.DeleteLXC)
 	protected.POST("/proxmox/hosts/:id/nodes/:node/lxc/:vmid/status/:action", proxmoxH.LXCStatusAction)
+	// Tier 1.4: Storage management
+	protected.GET("/proxmox/hosts/:id/storage", proxmoxH.ListStorageEntries)
+	protected.POST("/proxmox/hosts/:id/storage", proxmoxH.CreateStorage)
+	protected.DELETE("/proxmox/hosts/:id/storage/:name", proxmoxH.DeleteStorage)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/storage/:storage/content", proxmoxH.ListStorageContent)
+	protected.DELETE("/proxmox/hosts/:id/nodes/:node/storage/:storage/content", proxmoxH.DeleteStorageContent)
 
 	return r
 }
