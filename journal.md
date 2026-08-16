@@ -217,3 +217,37 @@ Run 4: 9/9 PASS
 - Networking (bridges, VLANs, bonds)
 - Firewall (rules, aliases, IPsets, security groups)
 - DNS
+
+---
+
+## Session 6 — 2026-08-17 (Tier 1.5)
+
+### Goals
+- Network management: list/create/update/delete
+
+### Done
+- ✅ NetworkIface/NetworkSpec types + 5 CRUD methods in client
+- ✅ putForm helper (Proxmox PUT for updates, not POST)
+- ✅ internal/handler/proxmox_network.go (175 lines, 4 handlers)
+- ✅ 4 new routes wired
+- ✅ 9/9 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Bugs caught + fixed
+23. vlan_id/vlan_raw_device are hyphen-separated in Proxmox POST form (vlan-id, vlan-raw-device)
+24. bridge_stp/bridge_fd/bridge_vlan_aware returned as STRINGS ("on"/"off", "0"), not int
+25. PUT /network/{iface} requires `type` field to be re-sent (Proxmox schema quirk)
+26. Update needs PUT method (POST returns 501 "Method not implemented")
+27. Network sync endpoints return null on success, not resource
+
+### Verification (4 consecutive runs, all PASS)
+```
+Run 1: 9/9 PASS
+Run 2: 9/9 PASS
+Run 3: 9/9 PASS
+Run 4: 9/9 PASS
+```
+
+### Next (Tier 1.6)
+- Firewall (rules, aliases, IPsets, security groups)
+- OR Users (Proxmox user mgmt + permissions)
