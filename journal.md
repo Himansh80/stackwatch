@@ -419,3 +419,30 @@ Run 4: 14/14 PASS
 - Cluster (HA groups, resources, status, replication)
 - OR Pools (resource pools)
 - OR Backup (vzdump + restore)
+
+---
+
+## Session 12 — 2026-08-17 (Tier 1.11)
+
+### Goals
+- Pools CRUD
+- Cluster resources / status / info
+
+### Done
+- ✅ Pool struct (poolid + comment + members)
+- ✅ PoolMember struct
+- ✅ ListPools, GetPool, CreatePool, UpdatePool, DeletePool
+- ✅ ClusterResource, ClusterStatusNode, ClusterInfo structs
+- ✅ ListClusterResources (with type filter), GetClusterStatus, GetClusterInfo
+- ✅ 12/12 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Proxmox quirks caught + fixed (2)
+43. /cluster/info not implemented on this Proxmox (.107) — accept 501
+44. /cluster/resources?type=qemu rejected — Proxmox uses 'vm' filter
+    (returns both qemu VMs and lxc containers)
+
+### Next (Tier 1.12)
+- Backup (vzdump + restore + scheduled)
+- OR Certificates (ACME + custom SSL)
+- OR SDN / DNS zones
