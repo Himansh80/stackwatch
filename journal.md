@@ -367,3 +367,26 @@ Run 4: 14/14 PASS
 - Tasks (Proxmox task history + status polling)
 - OR Backup (vzdump + restore)
 - OR Replication (Proxmox replication jobs)
+
+---
+
+## Session 10 — 2026-08-17 (Tier 1.9)
+
+### Goals
+- Proxmox task management (history, status, log, stop)
+
+### Done
+- ✅ Task + TaskLogLine + TaskLog structs (log decodes full wrapper for total)
+- ✅ 5 client methods: ListClusterTasks, ListNodeTasks, GetTaskStatus, GetTaskLog, StopTask
+- ✅ 5 handlers + routes
+- ✅ 7/7 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Proxmox quirks caught + fixed (2)
+38. /cluster/tasks does NOT accept ?limit=query param
+39. /nodes/{node}/tasks/{upid}/log returns {total, data:[...]} at top level
+    (NOT nested). Custom decoder preserves total.
+
+### Next (Tier 1.10)
+- Backup (vzdump + restore + PBS integration)
+- OR Replication (Proxmox replication jobs)
