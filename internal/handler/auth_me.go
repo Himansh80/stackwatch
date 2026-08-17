@@ -99,6 +99,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	// Re-verify; this returns the same claims if still valid.
 	claims, err := h.issuer.Verify(req.Token)
 	if err != nil {
+		h.logger.Error("refresh verify failed", "err", err, "token_len", len(req.Token))
 		kernel.RespondError(c, kernel.ErrUnauthorized)
 		return
 	}

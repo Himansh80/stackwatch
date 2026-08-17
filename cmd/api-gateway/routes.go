@@ -57,12 +57,14 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	r.POST("/api/v1/auth/reset", authH.ResetPassword)
 
 	// Protected endpoints (require valid JWT)
-		protected := r.Group("/api/v1", handler.RequireAuth(issuer))
-		protected.GET("/auth/me", authH.Me)
-		protected.POST("/auth/logout", authH.Logout)
-		protected.POST("/auth/change-password", authH.ChangePassword)
-		// Tier 0.5: refresh token (issue a fresh JWT for an unexpired one).
-		protected.POST("/auth/refresh", authH.Refresh)
+	protected := r.Group("/api/v1", handler.RequireAuth(issuer))
+	protected.GET("/auth/me", authH.Me)
+	protected.POST("/auth/logout", authH.Logout)
+	protected.POST("/auth/change-password", authH.ChangePassword)
+	// /auth/refresh is intentionally UNPROTECTED — handler reads token
+	// from request body, not the Authorization header. Putting it under
+	// the protected group means RequireAuth aborts before Refresh runs.
+	r.POST("/api/v1/auth/refresh", authH.Refresh)
 
 		// Tier 0 tenant management (scoped to caller's JWT tenant).
 		protected.GET("/tenants", handler.ListTenants(pool))
