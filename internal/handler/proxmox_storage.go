@@ -104,6 +104,7 @@ func (h *ProxmoxHandler) DeleteStorage(c *gin.Context) {
 }
 
 // ListStorageContent returns the volumes (ISOs, templates, backups) in a storage.
+// Optional `content` query param filters by type: iso, vztmpl, backup, rootdir, images.
 func (h *ProxmoxHandler) ListStorageContent(c *gin.Context) {
 	host, ok := h.fetchHostCreds(c, lookupID(c))
 	if !ok {
@@ -113,12 +114,13 @@ func (h *ProxmoxHandler) ListStorageContent(c *gin.Context) {
 	node := c.Param("node")
 	storage := c.Param("storage")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
-	content, err := cli.ListContent(c.Request.Context(), node, storage)
+	contentFilter := c.Query("content")
+	content, err := cli.ListContent(c.Request.Context(), node, storage, contentFilter)
 	if err != nil {
 		kernel.RespondError(c, err)
 		return
 	}
-	kernel.RespondOK(c, gin.H{"content": content, "total": len(content), "storage": storage})
+	kernel.RespondOK(c, gin.H{"content": content, "total": len(content), "storage": storage, "filter": contentFilter})
 }
 
 // DeleteStorageContent removes a specific volume from a storage.

@@ -2,8 +2,12 @@ package proxmox
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"strconv"
 )
 
 // StorageType is the Proxmox storage backend kind.
@@ -145,6 +149,7 @@ func (c *Client) DeleteStorage(ctx context.Context, name string) (string, error)
 }
 
 // Content is a volume/template/backup stored in a storage.
+// ctime is sometimes int, sometimes string (Proxmox inconsistency).
 type Content struct {
 	Content string `json:"content"` // "iso", "vztmpl", "backup", "images", "rootdir"
 	VolID   string `json:"volid"`   // e.g. "local:iso/debian-12.iso"
@@ -152,15 +157,81 @@ type Content struct {
 	Size    int64  `json:"size"`
 	CTime   int64  `json:"ctime,omitempty"`
 	Notes   string `json:"notes,omitempty"`
+	// VMID is optional (rootdir/images only). Use json.Number-like approach.
+	VMID       int    `json:"vmid,omitempty"`
+	Parent     string `json:"parent,omitempty"`
+	Used       int64  `json:"used,omitempty"`
 }
 
 // ListContent returns the volumes/templates/ISOs in a storage on a node.
-func (c *Client) ListContent(ctx context.Context, node, storage string) ([]Content, error) {
+// Optional contentFilter limits to one type: iso, vztmpl, backup, rootdir, images.
+//
+// Proxmox is inconsistent: ctime may be int (1776...) or string ("1776...").
+// We use RawMessage first then normalize.
+func (c *Client) ListContent(ctx context.Context, node, storage, contentFilter string) ([]Content, error) {
 	path := fmt.Sprintf("/nodes/%s/storage/%s/content",
 		url.PathEscape(node), url.PathEscape(storage))
-	var out []Content
-	if err := c.get(ctx, path, &out); err != nil {
+	if contentFilter != "" {
+		path += "?content=" + url.QueryEscape(contentFilter)
+	}
+	// Fetch raw to handle inconsistent types
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL + "/api2/json" + path, nil)
+	if err != nil {
 		return nil, err
+	}
+	req.Header.Set("Authorization", c.apiToken)
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("proxmox HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	var wrapper struct {
+		Data []json.RawMessage `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+		return nil, err
+	}
+	out := make([]Content, 0, len(wrapper.Data))
+	for _, raw := range wrapper.Data {
+		// First decode into a flexible map to normalize ctime
+		var flex map[string]interface{}
+		if err := json.Unmarshal(raw, &flex); err != nil {
+			continue
+		}
+		// Normalize ctime: keep as int64 (Proxmox returns both)
+		if v, ok := flex["ctime"]; ok {
+			switch x := v.(type) {
+			case float64:
+				flex["ctime"] = int64(x)
+			case string:
+				if n, err := strconv.ParseInt(x, 10, 64); err == nil {
+					flex["ctime"] = n
+				}
+			}
+		}
+		// Normalize vmid similarly
+		if v, ok := flex["vmid"]; ok {
+			switch x := v.(type) {
+			case float64:
+				flex["vmid"] = int64(x)
+			case string:
+				if n, err := strconv.ParseInt(x, 10, 64); err == nil {
+					flex["vmid"] = int(n)
+				}
+			}
+		}
+		// Re-marshal and unmarshal into typed Content
+		normalized, _ := json.Marshal(flex)
+		var content Content
+		if err := json.Unmarshal(normalized, &content); err != nil {
+			continue
+		}
+		out = append(out, content)
 	}
 	return out, nil
 }
