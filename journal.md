@@ -697,3 +697,33 @@ Run 4: 14/14 PASS
 - web-terminal on .115:8085: md5 `0684e3f916e48556b74f5525b361a32f`
 - api-gateway on .115:8080: md5 `a3eefb456156d01e16163c6d7cd53c7e`
 - 264/264 total live tests across 20 tiers
+
+---
+
+## Session 21 — 2026-08-17 (Tier 3.6 — Credentials-driven auth)
+
+### Goals
+- Use stored credentials (password, key_passphrase) for SSH auth
+- Unified auth helper used by both dialSSH and dialSFTP
+
+### Done
+- ✅ 2 new endpoints, 1 new migration, unified auth helper
+- ✅ 18/18 live tests PASS, 4 consecutive runs
+
+### Bugs caught + fixed (3)
+77. terminal_connections.go went over 500 lines — moved classifyDialError
+78. authMethod empty in response when dial fails before handshake — fix:
+    report intended method from the connection row
+79. Old dead dialSSH function left in file after refactor — removed
+
+### Files
+- internal/handler/auth_helper.go        (NEW — unified dialConnection)
+- internal/handler/connection_auth.go    (NEW — auth_method + credential_id CRUD)
+- internal/handler/terminal_connections.go (refactored to use helper)
+- internal/handler/fs.go                 (refactored to use helper)
+- cmd/api-gateway/routes.go              (2 new routes)
+- migrations/006_credential_auth.sql     (NEW — auth_method column)
+
+### Live state
+- api-gateway on .115: md5 `8da87fff723643443396a5aa483755f3`
+- 282/282 total live tests across 21 tiers
