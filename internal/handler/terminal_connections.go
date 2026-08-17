@@ -8,14 +8,12 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"golang.org/x/crypto/ssh"
 
 	"github.com/stackwatch/platform/internal/kernel"
 )
@@ -277,13 +275,22 @@ func (h *TerminalHandler) TestConnection(c *gin.Context) {
 		return
 	}
 
-	start := time.Now()
-	statusStr, dialErr := h.dialSSH(c.Request.Context(), tenantID, host, port, user, sshKeyID)
-	duration := time.Since(start)
+	// Load auth_method to report even if dial fails before authenticating
+	var intendedMethod string
+	_ = h.pool.Pgx().QueryRow(c.Request.Context(),
+		`SELECT auth_method FROM connections WHERE tenant_id = $1 AND id = $2`,
+		tenantID, id).Scan(&intendedMethod)
 
-	errorMsg := ""
-	if dialErr != nil {
-		errorMsg = dialErr.Error()
+	start := time.Now()
+	authRes, dialErr := h.dialConnection(c.Request.Context(), tenantID, id, 10*time.Second)
+	duration := time.Since(start)
+	statusStr, errorMsg := classifyDialError(dialErr, c.Request.Context())
+
+	// Record which auth method was used (or attempted)
+	authMethod := intendedMethod
+	if authRes != nil {
+		authMethod = authRes.AuthMethod
+		authRes.Client.Close()
 	}
 
 	// Always log history
@@ -312,6 +319,7 @@ func (h *TerminalHandler) TestConnection(c *gin.Context) {
 		"status":      statusStr,
 		"duration_ms": duration.Milliseconds(),
 		"success":     statusStr == "success",
+		"auth_method": authMethod,
 		"error":       errorMsg,
 	})
 }
@@ -407,85 +415,24 @@ func generateKey(keyType string, rsaBits int) (priv interface{}, pub interface{}
 	}
 }
 
-// dialSSH attempts an SSH connection. Returns status string + error.
-// Method on TerminalHandler so it can use h.pool.
-func (h *TerminalHandler) dialSSH(ctx context.Context, tenantID uuid.UUID, host string, port int, user string, sshKeyID *uuid.UUID) (string, error) {
-	if sshKeyID == nil {
-		return "failed", fmt.Errorf("no ssh_key_id and no password auth yet (Tier 3.2)")
+// classifyDialError maps an SSH dial error to one of our standard status strings.
+func classifyDialError(err error, ctx context.Context) (string, string) {
+	if err == nil {
+		return "success", ""
 	}
-
-	// Look up this connection's verification_mode
-	verMode := "strict"
-	_ = h.pool.Pgx().QueryRow(ctx,
-		`SELECT verification_mode FROM connections
-         WHERE tenant_id = $1 AND host = $2 AND port = $3 AND user_ = $4`,
-		tenantID, host, port, user).Scan(&verMode)
-	if verMode != "strict" && verMode != "insecure" {
-		verMode = "strict"
+	if ctx.Err() == context.DeadlineExceeded {
+		return "timeout", err.Error()
 	}
-
-	var privKeyPEM, passphrase string
-	err := h.pool.Pgx().QueryRow(ctx,
-		`SELECT private_key, passphrase FROM ssh_keys WHERE tenant_id = $1 AND id = $2`,
-		tenantID, *sshKeyID).Scan(&privKeyPEM, &passphrase)
-	if err != nil {
-		return "failed", fmt.Errorf("load key: %w", err)
+	if strings.Contains(err.Error(), "connection refused") {
+		return "refused", err.Error()
 	}
-
-	var signer ssh.Signer
-	if passphrase != "" {
-		signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(privKeyPEM), []byte(passphrase))
-	} else {
-		signer, err = ssh.ParsePrivateKey([]byte(privKeyPEM))
+	if strings.Contains(err.Error(), "no route to host") {
+		return "failed", err.Error()
 	}
-	if err != nil {
-		return "failed", fmt.Errorf("parse key: %w", err)
+	if strings.Contains(err.Error(), "knownhosts") || strings.Contains(err.Error(), "host key") {
+		return "mitm", err.Error()
 	}
-
-	// Build HostKeyCallback based on verification_mode.
-	// In "insecure" mode we accept any key (backwards compat).
-	// In "strict" mode we look up the known_hosts row for (host, port) and
-	// require an exact fingerprint match. If the host is untrusted, we fail
-	// with a clear error suggesting the user call POST /terminal/known-hosts/trust.
-	var hostKeyCB ssh.HostKeyCallback
-	if verMode == "insecure" {
-		hostKeyCB = ssh.InsecureIgnoreHostKey()
-	} else {
-		hostKeyCB = makeStrictHostKeyCallback(h.pool, ctx, tenantID, host, port)
-	}
-
-	cfg := &ssh.ClientConfig{
-		User:            user,
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		HostKeyCallback: hostKeyCB,
-		Timeout:         10 * time.Second,
-	}
-
-	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
-	client, err := ssh.Dial("tcp", addr, cfg)
-	if err != nil {
-		// Determine status from error message
-		if ctx.Err() == context.DeadlineExceeded {
-			return "timeout", err
-		}
-		if strings.Contains(err.Error(), "connection refused") {
-			return "refused", err
-		}
-		if strings.Contains(err.Error(), "no route to host") {
-			return "failed", err
-		}
-		// Host key errors come back as "ssh: handshake failed: knownhosts: ..."
-		if strings.Contains(err.Error(), "knownhosts") || strings.Contains(err.Error(), "host key") {
-			return "mitm", err
-		}
-		return "failed", err
-	}
-	defer client.Close()
-
-	sess, err := client.NewSession()
-	if err != nil {
-		return "failed", err
-	}
-	sess.Close()
-	return "success", nil
+	return "failed", err.Error()
 }
+
+

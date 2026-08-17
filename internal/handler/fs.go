@@ -7,10 +7,8 @@ package handler
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +16,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
@@ -384,61 +381,18 @@ func (h *TerminalHandler) RenameFS(c *gin.Context) {
 }
 
 // dialSFTP opens an SSH + SFTP client for a saved connection.
+// Uses the unified auth helper (Tier 3.6) so password auth works too.
 func (h *TerminalHandler) dialSFTP(ctx context.Context, tenantID, connID uuid.UUID) (*ssh.Client, *sftp.Client, error) {
-	// Load connection + key
-	var host string
-	var port int
-	var user string
-	var sshKeyID *uuid.UUID
-	err := h.pool.Pgx().QueryRow(ctx,
-		`SELECT host, port, user_, ssh_key_id FROM connections
-         WHERE tenant_id = $1 AND id = $2`, tenantID, connID).
-		Scan(&host, &port, &user, &sshKeyID)
+	authRes, err := h.dialConnection(ctx, tenantID, connID, 15*time.Second)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, errors.New("connection not found")
-		}
-		return nil, nil, fmt.Errorf("load connection: %w", err)
+		return nil, nil, err
 	}
-	if sshKeyID == nil {
-		return nil, nil, errors.New("connection has no ssh_key_id (password auth not yet supported)")
-	}
-
-	var privKeyPEM, passphrase string
-	err = h.pool.Pgx().QueryRow(ctx,
-		`SELECT private_key, passphrase FROM ssh_keys WHERE tenant_id = $1 AND id = $2`,
-		tenantID, *sshKeyID).Scan(&privKeyPEM, &passphrase)
+	sftpClient, err := sftp.NewClient(authRes.Client)
 	if err != nil {
-		return nil, nil, fmt.Errorf("load key: %w", err)
-	}
-
-	var signer ssh.Signer
-	if passphrase != "" {
-		signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(privKeyPEM), []byte(passphrase))
-	} else {
-		signer, err = ssh.ParsePrivateKey([]byte(privKeyPEM))
-	}
-	if err != nil {
-		return nil, nil, fmt.Errorf("parse key: %w", err)
-	}
-
-	cfg := &ssh.ClientConfig{
-		User:            user,
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         15 * time.Second,
-	}
-	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
-	client, err := ssh.Dial("tcp", addr, cfg)
-	if err != nil {
-		return nil, nil, fmt.Errorf("ssh dial: %w", err)
-	}
-	sftpClient, err := sftp.NewClient(client)
-	if err != nil {
-		client.Close()
+		authRes.Client.Close()
 		return nil, nil, fmt.Errorf("sftp new: %w", err)
 	}
-	return client, sftpClient, nil
+	return authRes.Client, sftpClient, nil
 }
 
 // base64Encode / Decode wrappers (avoid importing encoding/base64 in every helper)

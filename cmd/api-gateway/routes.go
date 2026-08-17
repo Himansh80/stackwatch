@@ -175,6 +175,9 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	// Tier 3.4: Verification mode per connection
 	protected.GET("/terminal/connections/:id/verification", termH.GetConnectionVerificationMode)
 	protected.PUT("/terminal/connections/:id/verification", termH.UpdateConnectionVerificationMode)
+	// Tier 3.6: Auth method management
+	protected.GET("/terminal/connections/:id/auth", termH.GetConnectionAuth)
+	protected.PUT("/terminal/connections/:id/auth", termH.UpdateConnectionAuth)
 	// Tier 3.3: SFTP file browser
 	protected.GET("/terminal/connections/:id/fs", termH.ListFS)
 	protected.GET("/terminal/connections/:id/fs/read", termH.ReadFS)
