@@ -119,6 +119,13 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/cluster/resources", proxmoxH.ListClusterResources)
 	protected.GET("/proxmox/hosts/:id/cluster/status", proxmoxH.GetClusterStatus)
 	protected.GET("/proxmox/hosts/:id/cluster/info", proxmoxH.GetClusterInfo)
+	// Tier 1.12: Backup
+	protected.GET("/proxmox/hosts/:id/cluster/backup", proxmoxH.ListBackupJobs)
+	protected.GET("/proxmox/hosts/:id/cluster/backup/:jobid", proxmoxH.GetBackupJob)
+	protected.POST("/proxmox/hosts/:id/cluster/backup", proxmoxH.CreateBackupJob)
+	protected.PUT("/proxmox/hosts/:id/cluster/backup/:jobid", proxmoxH.UpdateBackupJob)
+	protected.DELETE("/proxmox/hosts/:id/cluster/backup/:jobid", proxmoxH.DeleteBackupJob)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/vzdump", proxmoxH.BackupNow)
 
 	return r
 }
