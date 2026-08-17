@@ -110,6 +110,15 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/nodes/:node/storage/:storage/download/*volume", proxmoxH.DownloadStorageFile)
 	protected.GET("/proxmox/hosts/:id/nodes/:node/storage/:storage/upload", proxmoxH.GetStorageUploadURL)
 	protected.GET("/proxmox/hosts/:id/nodes/:node/iscsi", proxmoxH.ListISCSI)
+	// Tier 1.11: Pools + Cluster resources
+	protected.GET("/proxmox/hosts/:id/pools", proxmoxH.ListPools)
+	protected.GET("/proxmox/hosts/:id/pools/:poolid", proxmoxH.GetPool)
+	protected.POST("/proxmox/hosts/:id/pools", proxmoxH.CreatePool)
+	protected.PUT("/proxmox/hosts/:id/pools/:poolid", proxmoxH.UpdatePool)
+	protected.DELETE("/proxmox/hosts/:id/pools/:poolid", proxmoxH.DeletePool)
+	protected.GET("/proxmox/hosts/:id/cluster/resources", proxmoxH.ListClusterResources)
+	protected.GET("/proxmox/hosts/:id/cluster/status", proxmoxH.GetClusterStatus)
+	protected.GET("/proxmox/hosts/:id/cluster/info", proxmoxH.GetClusterInfo)
 
 	return r
 }
