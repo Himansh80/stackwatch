@@ -574,3 +574,41 @@ Run 4: 14/14 PASS
 - api-gateway on .115: md5 `00fc5f45931c4f8b5d7a4f8ac6dcd7ef`
 - 207/207 total live tests across 16 tiers
 - Master key (CREDENTIALS_MASTER_KEY): 86Wg09p7kHWVDF6zQQD8D7CK2+aJk0w+vbNS14wnP4c=
+
+---
+
+## Session 17 — 2026-08-17 (Tier 0.5 — Install mode + setup wizard)
+
+### Goals
+- Foundation for cloud + self-hosted dual mode
+- Install mode detection (INSTALL_MODE env var)
+- Self-hosted setup wizard (admin + domain + TLS)
+- Agent install script (works for both modes)
+- ZERO regression to existing Tier 0-3
+
+### Done
+- ✅ 3 new endpoints, 1 new migration, 1 new handler file, 2 new web files
+- ✅ 10/10 live tests PASS, 9/10 stable runs
+
+### Bugs caught + fixed (3)
+61. kernel.NewErr* doesn't exist; use ErrForbidden/ErrConflict/ErrBadRequest sentinels
+62. auth.Issuer.Issue returns (string, error), not (string, time.Time, error) — derive expires from TTLSeconds
+63. patch tool's old_string matching fails on long content; use write_file with full content
+
+### Files
+- internal/handler/setup.go              (300 lines)
+- cmd/api-gateway/config.go              (modified — InstallMode field)
+- cmd/api-gateway/main.go                (modified — passes mode to buildRouter)
+- cmd/api-gateway/routes.go              (modified — 3 setup routes)
+- migrations/004_setup_state.sql         (singleton table for setup state)
+- web/public/setup-wizard.html           (3-step wizard UI)
+- web/public/install-agent.sh            (Datadog-style one-liner installer)
+
+### Live state
+- api-gateway on .115: md5 `808a1f5e3317896d59f0957302eb9cd1`
+- INSTALL_MODE=cloud (current production)
+- /health: `{"db":"ok","mode":"cloud","status":"ok","version":"0.1.0-tier0.5"}`
+
+### Plan
+- PLAN-CLOUD-SELFHOSTED.md committed (10KB, locked)
+- Tier 4.0 next: Docker + docker-compose + 1-line install
