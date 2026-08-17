@@ -446,3 +446,27 @@ Run 4: 14/14 PASS
 - Backup (vzdump + restore + scheduled)
 - OR Certificates (ACME + custom SSL)
 - OR SDN / DNS zones
+
+---
+
+## Session 13 — 2026-08-17 (Tier 1.12)
+
+### Goals
+- Backup schedule CRUD
+- Immediate backup (vzdump)
+
+### Done
+- ✅ BackupJob struct (id, schedule, storage, mode, vmid, compress, maxdays)
+- ✅ ListBackupJobs, GetBackupJob, CreateBackupJob, UpdateBackupJob, DeleteBackupJob
+- ✅ BackupNow (vzdump) returns UPID
+- ✅ 10/10 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Proxmox quirks caught + fixed (1)
+45. UpdateBackupJob sent 'disable=1' for jobs.Enabled=0 — Proxmox
+    schema rejects 'disable' as unknown property. Removed.
+
+### Next (Tier 1.13 - FINAL)
+- Certificates (ACME + custom SSL)
+- OR SDN / DNS zones
+- OR Replication jobs
