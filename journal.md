@@ -612,3 +612,29 @@ Run 4: 14/14 PASS
 ### Plan
 - PLAN-CLOUD-SELFHOSTED.md committed (10KB, locked)
 - Tier 4.0 next: Docker + docker-compose + 1-line install
+
+---
+
+## Session 18 — 2026-08-17 (Tier 3.3 — SFTP file browser)
+
+### Goals
+- Real SFTP via pkg/sftp
+- List / read / write / mkdir / delete / rename / stat
+
+### Done
+- ✅ 7 new endpoints, 20/20 live tests PASS, 4 consecutive runs
+
+### Bugs caught + fixed (2)
+64. Verifier failed initially because SSH on .115 only accepts authorized_keys
+    entries; SFTP code was correct, but the verifier needed to install the
+    generated test pubkey. Fixed in t1b/t1c.
+65. F-string bug in verifier (e.code if e.code if e else '') — wrong syntax
+
+### Files
+- internal/handler/fs.go (350 lines)
+- cmd/api-gateway/routes.go (7 new routes)
+- go.mod / go.sum (added github.com/pkg/sftp)
+
+### Live state
+- api-gateway on .115: md5 `bb739193fdafdf9264f1761c92962ac4`
+- 237/237 total live tests across 18 tiers
