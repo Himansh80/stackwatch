@@ -22,8 +22,13 @@ type Client struct {
 	httpClient *http.Client
 }
 
-// NewClient creates a client. token format: "PVEAPIToken=user@realm!id=uuid".
+// NewClient creates a client. Accepts either:
+//   - "PVEAPIToken=user@realm!id=uuid" (preferred)
+//   - "user@realm!id=uuid" (auto-prefixed with PVEAPIToken=)
 func NewClient(baseURL, apiToken string, verifyTLS bool) *Client {
+	if !strings.HasPrefix(apiToken, "PVEAPIToken=") {
+		apiToken = "PVEAPIToken=" + apiToken
+	}
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: !verifyTLS},
 	}
@@ -172,26 +177,26 @@ func (c *Client) ListNodes(ctx context.Context) ([]Node, error) {
 
 // VM represents a QEMU VM or LXC container from /cluster/resources.
 type VM struct {
-	ID             string  `json:"id"` // e.g. "qemu/100" or "lxc/101"
-	Type           string  `json:"type"`
-	Node           string  `json:"node"`
-	VMID           int     `json:"vmid"`
-	Name           string  `json:"name"`
-	Status         string  `json:"status"`
-	CPU            float64 `json:"cpu"`
-	MaxCPU         int     `json:"maxcpu"`
-	Mem            int64   `json:"mem"`
-	MaxMem         int64   `json:"maxmem"`
-	MemHost        int64   `json:"memhost,omitempty"`
-	Disk           int64   `json:"disk"`
-	MaxDisk        int64   `json:"maxdisk"`
-	DiskRead       int64   `json:"diskread"`
-	DiskWrite      int64   `json:"diskwrite"`
-	NetIn          int64   `json:"netin"`
-	NetOut         int64   `json:"netout"`
-	Uptime         int64   `json:"uptime"`
-	Template       int     `json:"template"`
-	Tags           string  `json:"tags"`
+	ID        string  `json:"id"` // e.g. "qemu/100" or "lxc/101"
+	Type      string  `json:"type"`
+	Node      string  `json:"node"`
+	VMID      int     `json:"vmid"`
+	Name      string  `json:"name"`
+	Status    string  `json:"status"`
+	CPU       float64 `json:"cpu"`
+	MaxCPU    int     `json:"maxcpu"`
+	Mem       int64   `json:"mem"`
+	MaxMem    int64   `json:"maxmem"`
+	MemHost   int64   `json:"memhost,omitempty"`
+	Disk      int64   `json:"disk"`
+	MaxDisk   int64   `json:"maxdisk"`
+	DiskRead  int64   `json:"diskread"`
+	DiskWrite int64   `json:"diskwrite"`
+	NetIn     int64   `json:"netin"`
+	NetOut    int64   `json:"netout"`
+	Uptime    int64   `json:"uptime"`
+	Template  int     `json:"template"`
+	Tags      string  `json:"tags"`
 }
 
 // ListVMs returns all VMs + LXC across all nodes via /cluster/resources.
@@ -215,14 +220,14 @@ func (c *Client) ListNodeVMs(ctx context.Context, node string, kind string) ([]V
 
 // Storage represents a Proxmox storage pool.
 type Storage struct {
-	Storage string  `json:"storage"`
-	Type    string  `json:"type"`
-	Status  string  `json:"status"`
-	Total   int64   `json:"total"`
-	Used    int64   `json:"used"`
-	Avail   int64   `json:"avail"`
-	Content string  `json:"content"`
-	Active  int     `json:"active"`
+	Storage  string  `json:"storage"`
+	Type     string  `json:"type"`
+	Status   string  `json:"status"`
+	Total    int64   `json:"total"`
+	Used     int64   `json:"used"`
+	Avail    int64   `json:"avail"`
+	Content  string  `json:"content"`
+	Active   int     `json:"active"`
 	UsedFrac float64 `json:"used_fraction"`
 }
 

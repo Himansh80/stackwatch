@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -45,7 +46,11 @@ func (h *ProxmoxHandler) CreateHost(c *gin.Context) {
 	// Test connection before persisting
 	cli := proxmox.NewClient(req.BaseURL, req.APIToken, req.VerifyTLS)
 	if err := cli.Ping(c.Request.Context()); err != nil {
-		kernel.RespondError(c, kernel.ErrBadRequest)
+		// re-export as 200 with error so caller can see the real reason
+		c.JSON(http.StatusBadRequest, gin.H{
+			"ok":    false,
+			"error": "proxmox ping failed: " + err.Error() + " (check API token format: USER@REALM!TOKENID=UUID)",
+		})
 		return
 	}
 
@@ -219,7 +224,7 @@ func (h *ProxmoxHandler) ListNodes(c *gin.Context) {
 		out[i] = ProxmoxNode{
 			Name: n.Node, Status: n.Status,
 			UptimeSeconds: n.Uptime,
-			CPUCount: n.MaxCPU, CPUUsage: n.CPU,
+			CPUCount:      n.MaxCPU, CPUUsage: n.CPU,
 			MemTotal: n.MaxMem, MemUsed: n.Mem,
 			DiskTotal: n.MaxDisk, DiskUsed: n.Disk,
 		}
