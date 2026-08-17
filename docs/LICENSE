@@ -1,0 +1,35 @@
+# License
+
+StackWatch is dual-licensed:
+
+1. **AGPL-3.0** for self-hosted use, internal use, and personal use
+   (see `LICENSE-AGPL` for the full text)
+
+2. **Commercial license** for OEM / white-label scenarios
+   (contact `sales@stackwatch.io`)
+
+---
+
+## Why AGPL?
+
+We allow anyone to self-host without charge while preventing "SaaS
+competitors" — companies that fork, run a hosted version, and don't
+contribute back. AGPL closes that loophole.
+
+If you want to offer a hosted StackWatch but charge users for it
+**without open-sourcing your modifications**, get a commercial license.
+
+## What AGPL does NOT require of you
+
+- ❌ Doesn't make YOUR code AGPL (only StackWatch modifications)
+- ❌ Doesn't apply to your own monitoring data
+- ❌ Doesn't trigger unless you expose the binary to users over a network
+- ✅ Self-hosting for your own company is fully free
+- ✅ Internal IT use is fully free
+
+## Verbatim SPDX header for new files
+
+```
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (c) 2026 StackWatch contributors
+```
