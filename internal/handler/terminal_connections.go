@@ -414,6 +414,16 @@ func (h *TerminalHandler) dialSSH(ctx context.Context, tenantID uuid.UUID, host 
 		return "failed", fmt.Errorf("no ssh_key_id and no password auth yet (Tier 3.2)")
 	}
 
+	// Look up this connection's verification_mode
+	verMode := "strict"
+	_ = h.pool.Pgx().QueryRow(ctx,
+		`SELECT verification_mode FROM connections
+         WHERE tenant_id = $1 AND host = $2 AND port = $3 AND user_ = $4`,
+		tenantID, host, port, user).Scan(&verMode)
+	if verMode != "strict" && verMode != "insecure" {
+		verMode = "strict"
+	}
+
 	var privKeyPEM, passphrase string
 	err := h.pool.Pgx().QueryRow(ctx,
 		`SELECT private_key, passphrase FROM ssh_keys WHERE tenant_id = $1 AND id = $2`,
@@ -432,10 +442,22 @@ func (h *TerminalHandler) dialSSH(ctx context.Context, tenantID uuid.UUID, host 
 		return "failed", fmt.Errorf("parse key: %w", err)
 	}
 
+	// Build HostKeyCallback based on verification_mode.
+	// In "insecure" mode we accept any key (backwards compat).
+	// In "strict" mode we look up the known_hosts row for (host, port) and
+	// require an exact fingerprint match. If the host is untrusted, we fail
+	// with a clear error suggesting the user call POST /terminal/known-hosts/trust.
+	var hostKeyCB ssh.HostKeyCallback
+	if verMode == "insecure" {
+		hostKeyCB = ssh.InsecureIgnoreHostKey()
+	} else {
+		hostKeyCB = makeStrictHostKeyCallback(h.pool, ctx, tenantID, host, port)
+	}
+
 	cfg := &ssh.ClientConfig{
 		User:            user,
 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hostKeyCB,
 		Timeout:         10 * time.Second,
 	}
 
@@ -451,6 +473,10 @@ func (h *TerminalHandler) dialSSH(ctx context.Context, tenantID uuid.UUID, host 
 		}
 		if strings.Contains(err.Error(), "no route to host") {
 			return "failed", err
+		}
+		// Host key errors come back as "ssh: handshake failed: knownhosts: ..."
+		if strings.Contains(err.Error(), "knownhosts") || strings.Contains(err.Error(), "host key") {
+			return "mitm", err
 		}
 		return "failed", err
 	}
