@@ -100,6 +100,12 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/access/users/:userid/token", proxmoxH.ListAPITokens)
 	protected.POST("/proxmox/hosts/:id/access/users/:userid/token", proxmoxH.CreateAPIToken)
 	protected.DELETE("/proxmox/hosts/:id/access/users/:userid/token/:tokenid", proxmoxH.DeleteAPIToken)
+	// Tier 1.9: Tasks
+	protected.GET("/proxmox/hosts/:id/cluster/tasks", proxmoxH.ListClusterTasks)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/tasks", proxmoxH.ListNodeTasks)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/tasks/:upid/status", proxmoxH.GetTaskStatus)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/tasks/:upid/log", proxmoxH.GetTaskLog)
+	protected.DELETE("/proxmox/hosts/:id/nodes/:node/tasks/:upid", proxmoxH.StopTask)
 
 	return r
 }
