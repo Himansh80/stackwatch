@@ -390,3 +390,32 @@ Run 4: 14/14 PASS
 ### Next (Tier 1.10)
 - Backup (vzdump + restore + PBS integration)
 - OR Replication (Proxmox replication jobs)
+
+---
+
+## Session 11 — 2026-08-17 (Tier 1.10)
+
+### Goals
+- Storage content listing with content-type filtering
+- Download/Upload URL endpoints
+- ISCSI targets listing
+
+### Done
+- ✅ Content struct with ctime/vmid string-or-int normalization
+- ✅ ListContent enhanced with optional content filter
+- ✅ DownloadStorageFile (Gin catch-all for nested paths)
+- ✅ UploadStorageFileToURL + GetStorageUploadURL
+- ✅ ISCSITarget + ListISCSI
+- ✅ 8/8 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Proxmox quirks caught + fixed (3)
+40. ctime is INT for vztmpl, STRING for rootdir
+41. vmid is also inconsistent int/string
+42. Volume paths contain / (vztmpl/file.tar.zst) — :volume param
+    can't match → use Gin catch-all (*) and strip leading /
+
+### Next (Tier 1.11)
+- Cluster (HA groups, resources, status, replication)
+- OR Pools (resource pools)
+- OR Backup (vzdump + restore)
