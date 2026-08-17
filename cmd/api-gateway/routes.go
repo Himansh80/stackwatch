@@ -57,10 +57,31 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	r.POST("/api/v1/auth/reset", authH.ResetPassword)
 
 	// Protected endpoints (require valid JWT)
-	protected := r.Group("/api/v1", handler.RequireAuth(issuer))
-	protected.GET("/auth/me", authH.Me)
-	protected.POST("/auth/logout", authH.Logout)
-	protected.POST("/auth/change-password", authH.ChangePassword)
+		protected := r.Group("/api/v1", handler.RequireAuth(issuer))
+		protected.GET("/auth/me", authH.Me)
+		protected.POST("/auth/logout", authH.Logout)
+		protected.POST("/auth/change-password", authH.ChangePassword)
+		// Tier 0.5: refresh token (issue a fresh JWT for an unexpired one).
+		protected.POST("/auth/refresh", authH.Refresh)
+
+		// Tier 0 tenant management (scoped to caller's JWT tenant).
+		protected.GET("/tenants", handler.ListTenants(pool))
+		protected.GET("/tenants/me", handler.GetTenantMe(pool))
+		protected.GET("/tenants/:id", handler.GetTenant(pool))
+		protected.PATCH("/tenants/:id", handler.UpdateTenant(pool))
+
+		// Tier 0 user management.
+		protected.GET("/users", handler.ListTier0Users(pool))
+		protected.GET("/users/me", handler.GetTier0UserMe(pool))
+		protected.GET("/users/:id", handler.GetTier0User(pool))
+		protected.POST("/users", handler.CreateTier0User(pool))
+		protected.PATCH("/users/:id", handler.UpdateTier0User(pool))
+		protected.DELETE("/users/:id", handler.DeleteTier0User(pool))
+
+		// Tier 0 API key management.
+		protected.GET("/api-keys", handler.ListAPIKeys(pool))
+		protected.POST("/api-keys", handler.CreateAPIKey(pool))
+		protected.POST("/api-keys/:id/revoke", handler.RevokeAPIKey(pool))
 
 	// Proxmox endpoints (Tier 1)
 	proxmoxH := handler.NewProxmoxHandler(pool)

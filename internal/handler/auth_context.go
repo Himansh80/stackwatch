@@ -11,6 +11,7 @@ import (
 )
 
 const userCtxKey = "auth.user"
+const authCtxKey = auth.ClaimsCtxKey
 
 // RequireAuth returns a middleware that verifies JWT and stashes the user.
 func RequireAuth(issuer *auth.Issuer) gin.HandlerFunc {
@@ -29,6 +30,8 @@ func RequireAuth(issuer *auth.Issuer) gin.HandlerFunc {
 			return
 		}
 		c.Set(userCtxKey, claims)
+		// also set the auth-package context key so auth.ClaimsFromContext works
+		c.Set(authCtxKey, claims)
 		setTenantInContext(c, claims)
 		c.Next()
 	}
