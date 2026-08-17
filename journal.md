@@ -547,3 +547,30 @@ Run 4: 14/14 PASS
 ### Live state
 - api-gateway on .115: md5 `606c68604957a5654668e8f0233e4157`
 - 181/181 total live tests across 15 tiers
+
+---
+
+## Session 16 — 2026-08-17 (Tier 3.2 — Credentials vault + known_hosts)
+
+### Goals
+- AES-GCM encrypted credentials vault
+- SSH known_hosts fingerprint store
+- Real host key capture via SSH handshake
+
+### Done
+- ✅ 12 new endpoints, 26/26 live tests PASS, 4 consecutive runs
+
+### Bugs caught + fixed (2)
+59. kernel.NewError doesn't exist; switched to fmt.Errorf
+60. ssh.Transport is unexported; used HostKeyCallback closure instead
+
+### Files
+- internal/handler/credentials.go      (200 lines — AES-GCM vault CRUD)
+- internal/handler/known_hosts.go      (180 lines — capture + CRUD)
+- cmd/api-gateway/routes.go            (12 new routes)
+- migrations/003_credentials_known_hosts.sql (applied to .116)
+
+### Live state
+- api-gateway on .115: md5 `00fc5f45931c4f8b5d7a4f8ac6dcd7ef`
+- 207/207 total live tests across 16 tiers
+- Master key (CREDENTIALS_MASTER_KEY): 86Wg09p7kHWVDF6zQQD8D7CK2+aJk0w+vbNS14wnP4c=
