@@ -172,6 +172,14 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.POST("/terminal/connections/:id/test", termH.TestConnection)
 	// Connection history
 	protected.GET("/terminal/history", termH.ListConnectionHistory)
+	// Tier 3.3: SFTP file browser
+	protected.GET("/terminal/connections/:id/fs", termH.ListFS)
+	protected.GET("/terminal/connections/:id/fs/read", termH.ReadFS)
+	protected.POST("/terminal/connections/:id/fs/write", termH.WriteFS)
+	protected.POST("/terminal/connections/:id/fs/mkdir", termH.MkdirFS)
+	protected.DELETE("/terminal/connections/:id/fs", termH.DeleteFS)
+	protected.POST("/terminal/connections/:id/fs/rename", termH.RenameFS)
+	protected.GET("/terminal/connections/:id/fs/stat", termH.StatFS)
 	// Tier 3.2: Credentials vault + known_hosts
 	protected.GET("/terminal/credentials", termH.ListCredentials)
 	protected.GET("/terminal/credentials/:id", termH.GetCredential)
