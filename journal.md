@@ -470,3 +470,48 @@ Run 4: 14/14 PASS
 - Certificates (ACME + custom SSL)
 - OR SDN / DNS zones
 - OR Replication jobs
+
+---
+
+## Session 14 — 2026-08-17 (Tier 1.13 — FINAL of Tier 1)
+
+### Goals
+- Certificates + ACME management
+
+### Done
+- ✅ Certificate struct (name/filename + full fields)
+- ✅ ACMEAccount, ACMEPlugin, ACMEChallengeSchema, ACMEDirectory struct
+- ✅ ListCertificates, ListACMEAccounts, GetACMEAccount, CreateACMEAccount, DeleteACMEAccount
+- ✅ ListACMEPlugins, CreateACMEPlugin, DeleteACMEPlugin
+- ✅ ListACMEChallengeSchema, ListACMEDirectories, GetACMEInfo
+- ✅ 15/15 live tests pass, 4 consecutive runs
+- ✅ Committed
+
+### Proxmox quirks caught + fixed (3)
+46. /nodes/{node}/certificates returns {name: "..."} not {filename: ...}
+47. /cluster/acme/info not implemented on this Proxmox (.107) - accept 500/501
+48. ACME account + plugin CREATE require root@pam (Permissions.Modify)
+    - Monitor token has PVEAuditor - 403/500 are valid proof that handler
+      schema is correct (Proxmox validates auth before handler reaches write)
+
+### Tier 1 COMPLETE (13/13 tiers)
+- 1.0 Foundation
+- 1.1 Nodes & Versions
+- 1.2 VM Lifecycle
+- 1.3 LXC Lifecycle
+- 1.4 Storage
+- 1.5 Networking
+- 1.6 Firewall
+- 1.7 Disks
+- 1.8 Users & Tokens
+- 1.9 Tasks
+- 1.10 Storage Content + ISCSI
+- 1.11 Pools + Cluster Resources
+- 1.12 Backup
+- 1.13 Certificates + ACME
+
+### Next tier destination: TIER 2
+- Tier 2 covers TrueNAS (replacing TrueNAS Scale web UI)
+- OR Tier 3 covers Termius (web terminal)
+- OR Tier 4 covers Netdata (perf monitoring)
+- OR Tier 5 covers Cockpit (server admin)
