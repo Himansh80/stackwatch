@@ -638,3 +638,32 @@ Run 4: 14/14 PASS
 ### Live state
 - api-gateway on .115: md5 `bb739193fdafdf9264f1761c92962ac4`
 - 237/237 total live tests across 18 tiers
+
+---
+
+## Session 19 — 2026-08-17 (Tier 3.4 — Strict known_hosts verification)
+
+### Goals
+- Per-connection verification mode (strict | insecure)
+- MITM protection on real SSH dials
+
+### Done
+- ✅ 2 new endpoints, 1 new migration, MITM detection verified
+- ✅ 14/14 live tests PASS, 4 consecutive runs
+
+### Bugs caught + fixed (3)
+66. terminal_connections.go went over 500 lines after strict callback addition
+    — moved makeStrictHostKeyCallback to verification.go
+67. db import unused after the move — removed
+68. Verifier psql went through ssh_cmd (default .115) but file scp'd to .116
+    — added ssh_cmd_db helper
+
+### Files
+- internal/handler/terminal_connections.go  (modified — added verMode lookup + mitm status)
+- internal/handler/verification.go           (NEW — mode CRUD + strict callback)
+- migrations/005_verification_mode.sql      (NEW — column + index)
+- cmd/api-gateway/routes.go                  (modified — 2 new routes)
+
+### Live state
+- api-gateway on .115: md5 `a3eefb456156d01e16163c6d7cd53c7e`
+- 251/251 total live tests across 19 tiers
