@@ -667,3 +667,33 @@ Run 4: 14/14 PASS
 ### Live state
 - api-gateway on .115: md5 `a3eefb456156d01e16163c6d7cd53c7e`
 - 251/251 total live tests across 19 tiers
+
+---
+
+## Session 20 — 2026-08-17 (Tier 3.5 — WebSocket terminal)
+
+### Goals
+- Real WebSocket ↔ SSH PTY bridge
+- Standalone service on :8085
+- Browser (xterm.js) connect → real shell on remote host
+
+### Done
+- ✅ cmd/web-terminal service live on .115:8085
+- ✅ 13/13 live tests PASS, 4 consecutive runs
+
+### Bugs caught + fixed (4)
+73. pty.Start takes *exec.Cmd not *ssh.Session — switched to Stdin/Stdout pipes
+74. terminal_connections.go > 500 lines after refactor — moved callbacks
+75. Verifier psql wrong host (ssh to .115 but scp to .116) — added ssh_cmd_db
+76. Server pumpInput closed stdin but pumpOutput hung on stdout.Read —
+    added explicit sshSession.Close() on disconnect
+
+### Files
+- cmd/web-terminal/main.go (rewrote — real SSH PTY bridge)
+- go.mod (gorilla/websocket + creack/pty already present)
+- verifier: hermes-verify-tier35-websocket-2026-08-17.py (13 tests)
+
+### Live state
+- web-terminal on .115:8085: md5 `0684e3f916e48556b74f5525b361a32f`
+- api-gateway on .115:8080: md5 `a3eefb456156d01e16163c6d7cd53c7e`
+- 264/264 total live tests across 20 tiers
