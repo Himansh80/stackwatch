@@ -7,14 +7,20 @@ type config struct {
 	HTTPAddr    string
 	DatabaseURL string
 	JWTSecret   string
+	InstallMode string // "cloud" (default) or "self-hosted"
 }
 
 // loadConfig reads configuration from environment with sensible defaults.
 func loadConfig() config {
+	mode := getenv("INSTALL_MODE", "cloud")
+	if mode != "cloud" && mode != "self-hosted" {
+		mode = "cloud"
+	}
 	return config{
 		HTTPAddr:    getenv("HTTP_ADDR", ":8080"),
-		DatabaseURL: getenv("DATABASE_URL", "postgres://ios:3d5cb43fba1f82283a2ba02c79e116cf@192.168.0.116:5432/ios?sslmode=disable"),
+		DatabaseURL: getenv("DATABASE_URL", "postgres://ios:***@192.168.0.116:5432/ios?sslmode=disable"),
 		JWTSecret:   getenv("JWT_SECRET", "dev-jwt-secret-change-me-in-production-please-32bytes"),
+		InstallMode: mode,
 	}
 }
 

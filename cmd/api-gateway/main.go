@@ -21,6 +21,7 @@ func main() {
 		"http_addr", cfg.HTTPAddr,
 		"db_url_set", cfg.DatabaseURL != "",
 		"jwt_secret_set", cfg.JWTSecret != "",
+		"install_mode", cfg.InstallMode,
 	)
 
 	rootCtx, cancel := context.WithCancel(context.Background())
@@ -36,7 +37,7 @@ func main() {
 
 	issuer := newIssuer(cfg.JWTSecret)
 
-	router := buildRouter(rootCtx, logger, pool, issuer)
+	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

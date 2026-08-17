@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StackWatch Setup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #0a0e1a 0%, #131826 100%);
+    color: #e4e7ef;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .wizard {
+    background: #131826;
+    border: 1px solid #2a3142;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .logo h1 {
+    font-size: 28px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .logo p { color: #6b7280; font-size: 14px; margin-top: 8px; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .step h2 { font-size: 18px; margin-bottom: 16px; color: #e4e7ef; }
+  .step p.hint { color: #9ca3af; font-size: 13px; margin-bottom: 20px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: #9ca3af; margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; padding: 10px 14px; background: #0a0e1a; border: 1px solid #2a3142;
+    border-radius: 6px; color: #e4e7ef; font-size: 14px; font-family: inherit;
+  }
+  .field input:focus, .field select:focus {
+    outline: none; border-color: #22d3ee;
+  }
+  .actions { display: flex; gap: 12px; margin-top: 24px; }
+  .btn {
+    flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px;
+    font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .btn-primary { background: #22d3ee; color: #0a0e1a; }
+  .btn-primary:hover { background: #06b6d4; }
+  .btn-primary:disabled { background: #4b5563; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: #9ca3af; border: 1px solid #2a3142; }
+  .btn-secondary:hover { border-color: #4b5563; }
+  .progress { display: flex; gap: 8px; margin-bottom: 32px; }
+  .progress .dot {
+    flex: 1; height: 4px; background: #2a3142; border-radius: 2px;
+  }
+  .progress .dot.active { background: #22d3ee; }
+  .result { display: none; }
+  .result.active { display: block; }
+  .result .success-banner {
+    background: rgba(34, 211, 238, 0.1); border: 1px solid #22d3ee;
+    border-radius: 8px; padding: 16px; margin-bottom: 20px;
+  }
+  .result .success-banner h3 { color: #22d3ee; font-size: 16px; }
+  .result pre {
+    background: #0a0e1a; border: 1px solid #2a3142; border-radius: 6px;
+    padding: 14px; font-size: 12px; color: #a5b4fc; overflow-x: auto;
+    margin: 12px 0; font-family: "JetBrains Mono", monospace;
+  }
+  .result .copy-btn {
+    background: transparent; border: 1px solid #22d3ee; color: #22d3ee;
+    padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
+    margin-left: 8px;
+  }
+  .result .copy-btn:hover { background: rgba(34, 211, 238, 0.1); }
+  .error {
+    background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;
+    color: #fca5a5; padding: 12px; border-radius: 6px; margin-top: 16px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="wizard">
+  <div class="logo">
+    <h1>StackWatch</h1>
+    <p>Self-Hosted Setup</p>
+  </div>
+
+  <div class="progress">
+    <div class="dot active" id="prog-1"></div>
+    <div class="dot" id="prog-2"></div>
+    <div class="dot" id="prog-3"></div>
+  </div>
+
+  <div class="step active" id="step-1">
+    <h2>Create Admin Account</h2>
+    <p class="hint">This will be the super-admin for this StackWatch instance.</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="admin_email" placeholder="admin@example.com" required>
+    </div>
+    <div class="field">
+      <label>Password (min 8 characters)</label>
+      <input type="password" id="admin_password" placeholder="••••••••" minlength="8" required>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="next(2)">Continue</button>
+    </div>
+  </div>
+
+  <div class="step" id="step-2">
+    <h2>Domain & TLS</h2>
+    <p class="hint">Optional. Skip to use self-signed cert on localhost.</p>
+    <div class="field">
+      <label>Domain (e.g. monitoring.example.com)</label>
+      <input type="text" id="domain" placeholder="leave blank for localhost">
+    </div>
+    <div class="field">
+      <label>TLS Mode</label>
+      <select id="tls_mode">
+        <option value="self_signed">Self-signed (works offline, browser warning)</option>
+        <option value="lets_encrypt">Let's Encrypt (requires public domain)</option>
+        <option value="external">External proxy (nginx/caddy handles TLS)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Public URL (auto-derived if blank)</label>
+      <input type="text" id="public_url" placeholder="https://monitoring.example.com">
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="next(1)">Back</button>
+      <button class="btn btn-primary" onclick="next(3)">Continue</button>
+    </div>
+  </div>
+
+  <div class="step" id="step-3">
+    <h2>Review & Finish</h2>
+    <p class="hint">Click Finish to initialize StackWatch. This creates the admin user, cert, and database state.</p>
+    <div id="review"></div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="next(2)">Back</button>
+      <button class="btn btn-primary" id="finish-btn" onclick="finish()">Finish Setup</button>
+    </div>
+    <div class="error" id="err" style="display:none"></div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="success-banner">
+      <h3>✓ StackWatch initialized!</h3>
+      <p style="margin-top:8px; font-size:13px;">Save this agent install command. You'll run it on each server you want to monitor.</p>
+    </div>
+    <div class="field">
+      <label>Agent Install Command</label>
+      <pre id="agent-install-cmd">...</pre>
+      <button class="copy-btn" onclick="copyCmd()">Copy</button>
+    </div>
+    <div class="field">
+      <label>Public URL</label>
+      <pre id="public-url">...</pre>
+    </div>
+    <div style="margin-top:24px;">
+      <button class="btn btn-primary" onclick="goDashboard()">Go to Dashboard →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let step = 1;
+
+function next(n) {
+  if (n === 2 && step === 1) {
+    const email = document.getElementById('admin_email').value.trim();
+    const pw = document.getElementById('admin_password').value;
+    if (!email || !pw) return alert('Email and password required');
+    if (pw.length < 8) return alert('Password must be at least 8 characters');
+  }
+  if (n === 3 && step === 2) {
+    const r = document.getElementById('review');
+    r.innerHTML = `
+      <div class="field"><label>Admin Email</label><pre>${document.getElementById('admin_email').value}</pre></div>
+      <div class="field"><label>Domain</label><pre>${document.getElementById('domain').value || '(none — localhost)'}</pre></div>
+      <div class="field"><label>TLS Mode</label><pre>${document.getElementById('tls_mode').value}</pre></div>
+      <div class="field"><label>Public URL</label><pre>${document.getElementById('public_url').value || '(auto-derive)'}</pre></div>
+    `;
+  }
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('step-'+i).classList.remove('active');
+    document.getElementById('prog-'+i).classList.remove('active');
+  }
+  step = n;
+  document.getElementById('step-'+n).classList.add('active');
+  for (let i = 1; i <= n; i++) document.getElementById('prog-'+i).classList.add('active');
+}
+
+async function finish() {
+  const body = {
+    admin_email: document.getElementById('admin_email').value.trim(),
+    admin_password: document.getElementById('admin_password').value,
+    domain: document.getElementById('domain').value.trim(),
+    tls_mode: document.getElementById('tls_mode').value,
+    public_url: document.getElementById('public_url').value.trim(),
+  };
+  document.getElementById('finish-btn').disabled = true;
+  document.getElementById('finish-btn').textContent = 'Initializing...';
+  try {
+    const r = await fetch('/api/v1/setup/initialize', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      document.getElementById('err').style.display = 'block';
+      document.getElementById('err').textContent = (data.error || 'Setup failed') + (data.details ? ': ' + data.details : '');
+      document.getElementById('finish-btn').disabled = false;
+      document.getElementById('finish-btn').textContent = 'Finish Setup';
+      return;
+    }
+    // Save token + show result
+    localStorage.setItem('ios_auth', JSON.stringify({token: data.login_token, user: {email: data.admin_email, role: 'super_admin'}, tenant: {id: data.tenant_id}}));
+    document.getElementById('agent-install-cmd').textContent = data.agent_install;
+    document.getElementById('public-url').textContent = data.public_url;
+    for (let i = 1; i <= 3; i++) {
+      document.getElementById('step-'+i).classList.remove('active');
+      document.getElementById('prog-'+i).classList.remove('active');
+    }
+    document.getElementById('result').classList.add('active');
+  } catch (e) {
+    document.getElementById('err').style.display = 'block';
+    document.getElementById('err').textContent = e.message;
+    document.getElementById('finish-btn').disabled = false;
+    document.getElementById('finish-btn').textContent = 'Finish Setup';
+  }
+}
+
+function copyCmd() {
+  const t = document.getElementById('agent-install-cmd').textContent;
+  navigator.clipboard.writeText(t).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+function goDashboard() {
+  // If public_url is set and we're at a different host, navigate
+  const data = JSON.parse(localStorage.getItem('ios_auth') || '{}');
+  if (data && data.token) {
+    location.href = '/app.html';
+  }
+}
+</script>
+</body>
+</html>

@@ -13,7 +13,7 @@ import (
 )
 
 // buildRouter constructs the gin engine with all middleware + routes.
-func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer) *gin.Engine {
+func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer, installMode string) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
@@ -27,11 +27,27 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	// Health endpoints (no auth)
 	r.GET("/health", func(c *gin.Context) {
 		if err := pool.Health(c.Request.Context()); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "degraded", "db": "down"})
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status":       "degraded",
+				"db":           "down",
+				"mode":         installMode,
+				"version":      "0.1.0-tier0.5",
+			})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "db": "ok", "version": "0.1.0-tier0"})
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "ok",
+			"db":      "ok",
+			"mode":    installMode,
+			"version": "0.1.0-tier0.5",
+		})
 	})
+
+	// Setup wizard endpoints (Tier 0.5) — public, no auth
+	setupH := handler.NewSetupHandler(pool, installMode, issuer)
+	r.GET("/api/v1/setup/status", setupH.GetSetupStatus)
+	r.POST("/api/v1/setup/initialize", setupH.InitializeSetup)
+	r.POST("/api/v1/setup/regenerate-cert", setupH.RegenerateCert)
 
 	// Auth endpoints (no auth required)
 	authH := handler.NewAuthHandler(pool, issuer, logger)
