@@ -515,3 +515,35 @@ Run 4: 14/14 PASS
 - OR Tier 3 covers Termius (web terminal)
 - OR Tier 4 covers Netdata (perf monitoring)
 - OR Tier 5 covers Cockpit (server admin)
+
+---
+
+## Session 15 — 2026-08-17 (Tier 3.1 — Terminal / Termius replacement)
+
+### Goals
+- SSH key CRUD (generate ed25519/RSA, optional passphrase)
+- Saved connections CRUD + groups + tags
+- Real SSH dial to verify connectivity
+- Connection history log
+
+### Done
+- ✅ All 14 endpoints, 24/24 live tests PASS, 4 consecutive runs
+
+### Bugs caught + fixed (5)
+54. `ssh.NewPublicKey` takes value (ed25519.PublicKey) not pointer — first PASS run
+55. `ssh.NewPublicKey` takes *rsa.PublicKey not value — second run got 1 fail
+56. Tenant context: must use `tenantIDFromContext(c)` not `c.Get("tenant_id")` — handlers must use shared helpers
+57. Duplicate `TerminalHandler` + helpers across split files — cleanup on file split
+58. Unused imports in split files (crypto/ed25519 in keys file, etc.)
+
+### Files
+- internal/handler/terminal.go              (43 lines — root)
+- internal/handler/terminal_keys.go         (185 lines — SSH key CRUD)
+- internal/handler/terminal_connections.go  (~450 lines — connections + history + dial)
+- cmd/api-gateway/routes.go                 (+14 routes)
+- cmd/web-terminal/main.go                  (346 lines — service scaffold, not yet deployed)
+- migrations/002_terminal_schema.sql        (ssh_keys, connections, connection_history)
+
+### Live state
+- api-gateway on .115: md5 `606c68604957a5654668e8f0233e4157`
+- 181/181 total live tests across 15 tiers
