@@ -126,6 +126,18 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.PUT("/proxmox/hosts/:id/cluster/backup/:jobid", proxmoxH.UpdateBackupJob)
 	protected.DELETE("/proxmox/hosts/:id/cluster/backup/:jobid", proxmoxH.DeleteBackupJob)
 	protected.POST("/proxmox/hosts/:id/nodes/:node/vzdump", proxmoxH.BackupNow)
+	// Tier 1.13: Certificates + ACME (FINAL)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/certificates", proxmoxH.ListCertificates)
+	protected.GET("/proxmox/hosts/:id/cluster/acme/account", proxmoxH.ListACMEAccounts)
+	protected.GET("/proxmox/hosts/:id/cluster/acme/account/:name", proxmoxH.GetACMEAccount)
+	protected.POST("/proxmox/hosts/:id/cluster/acme/account", proxmoxH.CreateACMEAccount)
+	protected.DELETE("/proxmox/hosts/:id/cluster/acme/account/:name", proxmoxH.DeleteACMEAccount)
+	protected.GET("/proxmox/hosts/:id/cluster/acme/plugins", proxmoxH.ListACMEPlugins)
+	protected.POST("/proxmox/hosts/:id/cluster/acme/plugins", proxmoxH.CreateACMEPlugin)
+	protected.DELETE("/proxmox/hosts/:id/cluster/acme/plugins/:name", proxmoxH.DeleteACMEPlugin)
+	protected.GET("/proxmox/hosts/:id/cluster/acme/challenge-schema", proxmoxH.ListACMEChallengeSchema)
+	protected.GET("/proxmox/hosts/:id/cluster/acme/directories", proxmoxH.ListACMEDirectories)
+	protected.GET("/proxmox/hosts/:id/cluster/acme/info", proxmoxH.GetACMEInfo)
 
 	return r
 }
