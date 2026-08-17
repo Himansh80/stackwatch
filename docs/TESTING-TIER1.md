@@ -1,7 +1,8 @@
 # StackWatch — Tier 1 Testing Guide (Proxmox)
 
+**Last updated:** 2026-08-17
 **For:** Himan (the user)
-**Date:** 2026-08-16
+**Date created:** 2026-08-16
 **Status:** Tier 1 (Proxmox full replacement) shipped. **14/14 live tests pass** on real Proxmox at .107.
 
 ---
