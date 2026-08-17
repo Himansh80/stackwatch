@@ -156,6 +156,18 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.POST("/terminal/connections/:id/test", termH.TestConnection)
 	// Connection history
 	protected.GET("/terminal/history", termH.ListConnectionHistory)
+	// Tier 3.2: Credentials vault + known_hosts
+	protected.GET("/terminal/credentials", termH.ListCredentials)
+	protected.GET("/terminal/credentials/:id", termH.GetCredential)
+	protected.POST("/terminal/credentials", termH.CreateCredential)
+	protected.PUT("/terminal/credentials/:id", termH.UpdateCredential)
+	protected.DELETE("/terminal/credentials/:id", termH.DeleteCredential)
+	protected.POST("/terminal/credentials/:id/reveal", termH.RevealCredential)
+	// known_hosts
+	protected.GET("/terminal/known-hosts", termH.ListKnownHosts)
+	protected.GET("/terminal/known-hosts/:id", termH.GetKnownHost)
+	protected.POST("/terminal/known-hosts/trust", termH.TrustHost)
+	protected.DELETE("/terminal/known-hosts/:id", termH.DeleteKnownHost)
 
 	return r
 }
