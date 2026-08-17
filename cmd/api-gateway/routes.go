@@ -139,5 +139,23 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/cluster/acme/directories", proxmoxH.ListACMEDirectories)
 	protected.GET("/proxmox/hosts/:id/cluster/acme/info", proxmoxH.GetACMEInfo)
 
+	// Tier 3.1: Terminal (Termius replacement)
+	termH := handler.NewTerminalHandler(pool)
+	// SSH keys
+	protected.GET("/terminal/keys", termH.ListSSHKeys)
+	protected.GET("/terminal/keys/:id", termH.GetSSHKey)
+	protected.POST("/terminal/keys", termH.CreateSSHKey)
+	protected.DELETE("/terminal/keys/:id", termH.DeleteSSHKey)
+	// Connections
+	protected.GET("/terminal/connections", termH.ListConnections)
+	protected.GET("/terminal/connections/groups", termH.ListConnectionGroups)
+	protected.GET("/terminal/connections/:id", termH.GetConnection)
+	protected.POST("/terminal/connections", termH.CreateConnection)
+	protected.PUT("/terminal/connections/:id", termH.UpdateConnection)
+	protected.DELETE("/terminal/connections/:id", termH.DeleteConnection)
+	protected.POST("/terminal/connections/:id/test", termH.TestConnection)
+	// Connection history
+	protected.GET("/terminal/history", termH.ListConnectionHistory)
+
 	return r
 }
