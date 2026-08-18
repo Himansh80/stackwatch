@@ -306,5 +306,12 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/rum/summary", handler.RUMSummary(pool))
 	protected.GET("/rum/events", handler.ListRUMEvents(pool))
 
+	// Tier 6 v5: Distributed Tracing (M5)
+	protected.POST("/traces", handler.IngestSpan(pool))
+	protected.POST("/traces/otlp", handler.IngestOTLP(pool))
+	protected.GET("/traces", handler.ListTraces(pool))
+	protected.GET("/traces/services/summary", handler.TraceServiceSummary(pool))
+	protected.GET("/traces/:trace_id", handler.GetTraceByID(pool))
+
 	return r
 }
