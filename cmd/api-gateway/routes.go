@@ -84,6 +84,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/api-keys", handler.ListAPIKeys(pool))
 	protected.POST("/api-keys", handler.CreateAPIKey(pool))
 	protected.POST("/api-keys/:id/revoke", handler.RevokeAPIKey(pool))
+	protected.DELETE("/api-keys/:id", handler.DeleteAPIKey(pool))
 
 	// Proxmox endpoints (Tier 1)
 	proxmoxH := handler.NewProxmoxHandler(pool)

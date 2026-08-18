@@ -22,15 +22,15 @@ import (
 // APIKey is the REST shape of a row in api_keys.
 // The hash + raw token are NEVER returned — only the prefix and metadata.
 type APIKey struct {
-	ID         string  `json:"id"`
-	TenantID   string  `json:"tenant_id"`
-	UserID     *string `json:"user_id,omitempty"`
-	Name       string  `json:"name"`
-	Prefix     string  `json:"prefix"`
+	ID         string   `json:"id"`
+	TenantID   string   `json:"tenant_id"`
+	UserID     *string  `json:"user_id,omitempty"`
+	Name       string   `json:"name"`
+	Prefix     string   `json:"prefix"`
 	Scopes     []string `json:"scopes"`
-	Revoked    bool    `json:"revoked"`
-	LastUsedAt *string `json:"last_used_at,omitempty"`
-	CreatedAt  string  `json:"created_at"`
+	Revoked    bool     `json:"revoked"`
+	LastUsedAt *string  `json:"last_used_at,omitempty"`
+	CreatedAt  string   `json:"created_at"`
 }
 
 // apiKeyPrefix is stamped on every key for dashboard identification.
@@ -138,10 +138,10 @@ func CreateAPIKey(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{
-			"id":    newID.String(),
-			"name":  r.Name,
+			"id":     newID.String(),
+			"name":   r.Name,
 			"prefix": prefix,
-			"token": token, // returned ONCE
+			"token":  token, // returned ONCE
 			"scopes": scopes,
 		})
 	}
@@ -168,6 +168,39 @@ func RevokeAPIKey(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		kernel.RespondOK(c, gin.H{"revoked": true})
+	}
+}
+
+// DeleteAPIKey hard-deletes an API key row.
+//
+// Unlike RevokeAPIKey (which sets revoked_at and preserves audit trail),
+// this physically removes the row. Use when the key was created by mistake
+// or is no longer needed for compliance reasons.
+//
+// Tenant-scoped: a user cannot delete another tenant's key.
+func DeleteAPIKey(pool *db.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tenantID, ok := tenantIDFromContext(c)
+		if !ok {
+			kernel.RespondError(c, kernel.ErrUnauthorized)
+			return
+		}
+		id, err := uuid.Parse(c.Param("id"))
+		if err != nil {
+			kernel.RespondError(c, kernel.ErrBadRequest)
+			return
+		}
+		tag, err := pool.Pgx().Exec(c.Request.Context(),
+			`DELETE FROM api_keys WHERE id = $1 AND tenant_id = $2`, id, tenantID)
+		if err != nil {
+			kernel.RespondError(c, err)
+			return
+		}
+		if tag.RowsAffected() == 0 {
+			kernel.RespondError(c, kernel.ErrNotFound)
+			return
+		}
+		kernel.RespondOK(c, gin.H{"deleted": true})
 	}
 }
 
