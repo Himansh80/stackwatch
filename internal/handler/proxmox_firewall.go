@@ -11,7 +11,7 @@ import (
 
 // CreateFirewallRuleRequest is the JSON body for POST firewall/rules.
 type CreateFirewallRuleRequest struct {
-	Type       string `json:"type"`
+	Type       string `json:"type" binding:"required,oneof=in out group forward"`
 	Action     string `json:"action" binding:"required,oneof=ACCEPT DROP REJECT LOG NFLOG"`
 	Enable     int    `json:"enable"`
 	Source     string `json:"source"`
