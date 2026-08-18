@@ -299,5 +299,10 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.POST("/dashboards/:id/default", handler.SetDashboardDefault(pool))
 	protected.DELETE("/dashboards/:id/default", handler.UnsetDashboardDefault(pool))
 
+	// Tier 6 v4: Real User Monitoring (M8)
+	r.POST("/api/v1/rum/events", handler.IngestRUM(pool))   // unauthenticated — tenant_id query param
+	protected.GET("/rum/summary", handler.RUMSummary(pool))
+	protected.GET("/rum/events", handler.ListRUMEvents(pool))
+
 	return r
 }
