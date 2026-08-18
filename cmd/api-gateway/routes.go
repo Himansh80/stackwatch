@@ -56,6 +56,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	r.POST("/api/v1/auth/forgot", authH.ForgotPassword)
 	r.POST("/api/v1/auth/reset", authH.ResetPassword)
 	r.POST("/api/v1/auth/magic-link", authH.MagicLink)
+	r.GET("/api/v1/auth/magic-link/consume", authH.ConsumeMagicLink)
 	r.POST("/api/v1/auth/accept-invite", authH.AcceptInvite)
 
 	// Protected endpoints (require valid JWT)

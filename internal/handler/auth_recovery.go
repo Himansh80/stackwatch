@@ -52,6 +52,17 @@ func generateToken() (raw, hash string, err error) {
 	return raw, hash, nil
 }
 
+// generateTokenWithPrefix creates a token with a purpose prefix. Prefixes
+// prevent one flow's token from being accepted by another flow.
+func generateTokenWithPrefix(prefix string) (raw, hash string, err error) {
+	base, _, err := generateToken()
+	if err != nil {
+		return "", "", err
+	}
+	raw = prefix + base
+	return raw, hashToken(raw), nil
+}
+
 // hashToken returns the sha-256 hex digest of the given raw token.
 func hashToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
@@ -369,7 +380,7 @@ func (h *AuthHandler) MagicLink(c *gin.Context) {
 		return
 	}
 
-	raw, hash, err := generateToken()
+	raw, hash, err := generateTokenWithPrefix("ml_")
 	if err != nil {
 		kernel.RespondError(c, kernel.ErrInternal)
 		return
@@ -516,7 +527,7 @@ func (h *AuthHandler) recordFailedLogin(ctx context.Context, userID uuid.UUID) (
 	}
 	// Prune old entries (>1h).
 	if _, err := h.pool.Pgx().Exec(ctx,
-		`DELETE FROM user_failed_logins WHERE ts < NOW() - INTERVAL '1 hour'`, userID,
+		`DELETE FROM user_failed_logins WHERE ts < NOW() - INTERVAL '1 hour'`,
 	); err != nil {
 		return 0, err
 	}

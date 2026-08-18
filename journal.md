@@ -727,3 +727,28 @@ Run 4: 14/14 PASS
 ### Live state
 - api-gateway on .115: md5 `8da87fff723643443396a5aa483755f3`
 - 282/282 total live tests across 21 tiers
+
+---
+
+## Session 22 — 2026-08-18 (Tier 0 A-to-Z audit)
+
+### Result
+- Fresh verifier saved at `C:\Users\himan\AppData\Local\Temp\hermes-verify-tier0-a-to-z-2026-08-18.py`.
+- Four consecutive live runs against `.115`: **56/68 PASS each run**.
+- Tier 0 is **not fully functional end to end** on the running binary.
+
+### Deterministic live failures
+- `PATCH /auth/profile` → 404
+- `POST /tenants` → 404
+- `POST /auth/magic-link` → 404
+- `POST /auth/accept-invite` → 404
+- `DELETE /api-keys/:id` → 404
+- `/auth/forgot` returned no usable development token
+- `/auth/reset` with an invalid token returned HTTP 200
+- Ten brute-force failures produced no `login.bruteforce_suspected` audit event
+
+### Deployment evidence
+- `/health` → 200 with `db=ok`, `mode=cloud`, `version=0.1.0-tier0.5`.
+- Running binary and `/proc/<pid>/exe` md5: `99d39c8662fc8ca20617cef52c432c49`.
+- Remote source `routes.go` contains several missing live routes, proving source/binary drift.
+- Test users and numeric verifier API keys were cleaned; no current verifier users/keys remain.

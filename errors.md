@@ -44,3 +44,25 @@
 - **Root cause:** When the SSH session disconnects, the controlling TTY goes away and some shells kill the process group despite `nohup`.
 - **Fix:** Use `setsid sh -c '... > log 2>&1' </dev/null >/dev/null 2>&1 &` — this creates a new session detached from the parent.
 - **Lesson:** Always use `setsid` for processes that must outlive the SSH session.
+
+## 2026-08-18 — Tier 0 verifier launch quoting error
+
+### E7: Remote verifier command was truncated by nested Bash quoting
+- **Symptom:** The verifier did not reach the API; Git Bash returned `unexpected EOF while looking for matching \`'\``.
+- **Root cause:** A base64 Python payload was embedded inside multiple nested single-quote layers (`terminal` → Bash → SSH → remote Bash → Python).
+- **Impact:** No remote application state changed; the failure occurred before the SSH command executed.
+- **Recovery:** Rerun using a transport that avoids nested shell quoting and then verify the live gateway.
+
+## 2026-08-18 — Tier 0 live A-to-Z verification
+
+### E8: Running binary is behind the source route table
+- **Symptom:** Local and remote source `routes.go` include profile, tenant-create, magic-link, accept-invite, and API-key-delete routes, but the running binary returns 404 for those endpoints.
+- **Evidence:** `/opt/stackwatch/bin/api-gateway-linux` and `/proc/<pid>/exe` both report md5 `99d39c8662fc8ca20617cef52c432c49`; live probes repeatedly returned 404.
+- **Impact:** The deployed system is not equivalent to the current source tree.
+- **Recovery:** Rebuild the canonical source and deploy only after the complete Tier 0 verifier passes.
+
+### E9: Tier 0 live verifier found deterministic functional failures
+- **Symptom:** Four consecutive full runs returned `56/68 PASS`.
+- **Failures:** `PATCH /auth/profile` 404; `POST /tenants` 404; `POST /auth/magic-link` 404; `POST /auth/accept-invite` 404; `DELETE /api-keys/:id` 404; forgot-password returns no usable dev token; reset with an invalid token returns HTTP 200; brute-force audit event count remains 0.
+- **Impact:** Tier 0 is not end-to-end complete on the running deployment.
+- **Recovery:** Do not claim Tier 0 complete until the live binary is rebuilt/deployed and the same verifier returns 68/68 across four runs.

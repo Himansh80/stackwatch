@@ -18,8 +18,12 @@ on subsequent calls.
 | POST | `/api/v1/auth/signup` | New tenant + admin (gated by env) |
 | POST | `/api/v1/auth/forgot` | Issue password-reset token |
 | POST | `/api/v1/auth/reset` | Apply new password with token |
+| POST | `/api/v1/auth/magic-link` | Issue one-time passwordless login token |
+| GET | `/api/v1/auth/magic-link/consume` | Consume magic-link token and return JWT |
+| POST | `/api/v1/auth/accept-invite` | Consume invite token, set password, activate user |
 | GET | `/api/v1/auth/me` | Current user profile |
-| POST | `/api/v1/auth/logout` | Invalidate current token (server side: tombstone) |
+| PATCH | `/api/v1/auth/profile` | Update current user's profile |
+| POST | `/api/v1/auth/logout` | Client discards stateless JWT |
 | POST | `/api/v1/auth/change-password` | Change own password |
 | POST | `/api/v1/auth/refresh` | Re-issue JWT for an unexpired one |
 | GET | `/api/v1/tenants` | List tenants in scope |
@@ -35,6 +39,7 @@ on subsequent calls.
 | GET | `/api/v1/api-keys` | List API keys for current tenant |
 | POST | `/api/v1/api-keys` | Create API key (returns plaintext ONCE) |
 | POST | `/api/v1/api-keys/:id/revoke` | Revoke API key |
+| DELETE | `/api/v1/api-keys/:id` | Permanently delete API key |
 
 ---
 
