@@ -90,6 +90,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	proxmoxH := handler.NewProxmoxHandler(pool)
 	protected.POST("/proxmox/hosts", proxmoxH.CreateHost)
 	protected.GET("/proxmox/hosts", proxmoxH.ListHosts)
+	protected.GET("/proxmox/hosts/:id", proxmoxH.GetHost)
 	protected.DELETE("/proxmox/hosts/:id", proxmoxH.DeleteHost)
 	protected.GET("/proxmox/hosts/:id/test", proxmoxH.TestHost)
 	protected.GET("/proxmox/hosts/:id/nodes", proxmoxH.ListNodes)

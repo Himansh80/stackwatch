@@ -2,11 +2,14 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
 	"github.com/stackwatch/platform/internal/client/proxmox"
 	"github.com/stackwatch/platform/internal/db"
 	"github.com/stackwatch/platform/internal/kernel"
@@ -68,6 +71,44 @@ func (h *ProxmoxHandler) CreateHost(c *gin.Context) {
 		BaseURL: req.BaseURL, VerifyTLS: req.VerifyTLS,
 		Status: "online", CreatedAt: now.Format(time.RFC3339),
 	})
+}
+
+// GetHost returns one Proxmox host by id.
+//
+// Same response shape as ListHosts entries, but returns 404 if not found
+// or not owned by the requester's tenant. Does NOT include the API token
+// (use TestHost to verify connectivity, or call CreateHost with new creds).
+func (h *ProxmoxHandler) GetHost(c *gin.Context) {
+	tenantID, ok := tenantIDFromContext(c)
+	if !ok {
+		kernel.RespondError(c, kernel.ErrUnauthorized)
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	var p ProxmoxHost
+	var lastCheck, created time.Time
+	err = h.pool.Pgx().QueryRow(c.Request.Context(), `
+		SELECT id, tenant_id, name, base_url, verify_tls, COALESCE(node_name, ''),
+		       status, COALESCE(last_check_at, created_at),
+		       COALESCE(last_error, ''), created_at
+		FROM proxmox_hosts WHERE id = $1 AND tenant_id = $2`, id, tenantID).
+		Scan(&p.ID, &p.TenantID, &p.Name, &p.BaseURL, &p.VerifyTLS,
+			&p.NodeName, &p.Status, &lastCheck, &p.LastError, &created)
+	if errors.Is(err, pgx.ErrNoRows) {
+			kernel.RespondError(c, kernel.ErrNotFound)
+			return
+		}
+	if err != nil {
+		kernel.RespondError(c, err)
+		return
+	}
+	p.LastCheckAt = lastCheck.Format(time.RFC3339)
+	p.CreatedAt = created.Format(time.RFC3339)
+	c.JSON(http.StatusOK, p)
 }
 
 // ListHosts returns all Proxmox hosts for this tenant.
