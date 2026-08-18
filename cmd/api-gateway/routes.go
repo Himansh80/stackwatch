@@ -270,5 +270,13 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/containers/watchtower", containerH.ListWatched)
 	protected.POST("/containers/watchtower/update", containerH.TriggerUpdate)
 
+	// Tier 6: Monitoring Depth — Prometheus compat + Loki push + ML anomaly
+	protected.POST("/prom/write", handler.PromWrite(pool))
+	protected.POST("/prom/query", handler.PromQuery(pool))
+	protected.POST("/loki/push", handler.LokiPush(pool))
+	protected.GET("/loki/query", handler.LokiQuery(pool))
+	protected.GET("/anomaly/list", handler.ListAnomalies(pool))
+	protected.POST("/anomaly/detect", handler.DetectAnomaly(pool))
+
 	return r
 }
