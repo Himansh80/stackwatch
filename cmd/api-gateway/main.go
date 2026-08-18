@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/stackwatch/platform/internal/synthetics"
 )
 
 func main() {
@@ -38,6 +40,10 @@ func main() {
 	issuer := newIssuer(cfg.JWTSecret)
 
 	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode, cfg.WebTerminalURL)
+
+	// Start the synthetics scheduler (M7 background runner).
+	sched := synthetics.NewScheduler(pool.Pgx(), 30*time.Second, logger)
+	go sched.Run(rootCtx)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

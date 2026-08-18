@@ -278,5 +278,16 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/anomaly/list", handler.ListAnomalies(pool))
 	protected.POST("/anomaly/detect", handler.DetectAnomaly(pool))
 
+	// Tier 6 v2: Synthetics (M7) + Grafana datasource adapter (M4)
+	protected.POST("/synthetics", handler.CreateSynthetics(pool))
+	protected.GET("/synthetics", handler.ListSynthetics(pool))
+	protected.GET("/synthetics/:id", handler.GetSynthetics(pool))
+	protected.PATCH("/synthetics/:id", handler.PatchSynthetics(pool))
+	protected.DELETE("/synthetics/:id", handler.DeleteSynthetics(pool))
+	protected.POST("/synthetics/:id/run", handler.RunSyntheticsNow(pool))
+	protected.GET("/synthetics/:id/results", handler.GetSyntheticsResults(pool))
+	protected.GET("/grafana/search", handler.GrafanaSearch(pool))
+	protected.POST("/grafana/query", handler.GrafanaQuery(pool))
+
 	return r
 }
