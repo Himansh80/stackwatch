@@ -195,10 +195,7 @@ func (h *ProxmoxHandler) GetACMEInfo(c *gin.Context) {
 		return
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
-	info, err := cli.GetACMEInfo(c.Request.Context())
-	if err != nil {
-		kernel.RespondError(c, err)
-		return
-	}
-	kernel.RespondOK(c, info)
+	handleProxmoxCall(c, func() (any, error) {
+		return cli.GetACMEInfo(c.Request.Context())
+	})
 }

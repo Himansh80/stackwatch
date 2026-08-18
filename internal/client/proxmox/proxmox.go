@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,13 @@ import (
 	"strings"
 	"time"
 )
+
+// ErrNotSupported is returned when Proxmox responds with HTTP 501 —
+// an endpoint exists in the PVE API but the cluster version doesn't implement it.
+// Callers should map this to a 200 response with {"supported": false} so
+// the UI can render the section as "not available on this cluster" instead
+// of showing a hard error.
+var ErrNotSupported = errors.New("proxmox: endpoint not implemented on this cluster version")
 
 // Client is a Proxmox API client bound to one host.
 type Client struct {
@@ -57,6 +65,13 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 	if resp.StatusCode == 401 {
 		return fmt.Errorf("proxmox: unauthorized (check API token)")
 	}
+	if resp.StatusCode == 501 {
+		// Proxmox returns 501 for endpoints not implemented on this cluster
+		// version (e.g. /cluster/info, /firewall/ipsets, /cluster/acme/info on
+		// older PVE installs). Return a sentinel so callers can respond 200
+		// with {"supported": false} instead of failing the request.
+		return ErrNotSupported
+	}
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("proxmox: HTTP %d on %s", resp.StatusCode, path)
 	}
@@ -98,6 +113,9 @@ func (c *Client) doForm(ctx context.Context, method, path string, form url.Value
 	}
 	if resp.StatusCode == 403 {
 		return fmt.Errorf("proxmox: forbidden")
+	}
+	if resp.StatusCode == 501 {
+		return ErrNotSupported
 	}
 	if resp.StatusCode == 400 {
 		body, _ := io.ReadAll(resp.Body)

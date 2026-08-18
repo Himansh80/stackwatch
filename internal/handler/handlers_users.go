@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,7 +29,13 @@ type User struct {
 	UpdatedAt          string  `json:"updated_at"`
 }
 
-// ListUsers returns all users in the caller's tenant.
+// ListTier0Users returns users in the caller's tenant with pagination.
+//
+// Query params (all optional):
+//   limit  int 1..200 (default 50)
+//   offset int >=0  (default 0)
+//   role   string filter by role (admin/viewer/super_admin)
+//   q      string case-insensitive substring match on email/full_name
 func ListTier0Users(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)
@@ -35,12 +43,39 @@ func ListTier0Users(pool *db.Pool) gin.HandlerFunc {
 			kernel.RespondError(c, kernel.ErrUnauthorized)
 			return
 		}
-		rows, err := pool.Pgx().Query(c.Request.Context(),
-			`SELECT id, tenant_id, email, full_name, role, status,
-			        email_verified, must_change_password, last_login_at,
-			        created_at, updated_at
-			 FROM users WHERE tenant_id = $1
-			 ORDER BY created_at DESC`, tenantID)
+		limit := 50
+		if v := c.Query("limit"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 200 {
+				limit = n
+			}
+		}
+		offset := 0
+		if v := c.Query("offset"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				offset = n
+			}
+		}
+		roleFilter := strings.TrimSpace(c.Query("role"))
+		qFilter := strings.TrimSpace(c.Query("q"))
+
+		// Build query with optional filters + LIMIT/OFFSET.
+		sqlStr := `SELECT id, tenant_id, email, full_name, role, status,
+				email_verified, must_change_password, last_login_at,
+				created_at, updated_at
+			 FROM users WHERE tenant_id = $1`
+		args := []any{tenantID}
+		if roleFilter != "" {
+			args = append(args, roleFilter)
+			sqlStr += fmt.Sprintf(" AND role = $%d", len(args))
+		}
+		if qFilter != "" {
+			args = append(args, "%"+strings.ToLower(qFilter)+"%")
+			sqlStr += fmt.Sprintf(" AND (LOWER(email) LIKE $%d OR LOWER(full_name) LIKE $%d)", len(args), len(args))
+		}
+		args = append(args, limit, offset)
+		sqlStr += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)-1, len(args))
+
+		rows, err := pool.Pgx().Query(c.Request.Context(), sqlStr, args...)
 		if err != nil {
 			kernel.RespondError(c, err)
 			return
@@ -65,7 +100,22 @@ func ListTier0Users(pool *db.Pool) gin.HandlerFunc {
 			}
 			out = append(out, u)
 		}
-		kernel.RespondOK(c, gin.H{"users": out, "total": len(out)})
+
+		// total = count of users in tenant (independent of limit/offset).
+		var total int
+		if err := pool.Pgx().QueryRow(c.Request.Context(),
+			`SELECT count(*) FROM users WHERE tenant_id = $1`, tenantID,
+		).Scan(&total); err != nil {
+			kernel.RespondError(c, err)
+			return
+		}
+
+		kernel.RespondOK(c, gin.H{
+			"users":  out,
+			"total":  total,
+			"limit":  limit,
+			"offset": offset,
+		})
 	}
 }
 
@@ -111,10 +161,10 @@ func GetTier0User(pool *db.Pool) gin.HandlerFunc {
 // CreateUser lets a tenant admin invite a new user.
 func CreateTier0User(pool *db.Pool) gin.HandlerFunc {
 	type req struct {
-		Email    string `json:"email" binding:"required"`
-		FullName string `json:"full_name"`
-		Role     string `json:"role"`
-		Password string `json:"password"`
+		Email    string `json:"email" binding:"required,email,max=320"`
+		FullName string `json:"full_name" binding:"max=255"`
+		Role     string `json:"role" binding:"omitempty,oneof=admin viewer"`
+		Password string `json:"password" binding:"omitempty,min=12,max=128"`
 	}
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)
@@ -128,6 +178,7 @@ func CreateTier0User(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		r.Email = strings.ToLower(strings.TrimSpace(r.Email))
+		r.FullName = strings.TrimSpace(r.FullName)
 		// Generate random password if not provided; user must change on login.
 		pw := r.Password
 		if pw == "" {
@@ -143,10 +194,13 @@ func CreateTier0User(pool *db.Pool) gin.HandlerFunc {
 			role = "viewer"
 		}
 		newID := uuid.New()
+		// must_change_password is true only when admin didn't supply a password
+		// (so the user must reset via forgot/reset on first login).
+		mustChange := r.Password == ""
 		_, err = pool.Pgx().Exec(c.Request.Context(),
 			`INSERT INTO users (id, tenant_id, email, full_name, password_hash, role, status, must_change_password, email_verified)
 			 VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, false)`,
-			newID, tenantID, r.Email, r.FullName, hashed, role, pw == r.Password)
+			newID, tenantID, r.Email, r.FullName, hashed, role, mustChange)
 		if err != nil {
 			kernel.RespondError(c, err)
 			return

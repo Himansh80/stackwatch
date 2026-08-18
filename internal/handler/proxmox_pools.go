@@ -152,10 +152,7 @@ func (h *ProxmoxHandler) GetClusterInfo(c *gin.Context) {
 		return
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
-	info, err := cli.GetClusterInfo(c.Request.Context())
-	if err != nil {
-		kernel.RespondError(c, err)
-		return
-	}
-	kernel.RespondOK(c, info)
+	handleProxmoxCall(c, func() (any, error) {
+		return cli.GetClusterInfo(c.Request.Context())
+	})
 }

@@ -65,10 +65,11 @@ func (h *ProxmoxHandler) ListISCSI(c *gin.Context) {
 	}
 	node := c.Param("node")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
-	targets, err := cli.ListISCSI(c.Request.Context(), node)
-	if err != nil {
-		kernel.RespondError(c, err)
-		return
-	}
-	kernel.RespondOK(c, gin.H{"targets": targets, "total": len(targets)})
+	handleProxmoxCall(c, func() (any, error) {
+		targets, err := cli.ListISCSI(c.Request.Context(), node)
+		if err != nil {
+			return nil, err
+		}
+		return gin.H{"targets": targets, "total": len(targets)}, nil
+	})
 }

@@ -49,11 +49,20 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 	if !checkHash(user.PasswordHash, req.Password) {
-		// Failed login → audit
+		// Failed login → audit + brute-force counter
 		h.auditLog(c.Request.Context(), &user.TenantID, &user.ID, "login.failed", user.Email, ip, map[string]any{"reason": "bad_password"})
+		// Increment failed-login counter; if it crosses 10 in last hour, log a security event.
+		count, _ := h.recordFailedLogin(c.Request.Context(), user.ID)
+		if count >= 10 {
+			h.auditLog(c.Request.Context(), &user.TenantID, &user.ID, "login.bruteforce_suspected", user.Email, ip, map[string]any{"failed_count_1h": count})
+		}
 		kernel.RespondError(c, kernel.ErrUnauthorized)
 		return
 	}
+
+	// Reset failed-login counter on successful login.
+	_, _ = h.pool.Pgx().Exec(c.Request.Context(),
+		`DELETE FROM user_failed_logins WHERE user_id = $1`, user.ID)
 
 	tok, err := h.issuer.Issue(user.ID, user.TenantID, user.Email, user.Role, user.MustChangePW)
 	if err != nil {

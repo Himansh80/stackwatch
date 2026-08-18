@@ -207,12 +207,13 @@ func (h *ProxmoxHandler) ListIPsets(c *gin.Context) {
 		return
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
-	ipsets, err := cli.ListIPsets(c.Request.Context())
-	if err != nil {
-		kernel.RespondError(c, err)
-		return
-	}
-	kernel.RespondOK(c, gin.H{"ipsets": ipsets, "total": len(ipsets)})
+	handleProxmoxCall(c, func() (any, error) {
+		ipsets, err := cli.ListIPsets(c.Request.Context())
+		if err != nil {
+			return nil, err
+		}
+		return gin.H{"ipsets": ipsets, "total": len(ipsets)}, nil
+	})
 }
 
 // CreateIPset creates a new IPset.

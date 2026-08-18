@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -71,13 +72,24 @@ type APITokenCreateResponse struct {
 }
 
 // APIToken is an API token (used for LIST responses — no secret value).
+// Proxmox uses "id" in the keyed-map form and "tokenid" in the array form;
+// we accept both.
 type APIToken struct {
-	TokenID string `json:"id"` // token identifier (e.g. "monitor")
+	TokenID string `json:"tokenid,omitempty"` // primary: array form uses "tokenid"
 	Comment string `json:"comment,omitempty"`
 	Enable  int    `json:"enable"`
 	Expire  int    `json:"expire,omitempty"`
 	Privsep int    `json:"privsep,omitempty"`
 	Value   string `json:"value,omitempty"` // ONLY present on create, never on list
+	ID      string `json:"id,omitempty"`     // fallback: keyed-map form uses "id"
+}
+
+// tokenID returns the canonical token identifier regardless of source shape.
+func (t APIToken) tokenID() string {
+	if t.TokenID != "" {
+		return t.TokenID
+	}
+	return t.ID
 }
 
 // ListUsers returns all Proxmox users.
@@ -165,14 +177,65 @@ func (c *Client) DeleteUser(ctx context.Context, userid string) (string, error) 
 }
 
 // ListAPITokens returns all API tokens for a user.
+//
+// Proxmox response shape varies by version:
+//   - newer PVE: `{"data": {"<tokenid>": {...}, ...}}` (map keyed by tokenid)
+//   - older PVE / this .107: `{"data": [{"tokenid": "..."}, ...}` (array)
+// This function normalizes the result to a map keyed by tokenid so the
+// handler always sees a consistent shape.
 func (c *Client) ListAPITokens(ctx context.Context, userid string) (map[string]APIToken, error) {
 	path := fmt.Sprintf("/access/users/%s/token",
 		url.PathEscape(userid))
-	var out map[string]APIToken
-	if err := c.get(ctx, path, &out); err != nil {
+
+	// Issue a raw request so we can detect the response shape ourselves
+	// (c.get() would unmarshal into either map or array and fail on the
+	// wrong one — we want to handle BOTH shapes gracefully).
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/api2/json"+path, nil)
+	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	req.Header.Set("Authorization", c.apiToken)
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 401 {
+		return nil, fmt.Errorf("proxmox: unauthorized (check API token)")
+	}
+	if resp.StatusCode == 501 {
+		return nil, ErrNotSupported
+	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("proxmox: HTTP %d on %s", resp.StatusCode, path)
+	}
+	var wrapper struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+		return nil, err
+	}
+	// Try map shape first (canonical).
+	var asMap map[string]APIToken
+	if err := json.Unmarshal(wrapper.Data, &asMap); err == nil && len(asMap) > 0 {
+		return asMap, nil
+	}
+	// Fallback: array shape.
+	var arr []APIToken
+	if err := json.Unmarshal(wrapper.Data, &arr); err == nil {
+		out := make(map[string]APIToken, len(arr))
+		for i, t := range arr {
+			key := t.tokenID()
+			if key == "" {
+				key = fmt.Sprintf("token-%d", i)
+			}
+			out[key] = t
+		}
+		return out, nil
+	}
+	// Neither shape — return empty so handler still works.
+	return map[string]APIToken{}, nil
 }
 
 // AddAPIToken creates a new API token for a user.

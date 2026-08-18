@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,32 @@ func RequireAuth(issuer *auth.Issuer) gin.HandlerFunc {
 			kernel.RespondError(c, kernel.ErrUnauthorized)
 			c.Abort()
 			return
+		}
+		// Enforce must_change_password: if the JWT carries that flag, block
+		// every route except the ones the user needs to recover.
+		if claims.MustChangePW {
+			path := c.Request.URL.Path
+			// Strip query for comparison.
+			if i := strings.Index(path, "?"); i >= 0 {
+				path = path[:i]
+			}
+			allowed := false
+			switch path {
+			case "/api/v1/auth/me",
+				"/api/v1/auth/change-password",
+				"/api/v1/auth/logout",
+				"/api/v1/auth/profile": // allow updating name even if forced to change pw
+				allowed = true
+			}
+			if !allowed {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error":   "password change required",
+					"code":    "must_change_password",
+					"message": "you must change your password before using the platform",
+				})
+				c.Abort()
+				return
+			}
 		}
 		c.Set(userCtxKey, claims)
 		// also set the auth-package context key so auth.ClaimsFromContext works

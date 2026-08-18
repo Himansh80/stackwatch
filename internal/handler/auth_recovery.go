@@ -78,54 +78,26 @@ func clientIP(c *gin.Context) string {
 // auditLog writes a single row to audit_log. Best-effort — never fails the
 // parent handler if the audit insert errors out.
 func (h *AuthHandler) auditLog(ctx context.Context, tenantID *uuid.UUID, userID *uuid.UUID, action, target, ip string, meta map[string]any) {
-	// Marshal metadata to JSON. Fall back to {} on failure.
-	metaJSON := []byte("{}")
+	// Marshal metadata via stdlib encoding/json so we get real JSON.
+	var metaJSON []byte
 	if meta != nil {
-		// simple JSON marshal without importing encoding/json at the top:
-		// we use fmt.Sprintf to avoid the import; works for primitives.
-		var b []byte
-		b = append(b, '{')
-		first := true
-		for k, v := range meta {
-			if !first {
-				b = append(b, ',')
-			}
-			first = false
-			// key
-			b = append(b, '"')
-			for _, r := range k {
-				if r == '"' || r == '\\' {
-					b = append(b, '\\')
-				}
-				b = append(b, byte(r))
-			}
-			b = append(b, '"', ':')
-			// value — strings as JSON strings, everything else via fmt
-			switch x := v.(type) {
-			case string:
-				b = append(b, '"')
-				for _, r := range x {
-					if r == '"' || r == '\\' {
-						b = append(b, '\\')
-					}
-					b = append(b, byte(r))
-				}
-				b = append(b, '"')
-			default:
-				b = append(b, fmt.Sprintf("%v", x)...)
-			}
-		}
-		b = append(b, '}')
-		metaJSON = b
+		metaJSON = jsonMarshal(meta)
+	}
+	if len(metaJSON) == 0 {
+		metaJSON = []byte("{}")
 	}
 	var ipArg *string
 	if ip != "" {
 		ipArg = &ip
 	}
-	_, _ = h.pool.Pgx().Exec(ctx, `
+	_, err := h.pool.Pgx().Exec(ctx, `
 		INSERT INTO audit_log (tenant_id, user_id, action, target, metadata, ip, created_at)
 		VALUES ($1, $2, $3, $4, $5::jsonb, $6::inet, NOW())
 	`, tenantID, userID, action, target, string(metaJSON), ipArg)
+	if err != nil {
+		// Log to stdout so we can see it in journalctl.
+		h.logger.Error("audit_log insert failed", "action", action, "err", err.Error())
+	}
 }
 
 // ========== POST /auth/forgot ==========
@@ -326,7 +298,7 @@ type ChangePasswordRequest struct {
 }
 
 // ChangePassword verifies the current password and updates it.
-// Logs to audit_log on success.
+// Logs to audit_log on success and returns a fresh JWT (with must_change_password=false).
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	claimsUser, ok := userFromContext(c)
 	if !ok {
@@ -361,7 +333,14 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 	h.auditLog(c.Request.Context(), &u.TenantID, &u.ID, "password_changed", u.Email, clientIP(c), nil)
-	kernel.RespondOK(c, gin.H{"ok": true})
+	// Issue a fresh JWT so the caller immediately has a token without the flag.
+	fresh, err := h.issuer.Issue(u.ID, u.TenantID, u.Email, u.Role, false)
+	if err != nil {
+		// Non-fatal: old JWT still works (and re-fetching will pick up the flag clear).
+		kernel.RespondOK(c, gin.H{"ok": true})
+		return
+	}
+	kernel.RespondOK(c, gin.H{"ok": true, "token": fresh, "ttl": h.issuer.TTLSeconds()})
 }
 
 // ========== POST /auth/magic-link ==========
@@ -521,3 +500,31 @@ var (
 	_ = http.StatusOK
 	_ = auth.ClaimsCtxKey
 )
+
+// ========== Brute-force counter ==========
+
+// recordFailedLogin increments the failed-login counter for a user and
+// returns the total count of failed logins in the last 1 hour.
+// Old entries (older than 1 hour) are pruned on each call so the table
+// stays small.
+func (h *AuthHandler) recordFailedLogin(ctx context.Context, userID uuid.UUID) (int, error) {
+	// Insert a new failure event.
+	if _, err := h.pool.Pgx().Exec(ctx,
+		`INSERT INTO user_failed_logins (user_id, ts) VALUES ($1, NOW())`, userID,
+	); err != nil {
+		return 0, err
+	}
+	// Prune old entries (>1h).
+	if _, err := h.pool.Pgx().Exec(ctx,
+		`DELETE FROM user_failed_logins WHERE ts < NOW() - INTERVAL '1 hour'`, userID,
+	); err != nil {
+		return 0, err
+	}
+	// Return current count in the last hour.
+	var count int64
+	err := h.pool.Pgx().QueryRow(ctx,
+		`SELECT count(*) FROM user_failed_logins WHERE user_id = $1 AND ts > NOW() - INTERVAL '1 hour'`,
+		userID,
+	).Scan(&count)
+	return int(count), err
+}
