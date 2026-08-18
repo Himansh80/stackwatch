@@ -235,5 +235,40 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/admin/timers", adminH.ListTimers)
 	protected.GET("/admin/performance", adminH.ListPerformance)
 
+	// Tier 5: Container Management (Portainer + Watchtower parity)
+	// — SSH-based via web-terminal sidecar, runs `docker` CLI commands
+	containerH := handler.NewContainerHandler(adminH)
+	// C1: List + Get
+	protected.GET("/containers", containerH.ListContainers)
+	protected.GET("/containers/:id", containerH.GetContainer)
+	// C2: Actions
+	protected.POST("/containers/:id/:action", containerH.ContainerAction)
+	// C3/C4: Logs
+	protected.GET("/containers/:id/logs", containerH.ContainerLogs)
+	// C5: Stats
+	protected.GET("/containers/:id/stats", containerH.ContainerStats)
+	// C6: Create
+	protected.POST("/containers", containerH.CreateContainer)
+	// C7: Images
+	protected.GET("/containers/images", containerH.ListImages)
+	protected.POST("/containers/images/pull", containerH.PullImage)
+	protected.DELETE("/containers/images/:id", containerH.RemoveImage)
+	// C8: Volumes
+	protected.GET("/containers/volumes", containerH.ListVolumes)
+	protected.POST("/containers/volumes", containerH.CreateVolume)
+	protected.DELETE("/containers/volumes/:name", containerH.RemoveVolume)
+	// C9: Networks
+	protected.GET("/containers/networks", containerH.ListNetworks)
+	protected.POST("/containers/networks", containerH.CreateNetwork)
+	protected.DELETE("/containers/networks/:id", containerH.RemoveNetwork)
+	// C10: Stacks
+	protected.GET("/containers/stacks", containerH.ListStacks)
+	protected.POST("/containers/stacks", containerH.DeployStack)
+	// C11: Templates (no auth — public knowledge)
+	r.GET("/api/v1/containers/templates", containerH.ListTemplates)
+	// Watchtower
+	protected.GET("/containers/watchtower", containerH.ListWatched)
+	protected.POST("/containers/watchtower/update", containerH.TriggerUpdate)
+
 	return r
 }
