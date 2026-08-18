@@ -289,5 +289,15 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/grafana/search", handler.GrafanaSearch(pool))
 	protected.POST("/grafana/query", handler.GrafanaQuery(pool))
 
+	// Tier 6 v3: Dashboard Builder (M10)
+	protected.POST("/dashboards", handler.CreateDashboard(pool))
+	protected.GET("/dashboards", handler.ListDashboards(pool))
+	protected.GET("/dashboards/:id", handler.GetDashboard(pool))
+	protected.PATCH("/dashboards/:id", handler.PatchDashboard(pool))
+	protected.DELETE("/dashboards/:id", handler.DeleteDashboard(pool))
+	protected.POST("/dashboards/:id/eval", handler.EvalDashboard(pool))
+	protected.POST("/dashboards/:id/default", handler.SetDashboardDefault(pool))
+	protected.DELETE("/dashboards/:id/default", handler.UnsetDashboardDefault(pool))
+
 	return r
 }
