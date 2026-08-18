@@ -6,19 +6,19 @@
 //
 // Architecture:
 //
-//   Browser (xterm.js)
-//     ↕ WebSocket (wss://host:8085/api/v1/ws?connection=<uuid>)
-//   web-terminal (this service, :8085)
-//     ↕ SSH session (golang.org/x/crypto/ssh)
-//     ↕ PTY (github.com/creack/pty) on remote host
-//   Target host (e.g. .107, .116)
+//	Browser (xterm.js)
+//	  ↕ WebSocket (wss://host:8085/api/v1/ws?connection=<uuid>)
+//	web-terminal (this service, :8085)
+//	  ↕ SSH session (golang.org/x/crypto/ssh)
+//	  ↕ PTY (github.com/creack/pty) on remote host
+//	Target host (e.g. .107, .116)
 //
 // Message protocol (JSON over WS):
 //
-//   client → server: {type: "input",    data: "ls\n"}
-//   client → server: {type: "resize",   cols: 80, rows: 24}
-//   server → client: {type: "output",   data: "file1\nfile2\n"}
-//   server → client: {type: "exit",     code: 0, message: "..."}
+//	client → server: {type: "input",    data: "ls\n"}
+//	client → server: {type: "resize",   cols: 80, rows: 24}
+//	server → client: {type: "output",   data: "file1\nfile2\n"}
+//	server → client: {type: "exit",     code: 0, message: "..."}
 //
 // Auth: query param `token=<JWT>` (browsers can't send custom headers in
 // the WS upgrade handshake). We look up the saved connection in the DB
@@ -154,6 +154,7 @@ func main() {
 	mux.HandleFunc("/health", healthHandler(pool))
 	mux.HandleFunc("/api/v1/sessions", listSessionsHandler)
 	mux.HandleFunc("/api/v1/ws", wsHandler(pool, issuer))
+	mux.HandleFunc("/api/v1/admin/exec", adminExecHandler(pool, issuer))
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

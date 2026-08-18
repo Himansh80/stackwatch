@@ -37,7 +37,7 @@ func main() {
 
 	issuer := newIssuer(cfg.JWTSecret)
 
-	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode)
+	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode, cfg.WebTerminalURL)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

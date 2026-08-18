@@ -13,7 +13,7 @@ import (
 )
 
 // buildRouter constructs the gin engine with all middleware + routes.
-func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer, installMode string) *gin.Engine {
+func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer, installMode, webTerminalURL string) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
@@ -28,10 +28,10 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	r.GET("/health", func(c *gin.Context) {
 		if err := pool.Health(c.Request.Context()); err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"status":       "degraded",
-				"db":           "down",
-				"mode":         installMode,
-				"version":      "0.1.0-tier0.5",
+				"status":  "degraded",
+				"db":      "down",
+				"mode":    installMode,
+				"version": "0.1.0-tier0.5",
 			})
 			return
 		}
@@ -66,24 +66,24 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	// the protected group means RequireAuth aborts before Refresh runs.
 	r.POST("/api/v1/auth/refresh", authH.Refresh)
 
-		// Tier 0 tenant management (scoped to caller's JWT tenant).
-		protected.GET("/tenants", handler.ListTenants(pool))
-		protected.GET("/tenants/me", handler.GetTenantMe(pool))
-		protected.GET("/tenants/:id", handler.GetTenant(pool))
-		protected.PATCH("/tenants/:id", handler.UpdateTenant(pool))
+	// Tier 0 tenant management (scoped to caller's JWT tenant).
+	protected.GET("/tenants", handler.ListTenants(pool))
+	protected.GET("/tenants/me", handler.GetTenantMe(pool))
+	protected.GET("/tenants/:id", handler.GetTenant(pool))
+	protected.PATCH("/tenants/:id", handler.UpdateTenant(pool))
 
-		// Tier 0 user management.
-		protected.GET("/users", handler.ListTier0Users(pool))
-		protected.GET("/users/me", handler.GetTier0UserMe(pool))
-		protected.GET("/users/:id", handler.GetTier0User(pool))
-		protected.POST("/users", handler.CreateTier0User(pool))
-		protected.PATCH("/users/:id", handler.UpdateTier0User(pool))
-		protected.DELETE("/users/:id", handler.DeleteTier0User(pool))
+	// Tier 0 user management.
+	protected.GET("/users", handler.ListTier0Users(pool))
+	protected.GET("/users/me", handler.GetTier0UserMe(pool))
+	protected.GET("/users/:id", handler.GetTier0User(pool))
+	protected.POST("/users", handler.CreateTier0User(pool))
+	protected.PATCH("/users/:id", handler.UpdateTier0User(pool))
+	protected.DELETE("/users/:id", handler.DeleteTier0User(pool))
 
-		// Tier 0 API key management.
-		protected.GET("/api-keys", handler.ListAPIKeys(pool))
-		protected.POST("/api-keys", handler.CreateAPIKey(pool))
-		protected.POST("/api-keys/:id/revoke", handler.RevokeAPIKey(pool))
+	// Tier 0 API key management.
+	protected.GET("/api-keys", handler.ListAPIKeys(pool))
+	protected.POST("/api-keys", handler.CreateAPIKey(pool))
+	protected.POST("/api-keys/:id/revoke", handler.RevokeAPIKey(pool))
 
 	// Proxmox endpoints (Tier 1)
 	proxmoxH := handler.NewProxmoxHandler(pool)
@@ -221,6 +221,19 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/terminal/known-hosts/:id", termH.GetKnownHost)
 	protected.POST("/terminal/known-hosts/trust", termH.TrustHost)
 	protected.DELETE("/terminal/known-hosts/:id", termH.DeleteKnownHost)
+
+	// Tier 4: Server Admin (Cockpit parity) — SSH-based via web-terminal sidecar
+	adminH := handler.NewAdminHandler(webTerminalURL)
+	protected.GET("/admin/services", adminH.ListServices)
+	protected.POST("/admin/services/:connection_id/:action", adminH.ServiceAction)
+	protected.GET("/admin/storage", adminH.ListStorage)
+	protected.GET("/admin/network", adminH.ListNetwork)
+	protected.GET("/admin/processes", adminH.ListProcesses)
+	protected.GET("/admin/updates", adminH.ListUpdates)
+	protected.GET("/admin/logs", adminH.ListLogs)
+	protected.GET("/admin/users", adminH.ListUsers)
+	protected.GET("/admin/timers", adminH.ListTimers)
+	protected.GET("/admin/performance", adminH.ListPerformance)
 
 	return r
 }
