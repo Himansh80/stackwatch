@@ -10,7 +10,7 @@ import (
 // datasetOpts mirrors truenas.DatasetCreateOptions but is used at the
 // handler boundary so we don't import the client types directly.
 type datasetReq struct {
-	HostID string `json:"host_id"`
+	HostID      string `json:"host_id"`
 	Name        string `json:"name"`
 	Type        string `json:"type,omitempty"`
 	Compression string `json:"compression,omitempty"`
@@ -22,12 +22,26 @@ type datasetReq struct {
 }
 
 func toDatasetOpts(r datasetReq) truenas.DatasetCreateOptions {
-	return truenas.DatasetCreateOptions{
-		Name: r.Name, Type: r.Type,
-		Compression: r.Compression, RecordSize: parseRecordSize(r.RecordSize),
-		Quota: r.Quota, RefQuota: r.RefQuota,
-		Encryption: r.Encryption, ACLMode: r.ACLMode,
+	opts := truenas.DatasetCreateOptions{
+		Name:        r.Name,
+		Type:        r.Type,
+		Compression: r.Compression,
+		RecordSize:  parseRecordSize(r.RecordSize),
+		ACLMode:     r.ACLMode,
 	}
+	if r.Quota > 0 {
+		q := r.Quota
+		opts.Quota = &q
+	}
+	if r.RefQuota > 0 {
+		rq := r.RefQuota
+		opts.RefQuota = &rq
+	}
+	if r.Encryption {
+		e := true
+		opts.Encryption = &e
+	}
+	return opts
 }
 
 // --- T2.3 — Datasets ---
@@ -61,7 +75,7 @@ func ListDatasets(store *hostStore) gin.HandlerFunc {
 func GetDataset(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name string `json:"name"`
+		Name   string `json:"name"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -105,7 +119,7 @@ func CreateDataset(store *hostStore) gin.HandlerFunc {
 
 // datasetUpdReq is the partial-update body for PATCH/POST update.
 type datasetUpdReq struct {
-	HostID string `json:"host_id"`
+	HostID      string `json:"host_id"`
 	Name        string `json:"name"`
 	Compression string `json:"compression,omitempty"`
 	RecordSize  string `json:"recordsize,omitempty"`
@@ -144,7 +158,7 @@ func UpdateDataset(store *hostStore) gin.HandlerFunc {
 // DeleteDataset removes a dataset.
 func DeleteDataset(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID    string `json:"host_id"`
 		Name      string `json:"name"`
 		Recursive bool   `json:"recursive"`
 	}
@@ -170,7 +184,7 @@ func DeleteDataset(store *hostStore) gin.HandlerFunc {
 
 func ListNFS(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -210,7 +224,7 @@ func CreateNFS(store *hostStore) gin.HandlerFunc {
 }
 
 type nfsShareReq struct {
-	HostID string `json:"host_id"`
+	HostID   string   `json:"host_id"`
 	Path     string   `json:"path"`
 	Comment  string   `json:"comment,omitempty"`
 	Enabled  bool     `json:"enabled"`
@@ -228,7 +242,7 @@ func nfsShareOpts(r nfsShareReq) truenas.NFSShareCreate {
 }
 func UpdateNFS(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID   string   `json:"host_id"`
 		ID       int64    `json:"id"`
 		Enabled  bool     `json:"enabled"`
 		ReadOnly bool     `json:"ro"`
@@ -263,7 +277,7 @@ func UpdateNFS(store *hostStore) gin.HandlerFunc {
 func DeleteNFS(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -287,7 +301,7 @@ func DeleteNFS(store *hostStore) gin.HandlerFunc {
 
 func ListSMB(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -327,7 +341,7 @@ func CreateSMB(store *hostStore) gin.HandlerFunc {
 }
 
 type smbShareReq struct {
-	HostID string `json:"host_id"`
+	HostID     string   `json:"host_id"`
 	Name       string   `json:"name"`
 	Path       string   `json:"path"`
 	Comment    string   `json:"comment,omitempty"`
@@ -348,7 +362,7 @@ func smbShareOpts(r smbShareReq) truenas.SMBShareCreate {
 }
 func UpdateSMB(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID   string `json:"host_id"`
 		ID       int64  `json:"id"`
 		Name     string `json:"name"`
 		Path     string `json:"path"`
@@ -379,7 +393,7 @@ func UpdateSMB(store *hostStore) gin.HandlerFunc {
 func DeleteSMB(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req

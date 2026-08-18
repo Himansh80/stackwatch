@@ -104,7 +104,7 @@ func (c *Client) GetGroup(idOrName any) (Group, error) {
 
 // GroupCreate matches group.create args.
 type GroupCreate struct {
-	Name string `json:"group"`
+	Name string `json:"name"`
 	GID  int    `json:"gid,omitempty"`
 	Perm string `json:"permissions,omitempty"` // one of USER, FULL etc
 	// sudo / smb / other flags handled via separate call

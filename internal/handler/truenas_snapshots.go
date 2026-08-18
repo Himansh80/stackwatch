@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stackwatch/platform/internal/client/truenas"
@@ -33,7 +34,7 @@ func ListSnapshots(store *hostStore) gin.HandlerFunc {
 }
 
 type snapshotReq struct {
-	HostID string `json:"host_id"`
+	HostID    string `json:"host_id"`
 	Dataset   string `json:"dataset"`
 	Name      string `json:"name,omitempty"`
 	Recursive bool   `json:"recursive,omitempty"`
@@ -70,8 +71,9 @@ func CreateSnapshot(store *hostStore) gin.HandlerFunc {
 
 func DeleteSnapshot(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
-		Name      string `json:"name"`
+		HostID    string `json:"host_id"`
+		Name      string `json:"name"`     // accepts bare name ("my-snap") OR full id ("ds@my-snap")
+		Dataset   string `json:"dataset"`  // optional; if Name is bare, this is used to build the full id
 		Recursive bool   `json:"recursive"`
 	}
 	return func(c *gin.Context) {
@@ -84,7 +86,12 @@ func DeleteSnapshot(store *hostStore) gin.HandlerFunc {
 		if !ok {
 			return
 		}
-		if err := cli.DeleteSnapshot(r.Name, r.Recursive); err != nil {
+		// If name doesn't already contain "@", prepend dataset to make a full id.
+		name := r.Name
+		if r.Dataset != "" && !strings.Contains(name, "@") {
+			name = r.Dataset + "@" + name
+		}
+		if err := cli.DeleteSnapshot(name, r.Recursive); err != nil {
 			Err(c, err)
 			return
 		}
@@ -95,7 +102,7 @@ func DeleteSnapshot(store *hostStore) gin.HandlerFunc {
 // RollbackSnapshot rolls back a dataset to a snapshot name.
 func RollbackSnapshot(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID       string `json:"host_id"`
 		Dataset      string `json:"dataset"`
 		SnapshotName string `json:"snapshot"`
 	}
@@ -121,7 +128,7 @@ func RollbackSnapshot(store *hostStore) gin.HandlerFunc {
 
 func ListReplications(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -142,7 +149,7 @@ func ListReplications(store *hostStore) gin.HandlerFunc {
 }
 
 type replicationReq struct {
-	HostID string `json:"host_id"`
+	HostID        string `json:"host_id"`
 	Name          string `json:"name"`
 	Direction     string `json:"direction"`
 	SourceDataset string `json:"source_datasets"`
@@ -188,7 +195,7 @@ func CreateReplication(store *hostStore) gin.HandlerFunc {
 func DeleteReplication(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -211,7 +218,7 @@ func DeleteReplication(store *hostStore) gin.HandlerFunc {
 func RunReplication(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req

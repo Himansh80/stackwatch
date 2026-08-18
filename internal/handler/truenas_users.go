@@ -11,7 +11,7 @@ import (
 
 func ListUsers(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -34,7 +34,7 @@ func ListUsers(store *hostStore) gin.HandlerFunc {
 func GetUser(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -56,7 +56,7 @@ func GetUser(store *hostStore) gin.HandlerFunc {
 }
 
 type userReq struct {
-	HostID string `json:"host_id"`
+	HostID      string `json:"host_id"`
 	Username    string `json:"username"`
 	FullName    string `json:"full_name,omitempty"`
 	Email       string `json:"email,omitempty"`
@@ -100,7 +100,7 @@ func CreateUser(store *hostStore) gin.HandlerFunc {
 func UpdateUser(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 		userReq
 	}
 	return func(c *gin.Context) {
@@ -124,7 +124,7 @@ func UpdateUser(store *hostStore) gin.HandlerFunc {
 func DeleteUser(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -146,7 +146,7 @@ func DeleteUser(store *hostStore) gin.HandlerFunc {
 
 func ListGroups(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -166,20 +166,20 @@ func ListGroups(store *hostStore) gin.HandlerFunc {
 	}
 }
 
-type groupReq struct {
+type groupCreateReq struct {
 	HostID string `json:"host_id"`
-	Name string `json:"group"`
-	GID  int    `json:"gid,omitempty"`
-	Perm string `json:"permissions,omitempty"`
+	Name   string `json:"name"`
+	GID    int    `json:"gid,omitempty"`
+	Perm   string `json:"permissions,omitempty"`
 }
 
-func groupOpts(r groupReq) truenas.GroupCreate {
+func groupOpts(r groupCreateReq) truenas.GroupCreate {
 	return truenas.GroupCreate{Name: r.Name, GID: r.GID, Perm: r.Perm}
 }
 
 func CreateGroup(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var r groupReq
+		var r groupCreateReq
 		if err := c.ShouldBindJSON(&r); err != nil {
 			Bad(c, http.StatusBadRequest, "BAD_REQUEST", err.Error())
 			return
@@ -200,7 +200,7 @@ func CreateGroup(store *hostStore) gin.HandlerFunc {
 func DeleteGroup(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -222,7 +222,7 @@ func DeleteGroup(store *hostStore) gin.HandlerFunc {
 
 func GetACL(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID     string `json:"host_id"`
 		Path       string `json:"path"`
 		Simplified bool   `json:"simplified"`
 	}
@@ -247,7 +247,7 @@ func GetACL(store *hostStore) gin.HandlerFunc {
 
 func SetACL(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID    string           `json:"host_id"`
 		Path      string           `json:"path"`
 		Recursive bool             `json:"recursive"`
 		ACLType   string           `json:"acltype"`
