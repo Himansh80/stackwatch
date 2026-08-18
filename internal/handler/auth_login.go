@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stackwatch/platform/internal/kernel"
@@ -28,6 +29,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 	email := strings.ToLower(strings.TrimSpace(req.Email))
+	ip := clientIP(c)
+
+	// Rate limit BEFORE doing any DB lookup. 5 attempts per ip+email per 5min.
+	if wait, err := checkLoginRateLimit(ip, email); err != nil {
+		kernel.RespondError(c, err)
+		c.Header("Retry-After", wait.Round(time.Second).String())
+		return
+	}
 
 	user, tenant, err := h.lookupUserAndTenant(c.Request.Context(), email)
 	if err != nil {
@@ -40,6 +49,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 	if !checkHash(user.PasswordHash, req.Password) {
+		// Failed login → audit
+		h.auditLog(c.Request.Context(), &user.TenantID, &user.ID, "login.failed", user.Email, ip, map[string]any{"reason": "bad_password"})
 		kernel.RespondError(c, kernel.ErrUnauthorized)
 		return
 	}
@@ -49,6 +60,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		kernel.RespondError(c, err)
 		return
 	}
+
+	// Update last_login_at + audit success.
+	_, _ = h.pool.Pgx().Exec(c.Request.Context(),
+		`UPDATE users SET last_login_at=NOW() WHERE id=$1`, user.ID)
+	h.auditLog(c.Request.Context(), &user.TenantID, &user.ID, "login.success", user.Email, ip, nil)
 
 	kernel.RespondOK(c, LoginResponse{Token: tok, User: user, Tenant: tenant})
 }

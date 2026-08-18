@@ -12,14 +12,14 @@ import (
 // Task is a Proxmox task entry (background operation).
 // Tasks track VM/LXC/storage/network operations.
 type Task struct {
-	UPID       string `json:"upid"`         // unique task id (e.g. "UPID:router:00012345:...")
-	Node       string `json:"node"`         // node where the task ran
-	PID        int    `json:"pid"`          // process id
-	StartTime  int64  `json:"starttime"`    // unix epoch seconds
+	UPID       string `json:"upid"`      // unique task id (e.g. "UPID:router:00012345:...")
+	Node       string `json:"node"`      // node where the task ran
+	PID        int    `json:"pid"`       // process id
+	StartTime  int64  `json:"starttime"` // unix epoch seconds
 	EndTime    int64  `json:"endtime,omitempty"`
-	Type       string `json:"type"`         // qmsync, vzdump, qmstart, etc.
-	User       string `json:"user"`         // user who started
-	Status     string `json:"status"`       // running, OK, WARNING, ERROR, STOPPED, UNKNOWN
+	Type       string `json:"type"`                 // qmsync, vzdump, qmstart, etc.
+	User       string `json:"user"`                 // user who started
+	Status     string `json:"status"`               // running, OK, WARNING, ERROR, STOPPED, UNKNOWN
 	ExitStatus string `json:"exitstatus,omitempty"` // OK or specific error
 }
 
@@ -28,8 +28,8 @@ type Task struct {
 // where the response body is { "data": [...], "total": N } and the
 // array of log lines is the "data" key of the response wrapper.
 type TaskLogLine struct {
-	N int    `json:"n"`         // line number (1-indexed)
-	T string `json:"t"`         // text content
+	N int    `json:"n"` // line number (1-indexed)
+	T string `json:"t"` // text content
 }
 
 // TaskLog is the response from GET /nodes/{node}/tasks/{upid}/log.
@@ -38,8 +38,8 @@ type TaskLogLine struct {
 //
 // The wrapper includes the total line count.
 type TaskLog struct {
-	Total int            `json:"total"`         // total lines available
-	Data  []TaskLogLine  `json:"data,omitempty"`
+	Total int           `json:"total"` // total lines available
+	Data  []TaskLogLine `json:"data,omitempty"`
 }
 
 // ListNodeTasks returns the task history for a node (most recent first).
@@ -82,8 +82,8 @@ func (c *Client) GetTaskLog(ctx context.Context, node, upid string, lines int) (
 	}
 	// Proxmox log endpoint: { "total": N, "data": [...] }
 	var wrapped struct {
-		Total int            `json:"total"`
-		Data  []TaskLogLine  `json:"data"`
+		Total int           `json:"total"`
+		Data  []TaskLogLine `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&wrapped); err != nil {
 		return TaskLog{}, err

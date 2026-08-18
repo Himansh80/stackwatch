@@ -434,5 +434,3 @@ func classifyDialError(err error, ctx context.Context) (string, string) {
 	}
 	return "failed", err.Error()
 }
-
-

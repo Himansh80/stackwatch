@@ -10,15 +10,15 @@ import (
 // Proxmox /nodes/{node}/certificates returns just slot names ({name: "acme"|"custom"|"info"}).
 // The /nodes/{node}/certificates/{slot} endpoint returns the full cert.
 type Certificate struct {
-	Name          string   `json:"name"`                    // e.g. "acme", "custom", "info"
-	Filename      string   `json:"filename,omitempty"`      // alias (some endpoints use this)
-	Subject       string   `json:"subject,omitempty"`       // certificate subject
+	Name          string   `json:"name"`               // e.g. "acme", "custom", "info"
+	Filename      string   `json:"filename,omitempty"` // alias (some endpoints use this)
+	Subject       string   `json:"subject,omitempty"`  // certificate subject
 	Issuer        string   `json:"issuer,omitempty"`
-	NotBefore     int64    `json:"notbefore,omitempty"`     // unix epoch
-	NotAfter      int64    `json:"notafter,omitempty"`      // unix epoch
+	NotBefore     int64    `json:"notbefore,omitempty"` // unix epoch
+	NotAfter      int64    `json:"notafter,omitempty"`  // unix epoch
 	PublicKeyBits int      `json:"public-key-bits,omitempty"`
 	PublicKeyType string   `json:"public-key-type,omitempty"`
-	San           []string `json:"san,omitempty"`           // subject alt names
+	San           []string `json:"san,omitempty"` // subject alt names
 	Fingerprint   string   `json:"fingerprint,omitempty"`
 }
 
@@ -35,13 +35,13 @@ func (c *Client) ListCertificates(ctx context.Context, node string) ([]Certifica
 
 // ACMEAccount represents a registered Let's Encrypt / other CA account.
 type ACMEAccount struct {
-	Name           string `json:"name"`                  // account name
-	Email          string `json:"email,omitempty"`        // contact email
-	Directory      string `json:"directory,omitempty"`     // CA URL (Let's Encrypt staging, prod, etc.)
-	TOS            string `json:"tos,omitempty"`           // terms of service URL
-	RegisteredAt   int64  `json:"registered-at,omitempty"` // unix epoch
-	LastUpdate      int64  `json:"last-update,omitempty"`
-	Status         string `json:"status,omitempty"` // "active", "expired", etc.
+	Name         string `json:"name"`                    // account name
+	Email        string `json:"email,omitempty"`         // contact email
+	Directory    string `json:"directory,omitempty"`     // CA URL (Let's Encrypt staging, prod, etc.)
+	TOS          string `json:"tos,omitempty"`           // terms of service URL
+	RegisteredAt int64  `json:"registered-at,omitempty"` // unix epoch
+	LastUpdate   int64  `json:"last-update,omitempty"`
+	Status       string `json:"status,omitempty"` // "active", "expired", etc.
 }
 
 // ListACMEAccounts returns all ACME accounts.
@@ -141,9 +141,9 @@ func (c *Client) DeleteACMEPlugin(ctx context.Context, name string) (string, err
 // ACMEChallengeSchemaEntry describes one supported ACME challenge type
 // and the data fields needed for its DNS validator plugin.
 type ACMEChallengeSchemaEntry struct {
-	ID     string                 `json:"id"`     // "1984hosting", "acmedns", etc.
-	Type   string                 `json:"type"`   // "dns", "standalone"
-	Name   string                 `json:"name"`   // display name
+	ID     string                 `json:"id"`   // "1984hosting", "acmedns", etc.
+	Type   string                 `json:"type"` // "dns", "standalone"
+	Name   string                 `json:"name"` // display name
 	Schema map[string]interface{} `json:"schema,omitempty"`
 }
 
@@ -158,10 +158,10 @@ func (c *Client) ListACMEChallengeSchema(ctx context.Context) ([]ACMEChallengeSc
 
 // ACMEDirectory describes a supported ACME CA (Let's Encrypt, ZeroSSL, etc.).
 type ACMEDirectory struct {
-	Name      string `json:"name"`       // "letsencrypt", "letsencrypt-staging"
-	URL       string `json:"url"`        // ACME directory URL
-	TOS       string `json:"tos,omitempty"`
-	Website   string `json:"website,omitempty"`
+	Name    string `json:"name"` // "letsencrypt", "letsencrypt-staging"
+	URL     string `json:"url"`  // ACME directory URL
+	TOS     string `json:"tos,omitempty"`
+	Website string `json:"website,omitempty"`
 }
 
 // ListACMEDirectories returns supported ACME directories.
@@ -175,11 +175,11 @@ func (c *Client) ListACMEDirectories(ctx context.Context) ([]ACMEDirectory, erro
 
 // ACMEMetaInfo describes ACME directory metadata.
 type ACMEMetaInfo struct {
-	Name      string `json:"name,omitempty"`
-	Website   string `json:"website,omitempty"`
-	CaaIdentities string `json:"caa-identities,omitempty"`
-	ExternalAccountRequired bool `json:"externalAccountRequired,omitempty"`
-	TermsOfService string `json:"termsOfService,omitempty"`
+	Name                    string `json:"name,omitempty"`
+	Website                 string `json:"website,omitempty"`
+	CaaIdentities           string `json:"caa-identities,omitempty"`
+	ExternalAccountRequired bool   `json:"externalAccountRequired,omitempty"`
+	TermsOfService          string `json:"termsOfService,omitempty"`
 }
 
 // GetACMETAOfService returns the current ToS URL for a directory.

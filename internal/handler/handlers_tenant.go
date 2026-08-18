@@ -105,6 +105,63 @@ func GetTenant(pool *db.Pool) gin.HandlerFunc {
 	}
 }
 
+// CreateTenantRequest is the JSON body for POST /tenants.
+// Super_admin only — creates a new tenant with default plan.
+type CreateTenantRequest struct {
+	Name  string `json:"name" binding:"required,min=1,max=255"`
+	Slug  string `json:"slug" binding:"required,min=1,max=64"`
+	Plan  string `json:"plan"`
+}
+
+// CreateTenant creates a new tenant row. Super-admin only.
+func CreateTenant(pool *db.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Role check — must be super_admin
+		claimsUser, ok := userFromContext(c)
+		if !ok {
+			kernel.RespondError(c, kernel.ErrUnauthorized)
+			return
+		}
+		if claimsUser.Role != "super_admin" {
+			kernel.RespondError(c, kernel.ErrForbidden)
+			return
+		}
+		var req CreateTenantRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			kernel.RespondError(c, kernel.ErrBadRequest)
+			return
+		}
+		plan := req.Plan
+		if plan == "" {
+			plan = "free"
+		}
+		newID := uuid.New()
+		var created, updated time.Time
+		err := pool.Pgx().QueryRow(c.Request.Context(),
+			`INSERT INTO tenants (id, name, slug, plan, status, created_at, updated_at)
+			 VALUES ($1, $2, $3, $4, 'active', NOW(), NOW())
+			 RETURNING created_at, updated_at`,
+			newID, req.Name, req.Slug, plan,
+		).Scan(&created, &updated)
+		if err != nil {
+			// Unique violation on slug → 409
+			kernel.RespondError(c, kernel.ErrConflict)
+			return
+		}
+		kernel.RespondCreated(c, gin.H{
+			"tenant": Tenant{
+				ID:        newID.String(),
+				Name:      req.Name,
+				Slug:      req.Slug,
+				Plan:      plan,
+				Status:    "active",
+				CreatedAt: created.UTC().Format(time.RFC3339),
+				UpdatedAt: updated.UTC().Format(time.RFC3339),
+			},
+		})
+	}
+}
+
 // UpdateTenant body
 type updateTenantReq struct {
 	Name   *string `json:"name,omitempty"`

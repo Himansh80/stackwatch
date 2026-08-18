@@ -64,11 +64,11 @@ type LXCSpec struct {
 	Cores        int
 	DiskGB       int
 	Storage      string
-	Password     string  // root password (optional)
-	OSTemplate   string  // e.g. "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+	Password     string // root password (optional)
+	OSTemplate   string // e.g. "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
 	Bridge       string
-	NetName      string  // network interface name (default: eth0)
-	IPConfig     string  // e.g. "dhcp" or "10.0.0.5/24,gw=10.0.0.1"
+	NetName      string // network interface name (default: eth0)
+	IPConfig     string // e.g. "dhcp" or "10.0.0.5/24,gw=10.0.0.1"
 	Unprivileged bool
 	Description  string
 }
@@ -247,6 +247,7 @@ func (c *Client) CreateVM(ctx context.Context, node string, spec VMSpec) (string
 	}
 	return c.doTask(req)
 }
+
 // DeleteVM removes a VM (returns task ID; operation is async).
 //
 // DELETE /api2/json/nodes/{node}/qemu/{vmid}?purge=1

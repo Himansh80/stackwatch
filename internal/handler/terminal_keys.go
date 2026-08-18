@@ -16,7 +16,6 @@ import (
 	"github.com/stackwatch/platform/internal/kernel"
 )
 
-
 // SSHKey is a returned SSH key (caller's view; no private).
 type SSHKey struct {
 	ID          uuid.UUID `json:"id"`
@@ -178,4 +177,3 @@ func (h *TerminalHandler) DeleteSSHKey(c *gin.Context) {
 	}
 	kernel.RespondOK(c, gin.H{"id": id, "status": "deleted"})
 }
-

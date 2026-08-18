@@ -129,10 +129,10 @@ func (h *ProxmoxHandler) BackupNow(c *gin.Context) {
 		return
 	}
 	kernel.RespondOK(c, gin.H{
-		"vmid":  req.VMID,
-		"node":  node,
-		"upid":  upid,
-		"status": "started",
+		"vmid":       req.VMID,
+		"node":       node,
+		"upid":       upid,
+		"status":     "started",
 		"status_url": fmt.Sprintf("/api/v1/proxmox/hosts/%s/nodes/%s/tasks/%s/status", host.ID.String(), node, upid),
 	})
 }

@@ -15,13 +15,13 @@ type FirewallRule struct {
 	Enable     int    `json:"enable"`           // 1 = enabled
 	Source     string `json:"source,omitempty"` // CIDR or IPset name
 	Dest       string `json:"dest,omitempty"`
-	Proto      string `json:"proto,omitempty"`      // tcp, udp, icmp, all
-	DestPort   string `json:"dport,omitempty"`     // destination port/range
-	SourcePort string `json:"sport,omitempty"`     // source port/range
-	Iface      string `json:"iface,omitempty"`      // network interface
+	Proto      string `json:"proto,omitempty"` // tcp, udp, icmp, all
+	DestPort   string `json:"dport,omitempty"` // destination port/range
+	SourcePort string `json:"sport,omitempty"` // source port/range
+	Iface      string `json:"iface,omitempty"` // network interface
 	Comment    string `json:"comment,omitempty"`
-	Macro      string `json:"macro,omitempty"`      // shortcut: NO, DHCP, HTTP, HTTPS, etc.
-	Log        string `json:"log,omitempty"`       // emerg, alert, crit, err, warning, notice, info, debug, none
+	Macro      string `json:"macro,omitempty"` // shortcut: NO, DHCP, HTTP, HTTPS, etc.
+	Log        string `json:"log,omitempty"`   // emerg, alert, crit, err, warning, notice, info, debug, none
 }
 
 // FirewallRuleSpec is the body for POST/PUT /firewall/rules.
@@ -124,14 +124,14 @@ func (c *Client) DeleteFirewallRule(ctx context.Context, node string, pos int) (
 
 // IPset is a named set of IPs/CIDRs used by firewall rules.
 type IPset struct {
-	Name    string         `json:"name"`           // e.g. "my-blocklist"
-	Comment string         `json:"comment,omitempty"`
-	Entries []IPsetEntry   `json:"entries,omitempty"`
+	Name    string       `json:"name"` // e.g. "my-blocklist"
+	Comment string       `json:"comment,omitempty"`
+	Entries []IPsetEntry `json:"entries,omitempty"`
 }
 
 // IPsetEntry is a single IP/CIDR within an IPset.
 type IPsetEntry struct {
-	CIDR    string `json:"cidr"`           // e.g. "192.168.1.5" or "10.0.0.0/24"
+	CIDR    string `json:"cidr"` // e.g. "192.168.1.5" or "10.0.0.0/24"
 	Comment string `json:"comment,omitempty"`
 	NoMatch int    `json:"nomatch,omitempty"` // 1 = exclude this CIDR
 }

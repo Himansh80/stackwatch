@@ -10,7 +10,7 @@ import (
 // ListPools returns all ZFS pools on a host.
 func ListPools(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -58,7 +58,7 @@ func GetPool(store *hostStore) gin.HandlerFunc {
 // CreatePool creates a new pool from a vdev topology spec.
 func CreatePool(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID        string         `json:"host_id"`
 		Name          string         `json:"name"`
 		Topology      map[string]any `json:"topology"`
 		Deduplication bool           `json:"deduplication"`
@@ -91,7 +91,7 @@ func CreatePool(store *hostStore) gin.HandlerFunc {
 // ExtendPool adds a vdev to an existing pool.
 func ExtendPool(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID  string         `json:"host_id"`
 		NewVDev map[string]any `json:"new_vdev"`
 		ID      int64          `json:"id"`
 	}
@@ -117,7 +117,7 @@ func ExtendPool(store *hostStore) gin.HandlerFunc {
 func ImportPool(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		GUID string `json:"guid"`
+		GUID   string `json:"guid"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -141,8 +141,8 @@ func ImportPool(store *hostStore) gin.HandlerFunc {
 func ExportPool(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID    int64 `json:"id"`
-		Force bool  `json:"force"`
+		ID     int64  `json:"id"`
+		Force  bool   `json:"force"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -166,7 +166,7 @@ func ExportPool(store *hostStore) gin.HandlerFunc {
 func DestroyPool(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -190,7 +190,7 @@ func DestroyPool(store *hostStore) gin.HandlerFunc {
 func ScrubPool(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -214,7 +214,7 @@ func ScrubPool(store *hostStore) gin.HandlerFunc {
 func PoolScrubState(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req

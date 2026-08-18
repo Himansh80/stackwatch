@@ -165,7 +165,7 @@ func (h *TerminalHandler) CreateCredential(c *gin.Context) {
 		return
 	}
 	if req.Kind != "password" && req.Kind != "key_passphrase" && req.Kind != "sudo_password" {
-		kernel.RespondError(c, kernel.ErrBadRequest)  // kind validation above
+		kernel.RespondError(c, kernel.ErrBadRequest) // kind validation above
 		return
 	}
 	ct, nonce, err := encryptSecret(req.Secret)
@@ -187,11 +187,11 @@ func (h *TerminalHandler) CreateCredential(c *gin.Context) {
 		return
 	}
 	kernel.RespondOK(c, gin.H{
-		"id":       id,
-		"name":     req.Name,
-		"kind":     req.Kind,
-		"status":   "created",
-		"hint":     "store secret securely — never retrievable in API",
+		"id":     id,
+		"name":   req.Name,
+		"kind":   req.Kind,
+		"status": "created",
+		"hint":   "store secret securely — never retrievable in API",
 	})
 }
 

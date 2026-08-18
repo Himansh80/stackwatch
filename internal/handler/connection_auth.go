@@ -33,8 +33,8 @@ func (h *TerminalHandler) GetConnectionAuth(c *gin.Context) {
 		return
 	}
 	kernel.RespondOK(c, gin.H{
-		"id":           id,
-		"auth_method":  method,
+		"id":            id,
+		"auth_method":   method,
 		"credential_id": credentialID,
 	})
 }

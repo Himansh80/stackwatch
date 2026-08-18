@@ -13,47 +13,47 @@ import (
 // Proxmox returns bridge_stp / bridge_fd / bridge_vlan_aware as strings
 // ("on"/"off", "0", "0"/"1"), not numbers. We use strings to match.
 type NetworkIface struct {
-	Iface   string `json:"iface"`         // name: vmbr0, bond0, eno1, eth1.100, etc.
-	Type    string `json:"type"`          // bridge, bond, vlan, eth, alias, none
-	Active  int    `json:"active"`        // 1 = up, 0 = down
-	Autostart int  `json:"autostart"`     // 1 = start on boot
-	BridgePorts   string `json:"bridge_ports,omitempty"`     // comma-separated port members
+	Iface           string `json:"iface"`                       // name: vmbr0, bond0, eno1, eth1.100, etc.
+	Type            string `json:"type"`                        // bridge, bond, vlan, eth, alias, none
+	Active          int    `json:"active"`                      // 1 = up, 0 = down
+	Autostart       int    `json:"autostart"`                   // 1 = start on boot
+	BridgePorts     string `json:"bridge_ports,omitempty"`      // comma-separated port members
 	BridgeVlanAware string `json:"bridge_vlan_aware,omitempty"` // "1" if vlan-aware
-	BridgeSTP      string `json:"bridge_stp,omitempty"`        // "on" / "off"
-	BridgeFD       string `json:"bridge_fd,omitempty"`         // forwarding delay seconds
-	BondSlaves     string `json:"bond_slaves,omitempty"`     // comma-separated NIC members
-	BondMode       string `json:"bond_mode,omitempty"`       // balance-rr, active-backup, 802.3ad, etc.
-	IP            string `json:"ip,omitempty"`               // CIDR like 192.168.0.107/24
-	Gateway       string `json:"gateway,omitempty"`
-	Netmask       string `json:"netmask,omitempty"`
-	CIDR          string `json:"cidr,omitempty"`
-	MTU           int    `json:"mtu,omitempty"`
-	VlanID        int    `json:"vlan_id,omitempty"`        // VLAN tag for vlan type (Proxmox uses hyphen in URL form, JSON keeps underscore)
-	VlanRawDevice string `json:"vlan_raw_device,omitempty"` // parent interface
-	Comments      string `json:"comments,omitempty"`
-	Address       string `json:"address,omitempty"`
-	Netmask6      string `json:"netmask6,omitempty"`
-	Gateway6      string `json:"gateway6,omitempty"`
-	IPv6          string `json:"ip6,omitempty"`
+	BridgeSTP       string `json:"bridge_stp,omitempty"`        // "on" / "off"
+	BridgeFD        string `json:"bridge_fd,omitempty"`         // forwarding delay seconds
+	BondSlaves      string `json:"bond_slaves,omitempty"`       // comma-separated NIC members
+	BondMode        string `json:"bond_mode,omitempty"`         // balance-rr, active-backup, 802.3ad, etc.
+	IP              string `json:"ip,omitempty"`                // CIDR like 192.168.0.107/24
+	Gateway         string `json:"gateway,omitempty"`
+	Netmask         string `json:"netmask,omitempty"`
+	CIDR            string `json:"cidr,omitempty"`
+	MTU             int    `json:"mtu,omitempty"`
+	VlanID          int    `json:"vlan_id,omitempty"`         // VLAN tag for vlan type (Proxmox uses hyphen in URL form, JSON keeps underscore)
+	VlanRawDevice   string `json:"vlan_raw_device,omitempty"` // parent interface
+	Comments        string `json:"comments,omitempty"`
+	Address         string `json:"address,omitempty"`
+	Netmask6        string `json:"netmask6,omitempty"`
+	Gateway6        string `json:"gateway6,omitempty"`
+	IPv6            string `json:"ip6,omitempty"`
 }
 
 // NetworkSpec describes a network interface to create on a Proxmox node.
 type NetworkSpec struct {
-	Iface           string `json:"iface"`           // required: name of new interface
-	Type            string `json:"type"`            // required: bridge, bond, vlan, eth
-	Autostart       int    `json:"autostart"`       // 0/1
-	BridgePorts     string `json:"bridge_ports,omitempty"`     // for bridge: vmbr0 ports
+	Iface           string `json:"iface"`                       // required: name of new interface
+	Type            string `json:"type"`                        // required: bridge, bond, vlan, eth
+	Autostart       int    `json:"autostart"`                   // 0/1
+	BridgePorts     string `json:"bridge_ports,omitempty"`      // for bridge: vmbr0 ports
 	BridgeVlanAware int    `json:"bridge_vlan_aware,omitempty"` // 0/1
 	BridgeSTP       int    `json:"bridge_stp,omitempty"`
-	BondSlaves      string `json:"bond_slaves,omitempty"`  // for bond: NIC members
-	BondMode        string `json:"bond_mode,omitempty"`    // bond mode
+	BondSlaves      string `json:"bond_slaves,omitempty"` // for bond: NIC members
+	BondMode        string `json:"bond_mode,omitempty"`   // bond mode
 	IP              string `json:"ip,omitempty"`
 	Gateway         string `json:"gateway,omitempty"`
 	Netmask         string `json:"netmask,omitempty"`
 	CIDR            string `json:"cidr,omitempty"`
 	MTU             int    `json:"mtu,omitempty"`
 	VlanID          int    `json:"vlan_id,omitempty"`         // for vlan
-	VlanRawDevice   string `json:"vlan_raw_device,omitempty"`  // for vlan: parent
+	VlanRawDevice   string `json:"vlan_raw_device,omitempty"` // for vlan: parent
 	Comments        string `json:"comments,omitempty"`
 	IPv6            string `json:"ip6,omitempty"`
 	Gateway6        string `json:"gateway6,omitempty"`

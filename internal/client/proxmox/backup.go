@@ -9,18 +9,18 @@ import (
 
 // BackupJob is a Proxmox scheduled vzdump job.
 type BackupJob struct {
-	ID        string `json:"id"`             // unique job id (e.g. "daily-2am")
-	Schedule  string `json:"schedule"`       // calendar expression (e.g. "mon..fri 02:00")
-	Storage   string `json:"storage"`        // target storage (local, nfs, etc.)
-	Type      string `json:"type,omitempty"` // "vzdump" always
-	VMID      string `json:"vmid,omitempty"`  // comma-separated VMIDs or "all"
-	Mode      string `json:"mode,omitempty"` // "snapshot" | "suspend" | "stop"
-	Enabled   int    `json:"enabled,omitempty"`  // 1 or 0
-	NextRun   int64  `json:"next-run,omitempty"` // unix epoch
-	Compress  int    `json:"compress,omitempty"`
-	MaxDays   int    `json:"maxdays,omitempty"`   // retention in days
-	Notify    string `json:"notification,omitempty"` // notification mode
-	Comment   string `json:"comment,omitempty"`
+	ID       string `json:"id"`                 // unique job id (e.g. "daily-2am")
+	Schedule string `json:"schedule"`           // calendar expression (e.g. "mon..fri 02:00")
+	Storage  string `json:"storage"`            // target storage (local, nfs, etc.)
+	Type     string `json:"type,omitempty"`     // "vzdump" always
+	VMID     string `json:"vmid,omitempty"`     // comma-separated VMIDs or "all"
+	Mode     string `json:"mode,omitempty"`     // "snapshot" | "suspend" | "stop"
+	Enabled  int    `json:"enabled,omitempty"`  // 1 or 0
+	NextRun  int64  `json:"next-run,omitempty"` // unix epoch
+	Compress int    `json:"compress,omitempty"`
+	MaxDays  int    `json:"maxdays,omitempty"`      // retention in days
+	Notify   string `json:"notification,omitempty"` // notification mode
+	Comment  string `json:"comment,omitempty"`
 }
 
 // ListBackupJobs returns all scheduled backup jobs.

@@ -11,7 +11,7 @@ import (
 
 func SystemInfo(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -33,7 +33,7 @@ func SystemInfo(store *hostStore) gin.HandlerFunc {
 
 func ListBootEnvironments(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -56,7 +56,7 @@ func ListBootEnvironments(store *hostStore) gin.HandlerFunc {
 func ActivateBootEnvironment(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name string `json:"name"`
+		Name   string `json:"name"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -79,7 +79,7 @@ func ActivateBootEnvironment(store *hostStore) gin.HandlerFunc {
 func DestroyBootEnvironment(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name string `json:"name"`
+		Name   string `json:"name"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -101,7 +101,7 @@ func DestroyBootEnvironment(store *hostStore) gin.HandlerFunc {
 
 func CheckUpdate(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -123,7 +123,7 @@ func CheckUpdate(store *hostStore) gin.HandlerFunc {
 
 func ApplyUpdate(store *hostStore) gin.HandlerFunc {
 	type req struct {
-		HostID string `json:"host_id"`
+		HostID       string `json:"host_id"`
 		Train        string `json:"train,omitempty"`
 		DownloadOnly bool   `json:"download_only"`
 	}
@@ -147,7 +147,7 @@ func ApplyUpdate(store *hostStore) gin.HandlerFunc {
 
 func ListServices(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -233,7 +233,7 @@ func SetServiceAutoStart(store *hostStore) gin.HandlerFunc {
 
 func ListCloudCredentials(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -254,7 +254,7 @@ func ListCloudCredentials(store *hostStore) gin.HandlerFunc {
 }
 
 type cloudCredReq struct {
-	HostID string `json:"host_id"`
+	HostID     string         `json:"host_id"`
 	Name       string         `json:"name"`
 	Provider   string         `json:"provider"`
 	Attributes map[string]any `json:"attributes"`
@@ -287,7 +287,7 @@ func CreateCloudCredential(store *hostStore) gin.HandlerFunc {
 func DeleteCloudCredential(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -309,7 +309,7 @@ func DeleteCloudCredential(store *hostStore) gin.HandlerFunc {
 
 func ListCloudSyncTasks(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -330,7 +330,7 @@ func ListCloudSyncTasks(store *hostStore) gin.HandlerFunc {
 }
 
 type cloudSyncReq struct {
-	HostID string `json:"host_id"`
+	HostID      string `json:"host_id"`
 	Description string `json:"description"`
 	Direction   string `json:"direction"`
 	Path        string `json:"path"`
@@ -373,7 +373,7 @@ func CreateCloudSyncTask(store *hostStore) gin.HandlerFunc {
 func UpdateCloudSyncTask(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 		cloudSyncReq
 	}
 	return func(c *gin.Context) {
@@ -397,7 +397,7 @@ func UpdateCloudSyncTask(store *hostStore) gin.HandlerFunc {
 func DeleteCloudSyncTask(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -420,7 +420,7 @@ func DeleteCloudSyncTask(store *hostStore) gin.HandlerFunc {
 func RunCloudSyncTask(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -444,7 +444,7 @@ func RunCloudSyncTask(store *hostStore) gin.HandlerFunc {
 func DryRunCloudSyncTask(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req

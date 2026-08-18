@@ -55,11 +55,14 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	r.POST("/api/v1/auth/signup", authH.Signup)
 	r.POST("/api/v1/auth/forgot", authH.ForgotPassword)
 	r.POST("/api/v1/auth/reset", authH.ResetPassword)
+	r.POST("/api/v1/auth/magic-link", authH.MagicLink)
+	r.POST("/api/v1/auth/accept-invite", authH.AcceptInvite)
 
 	// Protected endpoints (require valid JWT)
 	protected := r.Group("/api/v1", handler.RequireAuth(issuer))
 	protected.GET("/auth/me", authH.Me)
 	protected.POST("/auth/logout", authH.Logout)
+	protected.PATCH("/auth/profile", authH.UpdateProfile)
 	protected.POST("/auth/change-password", authH.ChangePassword)
 	// /auth/refresh is intentionally UNPROTECTED — handler reads token
 	// from request body, not the Authorization header. Putting it under
@@ -68,6 +71,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 
 	// Tier 0 tenant management (scoped to caller's JWT tenant).
 	protected.GET("/tenants", handler.ListTenants(pool))
+	protected.POST("/tenants", handler.CreateTenant(pool))
 	protected.GET("/tenants/me", handler.GetTenantMe(pool))
 	protected.GET("/tenants/:id", handler.GetTenant(pool))
 	protected.PATCH("/tenants/:id", handler.UpdateTenant(pool))

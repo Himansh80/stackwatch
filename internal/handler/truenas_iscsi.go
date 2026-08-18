@@ -13,7 +13,7 @@ import (
 
 func ListISCSIExtents(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -34,7 +34,7 @@ func ListISCSIExtents(store *hostStore) gin.HandlerFunc {
 }
 
 type iscsiExtentReq struct {
-	HostID string `json:"host_id"`
+	HostID    string `json:"host_id"`
 	Name      string `json:"name"`
 	Type      string `json:"type"`
 	Disk      string `json:"disk,omitempty"`
@@ -73,7 +73,7 @@ func CreateISCSIExtent(store *hostStore) gin.HandlerFunc {
 func DeleteISCSIExtent(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -97,7 +97,7 @@ func DeleteISCSIExtent(store *hostStore) gin.HandlerFunc {
 
 func ListISCSITargets(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -118,7 +118,7 @@ func ListISCSITargets(store *hostStore) gin.HandlerFunc {
 }
 
 type iscsiTargetReq struct {
-	HostID string `json:"host_id"`
+	HostID      string   `json:"host_id"`
 	Name        string   `json:"name"`
 	Alias       string   `json:"alias,omitempty"`
 	ModeIscsi   bool     `json:"mode_is"`
@@ -157,7 +157,7 @@ func CreateISCSITarget(store *hostStore) gin.HandlerFunc {
 func DeleteISCSITarget(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -181,7 +181,7 @@ func DeleteISCSITarget(store *hostStore) gin.HandlerFunc {
 
 func ListISCSIAssociated(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -203,9 +203,9 @@ func ListISCSIAssociated(store *hostStore) gin.HandlerFunc {
 
 type iscsiAssocReq struct {
 	HostID string `json:"host_id"`
-	Target int64 `json:"target"`
-	Extent int64 `json:"extent"`
-	LUNID  int   `json:"lunid"`
+	Target int64  `json:"target"`
+	Extent int64  `json:"extent"`
+	LUNID  int    `json:"lunid"`
 }
 
 func iscsiAssocOpts(r iscsiAssocReq) truenas.ISCSIAssociateCreate {
@@ -235,7 +235,7 @@ func AssociateISCSI(store *hostStore) gin.HandlerFunc {
 func DissociateISCSI(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		ID int64 `json:"id"`
+		ID     int64  `json:"id"`
 	}
 	return func(c *gin.Context) {
 		var r req

@@ -10,7 +10,7 @@ import (
 
 func ListDisks(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-				var r struct {
+		var r struct {
 			HostID string `json:"host_id"`
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
@@ -39,8 +39,8 @@ func ListDisks(store *hostStore) gin.HandlerFunc {
 func SMARTDiskRun(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name string `json:"name"`
-		Kind string `json:"kind"` // SHORT | LONG | CONVEYANCE
+		Name   string `json:"name"`
+		Kind   string `json:"kind"` // SHORT | LONG | CONVEYANCE
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -68,7 +68,7 @@ func SMARTDiskRun(store *hostStore) gin.HandlerFunc {
 func SMARTDiskHistory(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name string `json:"name"`
+		Name   string `json:"name"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -93,7 +93,7 @@ func SMARTDiskHistory(store *hostStore) gin.HandlerFunc {
 func SMARTDiskResults(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name string `json:"name"`
+		Name   string `json:"name"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -118,7 +118,7 @@ func SMARTDiskResults(store *hostStore) gin.HandlerFunc {
 func ReplaceDisk(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name string `json:"name"`
+		Name   string `json:"name"`
 	}
 	return func(c *gin.Context) {
 		var r req
@@ -147,8 +147,8 @@ func ReplaceDisk(store *hostStore) gin.HandlerFunc {
 func WipeDisk(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID string `json:"host_id"`
-		Name  string `json:"name"`
-		Quick bool   `json:"quick"`
+		Name   string `json:"name"`
+		Quick  bool   `json:"quick"`
 	}
 	return func(c *gin.Context) {
 		var r req

@@ -24,14 +24,14 @@ import (
 
 // FSEntry describes one file/directory in a remote listing.
 type FSEntry struct {
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Size     int64  `json:"size"`
-	Mode     string `json:"mode"`
-	IsDir    bool   `json:"is_dir"`
-	ModTime  string `json:"mod_time"`
-	Owner    string `json:"owner,omitempty"`
-	Group    string `json:"group,omitempty"`
+	Name    string `json:"name"`
+	Path    string `json:"path"`
+	Size    int64  `json:"size"`
+	Mode    string `json:"mode"`
+	IsDir   bool   `json:"is_dir"`
+	ModTime string `json:"mod_time"`
+	Owner   string `json:"owner,omitempty"`
+	Group   string `json:"group,omitempty"`
 }
 
 // ListFS returns directory contents for a connection.
@@ -130,23 +130,23 @@ func (h *TerminalHandler) ReadFS(c *gin.Context) {
 	n, _ := io.ReadFull(io.LimitReader(f, maxBytes), buf)
 	truncated := int64(n) < fi.Size()
 	kernel.RespondOK(c, gin.H{
-		"path":         path,
-		"size":         fi.Size(),
-		"max_bytes":    maxBytes,
-		"bytes_read":   n,
-		"truncated":    truncated,
-		"content_b64":  base64Encode(buf[:n]),
-		"mod_time":     fi.ModTime().UTC().Format(time.RFC3339),
-		"mode":         fi.Mode().String(),
+		"path":        path,
+		"size":        fi.Size(),
+		"max_bytes":   maxBytes,
+		"bytes_read":  n,
+		"truncated":   truncated,
+		"content_b64": base64Encode(buf[:n]),
+		"mod_time":    fi.ModTime().UTC().Format(time.RFC3339),
+		"mode":        fi.Mode().String(),
 	})
 }
 
 // WriteFS writes a file (or appends) to the remote host.
 type WriteFSRequest struct {
-	Path      string `json:"path" binding:"required"`
+	Path       string `json:"path" binding:"required"`
 	ContentB64 string `json:"content_b64" binding:"required"`
-	Append    bool   `json:"append"`
-	Mode      string `json:"mode"` // e.g. "0644" — applied on create
+	Append     bool   `json:"append"`
+	Mode       string `json:"mode"` // e.g. "0644" — applied on create
 }
 
 func (h *TerminalHandler) WriteFS(c *gin.Context) {
@@ -203,9 +203,9 @@ func (h *TerminalHandler) WriteFS(c *gin.Context) {
 		_ = sftpClient.Chmod(req.Path, os.FileMode(mode))
 	}
 	kernel.RespondOK(c, gin.H{
-		"path":    req.Path,
-		"bytes":   written,
-		"status":  "written",
+		"path":   req.Path,
+		"bytes":  written,
+		"status": "written",
 	})
 }
 
@@ -329,11 +329,11 @@ func (h *TerminalHandler) StatFS(c *gin.Context) {
 		return
 	}
 	kernel.RespondOK(c, gin.H{
-		"path":    path,
-		"name":    fi.Name(),
-		"size":    fi.Size(),
-		"mode":    fi.Mode().String(),
-		"is_dir":  fi.IsDir(),
+		"path":     path,
+		"name":     fi.Name(),
+		"size":     fi.Size(),
+		"mode":     fi.Mode().String(),
+		"is_dir":   fi.IsDir(),
 		"mod_time": fi.ModTime().UTC().Format(time.RFC3339),
 	})
 }

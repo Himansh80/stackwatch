@@ -14,17 +14,17 @@ import (
 
 // User is the REST shape of a row in users.
 type User struct {
-	ID                  string  `json:"id"`
-	TenantID            string  `json:"tenant_id"`
-	Email               string  `json:"email"`
-	FullName            string  `json:"full_name"`
-	Role                string  `json:"role"`
-	Status              string  `json:"status"`
-	EmailVerified       bool    `json:"email_verified"`
-	MustChangePassword  bool    `json:"must_change_password"`
-	LastLoginAt         *string `json:"last_login_at,omitempty"`
-	CreatedAt           string  `json:"created_at"`
-	UpdatedAt           string  `json:"updated_at"`
+	ID                 string  `json:"id"`
+	TenantID           string  `json:"tenant_id"`
+	Email              string  `json:"email"`
+	FullName           string  `json:"full_name"`
+	Role               string  `json:"role"`
+	Status             string  `json:"status"`
+	EmailVerified      bool    `json:"email_verified"`
+	MustChangePassword bool    `json:"must_change_password"`
+	LastLoginAt        *string `json:"last_login_at,omitempty"`
+	CreatedAt          string  `json:"created_at"`
+	UpdatedAt          string  `json:"updated_at"`
 }
 
 // ListUsers returns all users in the caller's tenant.
@@ -111,10 +111,10 @@ func GetTier0User(pool *db.Pool) gin.HandlerFunc {
 // CreateUser lets a tenant admin invite a new user.
 func CreateTier0User(pool *db.Pool) gin.HandlerFunc {
 	type req struct {
-		Email       string `json:"email" binding:"required"`
-		FullName    string `json:"full_name"`
-		Role        string `json:"role"`
-		Password    string `json:"password"`
+		Email    string `json:"email" binding:"required"`
+		FullName string `json:"full_name"`
+		Role     string `json:"role"`
+		Password string `json:"password"`
 	}
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)

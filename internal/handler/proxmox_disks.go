@@ -12,7 +12,7 @@ import (
 type CreateZFSPoolRequest struct {
 	Name      string `json:"name" binding:"required,min=1,max=64"`
 	RaidLevel string `json:"raidlevel" binding:"required,oneof=single mirror raid10 raidz raidz2 raidz3"`
-	Devices   string `json:"devices" binding:"required"`  // comma-separated, e.g. "/dev/sdb,/dev/sdc"
+	Devices   string `json:"devices" binding:"required"` // comma-separated, e.g. "/dev/sdb,/dev/sdc"
 }
 
 // DestroyZFSPoolRequest includes name + confirmation for destructive operation.

@@ -14,16 +14,16 @@ import (
 // detail responses but as a comma-separated string in list responses.
 // We accept either via a custom type.
 type PVEUser struct {
-	UserID         string `json:"userid"`           // e.g. "root@pam" or "jdoe@pve"
-	Comment        string `json:"comment,omitempty"`
-	Email          string `json:"email,omitempty"`
-	Enable         int    `json:"enable"`           // 0/1
-	Expire         int    `json:"expire,omitempty"` // unix epoch (0 = never)
-	FirstName      string `json:"firstname,omitempty"`
-	LastName       string `json:"lastname,omitempty"`
-	RealmType      string `json:"realmtype,omitempty"` // pam, pve, etc.
-	Groups         Groups `json:"groups,omitempty"`     // string or array
-	Tokens         map[string]APIToken `json:"tokens,omitempty"`
+	UserID    string              `json:"userid"` // e.g. "root@pam" or "jdoe@pve"
+	Comment   string              `json:"comment,omitempty"`
+	Email     string              `json:"email,omitempty"`
+	Enable    int                 `json:"enable"`           // 0/1
+	Expire    int                 `json:"expire,omitempty"` // unix epoch (0 = never)
+	FirstName string              `json:"firstname,omitempty"`
+	LastName  string              `json:"lastname,omitempty"`
+	RealmType string              `json:"realmtype,omitempty"` // pam, pve, etc.
+	Groups    Groups              `json:"groups,omitempty"`    // string or array
+	Tokens    map[string]APIToken `json:"tokens,omitempty"`
 }
 
 // Groups accepts both array and string forms from Proxmox.
@@ -62,8 +62,8 @@ func (g *Groups) UnmarshalJSON(data []byte) error {
 // Note: privsep is sometimes int (1) and sometimes string ("0") in Proxmox responses
 // depending on which value was set. Use a custom unmarshal or accept either.
 type APITokenCreateResponse struct {
-	Value       string `json:"value"`         // secret part (uuid-XXXX) — ONLY returned on create
-	FullTokenID string `json:"full-tokenid"`  // name@realm!tokenid (e.g. "root@pam!monitor")
+	Value       string `json:"value"`        // secret part (uuid-XXXX) — ONLY returned on create
+	FullTokenID string `json:"full-tokenid"` // name@realm!tokenid (e.g. "root@pam!monitor")
 	Info        struct {
 		Privsep interface{} `json:"privsep"` // can be int (1) or string ("0")
 		Comment string      `json:"comment,omitempty"`

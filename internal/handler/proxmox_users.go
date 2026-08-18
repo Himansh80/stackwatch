@@ -9,8 +9,8 @@ import (
 	"github.com/stackwatch/platform/internal/kernel"
 )
 
-// CreateUserRequest is the JSON body for POST /access/users.
-type CreateUserRequest struct {
+// CreateUserCreate is the JSON body for POST /access/users.
+type CreateUserCreate struct {
 	UserID    string `json:"userid" binding:"required,min=1,max=64"`
 	Password  string `json:"password" binding:"required,min=5,max=64"`
 	Email     string `json:"email"`
@@ -19,8 +19,8 @@ type CreateUserRequest struct {
 	LastName  string `json:"lastname"`
 }
 
-// UpdateUserRequest is the JSON body for PUT /access/users/{userid}.
-type UpdateUserRequest struct {
+// UpdateUserCreate is the JSON body for PUT /access/users/{userid}.
+type UpdateUserCreate struct {
 	Email     string `json:"email,omitempty"`
 	Comment   string `json:"comment,omitempty"`
 	FirstName string `json:"firstname,omitempty"`
@@ -60,7 +60,7 @@ func (h *ProxmoxHandler) CreateUser(c *gin.Context) {
 		kernel.RespondError(c, kernel.ErrNotFound)
 		return
 	}
-	var req CreateUserRequest
+	var req CreateUserCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		kernel.RespondError(c, kernel.ErrBadRequest)
 		return
@@ -116,7 +116,7 @@ func (h *ProxmoxHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 	userid := c.Param("userid")
-	var req UpdateUserRequest
+	var req UpdateUserCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		kernel.RespondError(c, kernel.ErrBadRequest)
 		return
@@ -216,11 +216,11 @@ func (h *ProxmoxHandler) CreateAPIToken(c *gin.Context) {
 	// Return FULL token value here — caller must save it NOW (only time we show it).
 	fullToken := fmt.Sprintf("%s@%s!%s", req.TokenID, extractRealm(userid), tok.Value)
 	kernel.RespondCreated(c, gin.H{
-		"created":     true,
-		"userid":      userid,
-		"tokenid":     req.TokenID,
-		"full_token":  fullToken,
-		"value":       tok.Value, // secret part, only returned here
+		"created":    true,
+		"userid":     userid,
+		"tokenid":    req.TokenID,
+		"full_token": fullToken,
+		"value":      tok.Value, // secret part, only returned here
 	})
 }
 

@@ -8,19 +8,19 @@ import (
 
 // Pool represents a Proxmox resource pool.
 type Pool struct {
-	PoolID   string `json:"poolid"`        // unique pool name
-	Comment  string `json:"comment,omitempty"`
-	Members  []PoolMember `json:"members,omitempty"` // only on GET single
+	PoolID  string       `json:"poolid"` // unique pool name
+	Comment string       `json:"comment,omitempty"`
+	Members []PoolMember `json:"members,omitempty"` // only on GET single
 }
 
 // PoolMember is a VM/LXC or storage inside a pool.
 type PoolMember struct {
-	ID         string `json:"id"`           // unique member id
-	Type       string `json:"type"`         // "qemu", "lxc", "storage"
-	VMID       int    `json:"vmid,omitempty"`
-	Storage    string `json:"storage,omitempty"`
-	Content    string `json:"content,omitempty"`
-	Pool       string `json:"pool,omitempty"`
+	ID      string `json:"id"`   // unique member id
+	Type    string `json:"type"` // "qemu", "lxc", "storage"
+	VMID    int    `json:"vmid,omitempty"`
+	Storage string `json:"storage,omitempty"`
+	Content string `json:"content,omitempty"`
+	Pool    string `json:"pool,omitempty"`
 }
 
 // ListPools returns all resource pools.
@@ -75,14 +75,14 @@ func (c *Client) DeletePool(ctx context.Context, poolID string) (string, error) 
 
 // ClusterResource is an aggregated view of nodes/VMs/LXC/storage/network.
 type ClusterResource struct {
-	ResourceType string  `json:"type"`          // "node", "qemu", "lxc", "storage", "network"
-	ID           string  `json:"id"`            // unique id (e.g. "qemu/100")
+	ResourceType string  `json:"type"` // "node", "qemu", "lxc", "storage", "network"
+	ID           string  `json:"id"`   // unique id (e.g. "qemu/100")
 	Node         string  `json:"node,omitempty"`
-	Status       string  `json:"status,omitempty"`  // "running", "stopped"
+	Status       string  `json:"status,omitempty"` // "running", "stopped"
 	VMID         int     `json:"vmid,omitempty"`
 	Name         string  `json:"name,omitempty"`
-	CPU          float64 `json:"cpu,omitempty"`    // 0.0-1.0 fraction
-	Mem          int64   `json:"mem,omitempty"`   // bytes used
+	CPU          float64 `json:"cpu,omitempty"` // 0.0-1.0 fraction
+	Mem          int64   `json:"mem,omitempty"` // bytes used
 	MaxMem       int64   `json:"maxmem,omitempty"`
 	Disk         int64   `json:"disk,omitempty"`
 	MaxDisk      int64   `json:"maxdisk,omitempty"`
@@ -115,8 +115,8 @@ func (c *Client) ListClusterResources(ctx context.Context, typeFilter string) ([
 // ClusterStatusNode describes one node in /cluster/status.
 type ClusterStatusNode struct {
 	Name   string `json:"name"`
-	Type   string `json:"type"`     // "node"
-	Level  string `json:"level"`    // "" for normal nodes
+	Type   string `json:"type"`  // "node"
+	Level  string `json:"level"` // "" for normal nodes
 	IP     string `json:"ip,omitempty"`
 	ID     string `json:"id"`
 	Local  int    `json:"local,omitempty"`
@@ -126,11 +126,11 @@ type ClusterStatusNode struct {
 
 // ClusterQuorumInfo describes cluster quorum status.
 type ClusterQuorumInfo struct {
-	Name   string             `json:"name"`
-	Type   string             `json:"type"`
-	Quorate int              `json:"quorate,omitempty"`
-	Version int              `json:"version,omitempty"`
-	Nodes  []ClusterStatusNode `json:"nodes,omitempty"`
+	Name    string              `json:"name"`
+	Type    string              `json:"type"`
+	Quorate int                 `json:"quorate,omitempty"`
+	Version int                 `json:"version,omitempty"`
+	Nodes   []ClusterStatusNode `json:"nodes,omitempty"`
 }
 
 // GetClusterStatus returns cluster status including nodes + quorum.
@@ -144,11 +144,11 @@ func (c *Client) GetClusterStatus(ctx context.Context) ([]ClusterStatusNode, err
 
 // GetClusterInfo returns cluster name + ID (single object, not array).
 type ClusterInfo struct {
-	Name  string `json:"name"`
-	IPID  string `json:"id"`
-	Nodes int    `json:"max_nodes"`
-	Quorate int   `json:"quorate"`
-	Version int  `json:"version"`
+	Name    string `json:"name"`
+	IPID    string `json:"id"`
+	Nodes   int    `json:"max_nodes"`
+	Quorate int    `json:"quorate"`
+	Version int    `json:"version"`
 }
 
 // GetClusterInfo returns basic cluster information.

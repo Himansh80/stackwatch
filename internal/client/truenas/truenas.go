@@ -68,11 +68,11 @@ type Client struct {
 	verifyTLS  bool
 	httpClient *http.Client
 
-	mu      sync.Mutex
-	conn    *websocket.Conn
-	idSeq   int
-	pendng  map[int]chan rpcResp
-	closed  bool
+	mu     sync.Mutex
+	conn   *websocket.Conn
+	idSeq  int
+	pendng map[int]chan rpcResp
+	closed bool
 
 	// rateState tracks recent EBUSY hits so we stop trying to log in
 	// during the cool-down. When non-zero, login attempts return

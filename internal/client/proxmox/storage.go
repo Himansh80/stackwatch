@@ -14,56 +14,56 @@ import (
 type StorageType string
 
 const (
-	StorageDir    StorageType = "dir"    // directory
-	StorageLVM    StorageType = "lvm"    // LVM
+	StorageDir     StorageType = "dir"     // directory
+	StorageLVM     StorageType = "lvm"     // LVM
 	StorageLVMThin StorageType = "lvmthin" // LVM-Thin
-	StorageZFS    StorageType = "zfspool" // ZFS pool
-	StorageNFS    StorageType = "nfs"    // NFS share
-	StorageCIFS   StorageType = "cifs"   // CIFS/SMB share
-	StorageCephFS StorageType = "cephfs" // CephFS
-	StorageRBD    StorageType = "rbd"    // Ceph RBD
-	StoragePBS     StorageType = "pbs"    // Proxmox Backup Server
+	StorageZFS     StorageType = "zfspool" // ZFS pool
+	StorageNFS     StorageType = "nfs"     // NFS share
+	StorageCIFS    StorageType = "cifs"    // CIFS/SMB share
+	StorageCephFS  StorageType = "cephfs"  // CephFS
+	StorageRBD     StorageType = "rbd"     // Ceph RBD
+	StoragePBS     StorageType = "pbs"     // Proxmox Backup Server
 )
 
 // StorageSpec describes a storage to create on a Proxmox node.
 type StorageSpec struct {
-	Name        string      `json:"name"`
-	StorageType StorageType `json:"type"`
-	Content     []string    `json:"content,omitempty"` // ["iso", "vztmpl", "backup", "images", "rootdir", "snippets"]
-	Path        string      `json:"path,omitempty"`     // for dir: filesystem path; for zfspool: pool name
-	Server      string      `json:"server,omitempty"`   // for NFS/CIFS: hostname
-	Export      string      `json:"export,omitempty"`   // for NFS/CIFS: remote path
-	Username    string      `json:"username,omitempty"` // for CIFS
-	Password    string      `json:"password,omitempty"`
-	VGName      string      `json:"vgname,omitempty"`     // for LVM: volume group
-	ThinPool    string      `json:"thinpool,omitempty"`   // for LVM-Thin
-	Pool        string      `json:"pool,omitempty"`       // for CephFS / RBD
-	KRBD        int         `json:"krbd,omitempty"`       // for RBD: 0/1
-	Nodes       []string    `json:"nodes,omitempty"`      // restrict to nodes
-	Disable     int         `json:"disable,omitempty"`    // 0=enabled, 1=disabled
-	PruneBackups string     `json:"prune_backups,omitempty"` // keep-last, etc.
-	BackupRetention string  `json:"backup_retention,omitempty"`
+	Name            string      `json:"name"`
+	StorageType     StorageType `json:"type"`
+	Content         []string    `json:"content,omitempty"`  // ["iso", "vztmpl", "backup", "images", "rootdir", "snippets"]
+	Path            string      `json:"path,omitempty"`     // for dir: filesystem path; for zfspool: pool name
+	Server          string      `json:"server,omitempty"`   // for NFS/CIFS: hostname
+	Export          string      `json:"export,omitempty"`   // for NFS/CIFS: remote path
+	Username        string      `json:"username,omitempty"` // for CIFS
+	Password        string      `json:"password,omitempty"`
+	VGName          string      `json:"vgname,omitempty"`        // for LVM: volume group
+	ThinPool        string      `json:"thinpool,omitempty"`      // for LVM-Thin
+	Pool            string      `json:"pool,omitempty"`          // for CephFS / RBD
+	KRBD            int         `json:"krbd,omitempty"`          // for RBD: 0/1
+	Nodes           []string    `json:"nodes,omitempty"`         // restrict to nodes
+	Disable         int         `json:"disable,omitempty"`       // 0=enabled, 1=disabled
+	PruneBackups    string      `json:"prune_backups,omitempty"` // keep-last, etc.
+	BackupRetention string      `json:"backup_retention,omitempty"`
 }
 
 // StorageEntry is a Proxmox storage entry (from /storage list).
 type StorageEntry struct {
-	Storage      string  `json:"storage"`
-	Type         string  `json:"type"`
-	Content      string  `json:"content"`     // comma-separated types
-	ContentList  []string `json:"-"`           // parsed from Content
-	Path         string  `json:"path,omitempty"`
-	Server       string  `json:"server,omitempty"`
-	Export       string  `json:"export,omitempty"`
-	VGName       string  `json:"vgname,omitempty"`
-	ThinPool     string  `json:"thinpool,omitempty"`
-	Pool         string  `json:"pool,omitempty"`
-	Nodes        string  `json:"nodes,omitempty"` // comma-separated
-	Disable      int     `json:"disable,omitempty"`
-	Shared       int     `json:"shared,omitempty"`
-	Used         int64   `json:"used,omitempty"`
-	Avail        int64   `json:"avail,omitempty"`
-	Total        int64   `json:"total,omitempty"`
-	Active       int     `json:"active,omitempty"`
+	Storage     string   `json:"storage"`
+	Type        string   `json:"type"`
+	Content     string   `json:"content"` // comma-separated types
+	ContentList []string `json:"-"`       // parsed from Content
+	Path        string   `json:"path,omitempty"`
+	Server      string   `json:"server,omitempty"`
+	Export      string   `json:"export,omitempty"`
+	VGName      string   `json:"vgname,omitempty"`
+	ThinPool    string   `json:"thinpool,omitempty"`
+	Pool        string   `json:"pool,omitempty"`
+	Nodes       string   `json:"nodes,omitempty"` // comma-separated
+	Disable     int      `json:"disable,omitempty"`
+	Shared      int      `json:"shared,omitempty"`
+	Used        int64    `json:"used,omitempty"`
+	Avail       int64    `json:"avail,omitempty"`
+	Total       int64    `json:"total,omitempty"`
+	Active      int      `json:"active,omitempty"`
 }
 
 // ListStorageEntries returns all storages (cluster-level).
@@ -158,9 +158,9 @@ type Content struct {
 	CTime   int64  `json:"ctime,omitempty"`
 	Notes   string `json:"notes,omitempty"`
 	// VMID is optional (rootdir/images only). Use json.Number-like approach.
-	VMID       int    `json:"vmid,omitempty"`
-	Parent     string `json:"parent,omitempty"`
-	Used       int64  `json:"used,omitempty"`
+	VMID   int    `json:"vmid,omitempty"`
+	Parent string `json:"parent,omitempty"`
+	Used   int64  `json:"used,omitempty"`
 }
 
 // ListContent returns the volumes/templates/ISOs in a storage on a node.
@@ -175,7 +175,7 @@ func (c *Client) ListContent(ctx context.Context, node, storage, contentFilter s
 		path += "?content=" + url.QueryEscape(contentFilter)
 	}
 	// Fetch raw to handle inconsistent types
-	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL + "/api2/json" + path, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/api2/json"+path, nil)
 	if err != nil {
 		return nil, err
 	}

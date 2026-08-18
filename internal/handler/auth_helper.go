@@ -33,8 +33,8 @@ const (
 
 // ConnectionAuthResult is the result of dialConnection.
 type ConnectionAuthResult struct {
-	Client     *ssh.Client
-	AuthMethod string // which auth succeeded
+	Client       *ssh.Client
+	AuthMethod   string // which auth succeeded
 	CredentialID *uuid.UUID
 }
 
