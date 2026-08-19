@@ -814,3 +814,7 @@ Run 4: 14/14 PASS
 ### Status
 - Tier 1 is fully built, deployed, and live-verified for the documented scope.
 - No destructive Proxmox lifecycle operation was executed during verification.
+
+## Audit — Tier 2 TrueNAS status check
+
+Fresh audit result: Tier 2 is NOT complete, NOT deployed, and cannot be claimed fully working. Local TrueNAS connector source exists and `go build ./cmd/truenas-connector` passes, but `gofmt -l` reports `internal/handler/truenas_snapshots.go`. No Tier 2 frontend files were found under `web/src`. SSH to TrueNAS `.112` succeeded, but `truenas-connector.service` is absent, port 8088 is closed, and its binary/unit files are missing. Repository-wide `go test ./...` is red in `internal/synthetics` (`TestRunHTTP_500`: status_code=0, want 500). No code or deployment changes were made during this audit.

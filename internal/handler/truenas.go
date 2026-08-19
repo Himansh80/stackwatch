@@ -123,6 +123,14 @@ func (s *hostStore) list() []Host {
 	return out
 }
 
+// publicHost is the only representation allowed to cross the sidecar HTTP
+// boundary. Credentials stay on disk/in memory and are never returned.
+func publicHost(h Host) Host {
+	h.APIKey = ""
+	h.Password = ""
+	return h
+}
+
 func (s *hostStore) get(id string) (*Host, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

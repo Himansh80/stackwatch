@@ -72,8 +72,8 @@ func CreateSnapshot(store *hostStore) gin.HandlerFunc {
 func DeleteSnapshot(store *hostStore) gin.HandlerFunc {
 	type req struct {
 		HostID    string `json:"host_id"`
-		Name      string `json:"name"`     // accepts bare name ("my-snap") OR full id ("ds@my-snap")
-		Dataset   string `json:"dataset"`  // optional; if Name is bare, this is used to build the full id
+		Name      string `json:"name"`    // accepts bare name ("my-snap") OR full id ("ds@my-snap")
+		Dataset   string `json:"dataset"` // optional; if Name is bare, this is used to build the full id
 		Recursive bool   `json:"recursive"`
 	}
 	return func(c *gin.Context) {

@@ -57,10 +57,14 @@ func CreateHost(store *hostStore) gin.HandlerFunc {
 	}
 }
 
-// ListHosts returns all known TrueNAS systems (no secrets stripped for the sidecar).
+// ListHosts returns all known TrueNAS systems without credentials.
 func ListHosts(store *hostStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"hosts": store.list()})
+		hosts := store.list()
+		for i := range hosts {
+			hosts[i] = publicHost(hosts[i])
+		}
+		c.JSON(http.StatusOK, gin.H{"hosts": hosts})
 	}
 }
 
@@ -73,7 +77,7 @@ func GetHost(store *hostStore) gin.HandlerFunc {
 			Bad(c, http.StatusNotFound, "NOT_FOUND", "host not found")
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"host": h})
+		c.JSON(http.StatusOK, gin.H{"host": publicHost(*h)})
 	}
 }
 

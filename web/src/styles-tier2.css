@@ -1,0 +1,7 @@
+.sw-modal-backdrop { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:20px; background:rgba(2,6,23,.78); backdrop-filter:blur(4px); }
+.sw-modal { width:min(680px,100%); border:1px solid #2a3b53; border-radius:12px; background:#101827; box-shadow:0 24px 80px rgba(0,0,0,.55); overflow:hidden; }
+.sw-modal form { padding:20px; }
+.sw-json-editor { width:100%; min-height:220px; resize:vertical; background:#090f1b; color:#c7ddf5; border:1px solid #263952; border-radius:8px; padding:14px; font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.sw-json-editor:focus { outline:none; border-color:#22d3ee; }
+.sw-form-actions { margin-top:14px; }
+.sw-top-actions a { text-decoration:none; }

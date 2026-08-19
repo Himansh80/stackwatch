@@ -3,6 +3,8 @@ package synthetics
 import (
 	"context"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -10,32 +12,13 @@ import (
 // testServer is a minimal HTTP server that returns 200 OK.
 func testServer(t *testing.T, statusCode int) (string, func()) {
 	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	addr := ln.Addr().String()
-	stop := make(chan struct{})
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			if statusCode == 0 {
-				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK"))
-			} else {
-				conn.Write([]byte("HTTP/1.1 " +
-					itoa(statusCode) +
-					" STATUS\r\nContent-Length: 0\r\n\r\n"))
-			}
-			conn.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(statusCode)
+		if statusCode == 200 {
+			_, _ = w.Write([]byte("OK"))
 		}
-	}()
-	return "http://" + addr, func() {
-		close(stop)
-		ln.Close()
-	}
+	}))
+	return server.URL, server.Close
 }
 
 func itoa(i int) string {
@@ -151,7 +134,7 @@ func TestRunTCP_Failure(t *testing.T) {
 	// Pick an unlikely-to-be-open port
 	res := Run(context.Background(), Check{
 		Kind:      KindTCP,
-		Target:    "127.0.0.1:1",  // port 1 is reserved, not listening
+		Target:    "127.0.0.1:1", // port 1 is reserved, not listening
 		TimeoutMs: 500,
 	})
 	if res.Status != "failure" && res.Status != "timeout" {

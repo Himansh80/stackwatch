@@ -69,30 +69,42 @@ See code: `internal/handler/proxmox_*.go` for the route table.
 
 ## Tier 2 — TrueNAS SCALE
 
-Custom JSON-RPC sidecar at `:8088` (not on api-gateway). Routes:
+The authenticated gateway exposes `/api/v1/truenas/*` and proxies to the local
+connector on `127.0.0.1:8088`. The connector authenticates to TrueNAS SCALE
+25.10+ through JSON-RPC over WebSocket (`/api/current`). Browser clients must
+never call port 8088 directly.
+
+Host management:
 
 ```
-POST /pools/list
-POST /datasets/list
-POST /nfs/list
-POST /smb/list
-POST /iscsi/extents/list
-POST /iscsi/targets/list
-POST /iscsi/associated/list
-POST /snapshots/list
-POST /replications/list
-POST /disks/list
-POST /users/list
-POST /groups/list
-POST /system/info
-POST /system/services/list
-POST /system/bootenv/list
-POST /cloud/credentials/list
-POST /cloud/sync/list
+GET    /api/v1/truenas/hosts
+POST   /api/v1/truenas/hosts
+POST   /api/v1/truenas/hosts/:id/test
+DELETE /api/v1/truenas/hosts/:id
 ```
 
-All POST with JSON body `{"host_id":"<uuid>","filters":{...}}`.
-Sidecar authenticates to TrueNAS middleware via JSON-RPC over WebSocket.
+Read and mutation routes are forwarded under the same prefix:
+
+```
+POST /api/v1/truenas/pools/{list,get,create,extend,import,export,destroy,scrub,scrub_state}
+POST /api/v1/truenas/datasets/{list,get,create,update,delete}
+POST /api/v1/truenas/nfs/{list,create,update,delete}
+POST /api/v1/truenas/smb/{list,create,update,delete}
+POST /api/v1/truenas/iscsi/{extents,targets,associated}/{list,create,delete}
+POST /api/v1/truenas/snapshots/{list,create,delete,rollback}
+POST /api/v1/truenas/replications/{list,create,delete,run}
+POST /api/v1/truenas/disks/{list,smart_run,smart_history,smart_results,replace,wipe}
+POST /api/v1/truenas/users/{list,get,create,update,delete}
+POST /api/v1/truenas/groups/{list,create,delete}
+POST /api/v1/truenas/acl/{get,set}
+POST /api/v1/truenas/system/info
+POST /api/v1/truenas/system/{bootenv,services}/{list,activate,delete,action,autostart}
+POST /api/v1/truenas/system/update/{check,apply}
+POST /api/v1/truenas/cloud/{credentials,sync}/{list,create,update,delete,run,dry_run}
+```
+
+All resource requests use JSON body `{"host_id":"<uuid>", ...}`. Stored API
+keys and passwords are never returned by host-list or host-get responses.
 
 ---
 

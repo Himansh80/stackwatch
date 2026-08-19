@@ -1,0 +1,24 @@
+[Unit]
+Description=StackWatch TrueNAS JSON-RPC connector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stackwatch
+Group=stackwatch
+WorkingDirectory=/opt/stackwatch
+EnvironmentFile=-/opt/stackwatch/.env
+Environment=TRUENAS_CONNECTOR_ADDR=127.0.0.1:8088
+Environment=TRUENAS_CONNECTOR_DATA=/var/lib/stackwatch/truenas-connector
+ExecStart=/opt/stackwatch/bin/truenas-connector-linux
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/stackwatch/truenas-connector
+
+[Install]
+WantedBy=multi-user.target

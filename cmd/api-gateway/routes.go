@@ -205,6 +205,9 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/nodes/:node/:kind/:vmid/stats", proxmoxH.ResourceMonitoring)
 	protected.GET("/proxmox/hosts/:id/host/:node/alerts", proxmoxH.MonitoringAlerts)
 
+	// Tier 2: TrueNAS SCALE replacement via the local JSON-RPC sidecar.
+	protected.Any("/truenas/*path", truenasProxy())
+
 	// Tier 3.1: Terminal (Termius replacement)
 	termH := handler.NewTerminalHandler(pool)
 	// SSH keys
