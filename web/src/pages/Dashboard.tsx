@@ -25,6 +25,35 @@ function text(valueToRead: unknown, fallback = '—'): string {
   return String(valueToRead);
 }
 
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`;
+}
+
+function greetingFor(date: Date): string {
+  const hour = date.getHours();
+  if (hour < 5) return 'Working late';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 22) return 'Good evening';
+  return 'Working late';
+}
+
+function firstNameOf(full: string): string {
+  const trimmed = full.trim();
+  if (!trimmed || trimmed === '—') return 'there';
+  return trimmed.split(/\s+/)[0]!;
+}
+
+function formatClock(date: Date): string {
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+function formatDayLabel(date: Date): string {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${days[date.getDay()]} · ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 function isRunning(row: Json): boolean {
   return ['running', 'online', 'up', 'active'].includes(text(row.status, '').toLowerCase());
 }
@@ -78,6 +107,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
 
   async function loadDashboard() {
     setError('');
@@ -111,7 +141,11 @@ export default function Dashboard() {
   useEffect(() => {
     void loadDashboard();
     const timer = window.setInterval(() => void loadDashboard(), 30000);
-    return () => window.clearInterval(timer);
+    const clockTimer = window.setInterval(() => setNow(new Date()), 30 * 1000);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(clockTimer);
+    };
   }, []);
 
   const running = useMemo(() => snapshot.resources.filter(isRunning).length, [snapshot.resources]);
@@ -141,7 +175,7 @@ export default function Dashboard() {
       <div className="dash-sidebar-bottom"><div className="dash-connection"><span className="dash-live-dot" />Control plane online<small>{text(value(snapshot.health, 'version'), 'StackWatch API')}</small></div><button className="dash-sidebar-logout" onClick={logout}>↪ Sign out</button></div>
     </aside>
     <main className="dash-main">
-      <header className="dash-topbar"><div><span className="dash-breadcrumb">Workspace / Overview</span><h1>Command center</h1></div><div className="dash-top-actions"><button className="dash-icon-button" onClick={() => void loadDashboard()} aria-label="Refresh dashboard">↻</button><div className="dash-user"><span className="dash-avatar">{userName.charAt(0).toUpperCase()}</span><span><strong>{userName}</strong><small>{tenantName}</small></span></div></div></header>
+      <header className="dash-topbar"><div className="dash-greeting"><span className="dash-greeting-eyebrow">Hello, {firstNameOf(userName)}</span><div className="dash-greeting-row"><strong className="dash-greeting-text">{greetingFor(now)}, {firstNameOf(userName)}.</strong><span className="dash-greeting-clock"><span className="dash-greeting-clock-time">{formatClock(now)}</span><span className="dash-greeting-clock-dot" /><span className="dash-greeting-clock-day">{formatDayLabel(now)}</span></span></div></div><div className="dash-top-actions"><button className="dash-icon-button" onClick={() => void loadDashboard()} aria-label="Refresh dashboard">↻</button><div className="dash-user"><span className="dash-avatar">{userName.charAt(0).toUpperCase()}</span><span><strong>{userName}</strong><small>{tenantName}</small></span></div></div></header>
       <div className="dash-content">
         {error && <div className="dash-error"><strong>Live data unavailable</strong><span>{error}</span><button onClick={() => void loadDashboard()}>Retry</button></div>}
         <section className="dash-welcome"><div><span className="dash-eyebrow">Infrastructure overview</span><h2>Good to see you, {userName.split(' ')[0]}.</h2><p>One place to see the health of your infrastructure and move from signal to action.</p></div><div className="dash-welcome-meta"><span className="dash-live-dot" />Live sync<div>{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Syncing now'}</div></div></section>
