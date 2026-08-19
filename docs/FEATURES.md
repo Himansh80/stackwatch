@@ -1,12 +1,12 @@
 # StackWatch — Feature Inventory
 
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-18
 
 What's actually live TODAY, versus what's still in the plan.
 
 ---
 
-## ✅ Tier 0 — Auth (DONE, verified 10/10)
+## ✅ Tier 0 — Auth (COMPLETE, live verified 82/82)
 
 - Email + password login with bcrypt-12
 - Signup (admin-gated)

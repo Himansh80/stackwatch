@@ -30,8 +30,8 @@ plugins (in-tree integrations)
 
 ## Status
 
-**Phase:** Planning → Tier 0 next  
-**Current session:** 2026-08-16 (planning session)
+**Phase:** Tier 0 ✅ complete → Tier 1 next
+**Current session:** 2026-08-18 (Tier 0 live verification: 82/82 PASS)
 
 ## License
 

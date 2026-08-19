@@ -752,3 +752,15 @@ Run 4: 14/14 PASS
 - Running binary and `/proc/<pid>/exe` md5: `99d39c8662fc8ca20617cef52c432c49`.
 - Remote source `routes.go` contains several missing live routes, proving source/binary drift.
 - Test users and numeric verifier API keys were cleaned; no current verifier users/keys remain.
+
+## Session 23 — 2026-08-18 (Tier 0 marked complete)
+
+### Verification
+- Fresh live Tier 0 verifier: 82/82 PASS.
+- Four consecutive live runs: 82/82 PASS each.
+- Live health: `db=ok`, `status=ok`, `mode=cloud`.
+- Test artifacts cleaned: zero matching Tier 0 test users, tenants, and API keys.
+
+### Status
+- Tier 0 marked COMPLETE in the master plan, README, project status, feature inventory, and project index.
+- Tier 1 remains active work and is not marked complete.
