@@ -45,7 +45,10 @@ function firstNameOf(full: string): string {
 }
 
 function formatClock(date: Date): string {
-  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+  const rawHour = date.getHours();
+  const hour12 = rawHour % 12 === 0 ? 12 : rawHour % 12;
+  const meridiem = rawHour < 12 ? 'AM' : 'PM';
+  return `${pad2(hour12)}:${pad2(date.getMinutes())} ${meridiem}`;
 }
 
 function formatDayLabel(date: Date): string {
