@@ -1,9 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { setToken } from '../lib/api';
+import { ApiError, api, setToken } from '../lib/api';
 
 interface SignupError {
-  field?: string;
   message: string;
 }
 
@@ -21,29 +20,17 @@ export default function Signup() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const body = await api<{ token: string }>(
+        'POST',
+        '/api/v1/auth/signup',
+        {
           email: email.trim(),
           password,
           full_name: fullName.trim(),
           tenant_name: tenantName.trim(),
-        }),
-      });
-      const text = await res.text();
-      if (!res.ok) {
-        let message = text;
-        try {
-          const parsed = JSON.parse(text);
-          message = parsed.error || parsed.message || text;
-        } catch {
-          // fall back to raw text
-        }
-        setError({ message: message || `Signup failed (${res.status})` });
-        return;
-      }
-      const body = JSON.parse(text);
+        },
+        false,
+      );
       if (!body.token) {
         setError({ message: 'Signup succeeded but no token was returned.' });
         return;
@@ -51,7 +38,11 @@ export default function Signup() {
       setToken(body.token);
       nav('/dashboard');
     } catch (cause: any) {
-      setError({ message: cause?.message || 'Unable to reach the signup endpoint.' });
+      if (cause instanceof ApiError) {
+        setError({ message: cause.friendlyMessage });
+      } else {
+        setError({ message: cause?.message || 'Unable to reach the signup endpoint.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -124,7 +115,8 @@ export default function Signup() {
         </p>
       </div>
       <p className="auth-foot">
-        By creating an account you agree to run StackWatch on systems you own or are authorized to monitor.      </p>
+        By creating an account you agree to run StackWatch on systems you own or are authorized to monitor.
+      </p>
     </div>
   );
 }

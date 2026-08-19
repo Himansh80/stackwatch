@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login, setToken } from '../lib/api';
+import { ApiError, login, setToken } from '../lib/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,7 +18,11 @@ export default function Login() {
       setToken(resp.token);
       nav('/dashboard');
     } catch (err: any) {
-      setError(err?.message || 'Login failed');
+      if (err instanceof ApiError) {
+        setError(err.friendlyMessage);
+      } else {
+        setError(err?.message || 'Login failed.');
+      }
     } finally {
       setLoading(false);
     }
