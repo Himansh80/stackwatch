@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login, setToken } from '../lib/api';
 
@@ -9,7 +9,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -37,7 +37,7 @@ export default function Login() {
           {error && <div className="error">{error}</div>}
           <button type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
         </form>
-        <p className="hint">Demo: <code>demo@stackwatch.io</code> / <code>Demo1234!</code></p>
+        <p className="hint">Use your StackWatch account to connect to the control plane.</p>
       </div>
     </div>
   );

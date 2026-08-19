@@ -15,7 +15,7 @@ func tenantIDFromContext(c *gin.Context) (uuid.UUID, bool) {
 		return uuid.Nil, false
 	}
 	tid, ok := v.(uuid.UUID)
-	return tid, ok && tid != uuid.Nil
+	return tid, ok
 }
 
 // setTenantInContext stores the tenant id for downstream handlers.

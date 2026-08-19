@@ -61,15 +61,15 @@ func (h *TerminalHandler) dialConnection(ctx context.Context, tenantID, connID u
 	switch authMethod(method) {
 	case authMethodKey:
 		if sshKeyID == nil {
-			return nil, errors.New("connection has no ssh_key_id (auth_method=key)")
+			return nil, fmt.Errorf("auth_method=key but no ssh_key_id configured: %w", kernel.ErrConfigInvalid)
 		}
 		return h.dialWithKey(ctx, tenantID, host, port, user, *sshKeyID, "", timeout)
 	case authMethodKeyWithPassphrase:
 		if sshKeyID == nil {
-			return nil, errors.New("connection has no ssh_key_id (auth_method=key_with_passphrase)")
+			return nil, fmt.Errorf("auth_method=key_with_passphrase but no ssh_key_id configured: %w", kernel.ErrConfigInvalid)
 		}
 		if credentialID == nil {
-			return nil, errors.New("connection has no credential_id (auth_method=key_with_passphrase)")
+			return nil, fmt.Errorf("auth_method=key_with_passphrase but no credential_id configured: %w", kernel.ErrConfigInvalid)
 		}
 		passphrase, err := h.getCredentialSecret(ctx, tenantID, *credentialID)
 		if err != nil {
@@ -78,7 +78,7 @@ func (h *TerminalHandler) dialConnection(ctx context.Context, tenantID, connID u
 		return h.dialWithKey(ctx, tenantID, host, port, user, *sshKeyID, passphrase, timeout)
 	case authMethodPassword:
 		if credentialID == nil {
-			return nil, errors.New("connection has no credential_id (auth_method=password)")
+			return nil, fmt.Errorf("auth_method=password but no credential_id configured: %w", kernel.ErrConfigInvalid)
 		}
 		password, err := h.getCredentialSecret(ctx, tenantID, *credentialID)
 		if err != nil {
@@ -86,7 +86,7 @@ func (h *TerminalHandler) dialConnection(ctx context.Context, tenantID, connID u
 		}
 		return h.dialWithPassword(ctx, host, port, user, password, timeout)
 	default:
-		return nil, fmt.Errorf("unsupported auth_method: %s", method)
+		return nil, fmt.Errorf("unsupported auth_method=%q: %w", method, kernel.ErrConfigInvalid)
 	}
 }
 
@@ -119,7 +119,7 @@ func (h *TerminalHandler) dialWithKey(ctx context.Context, tenantID uuid.UUID, h
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 	client, err := ssh.Dial("tcp", addr, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("ssh dial: %w", err)
+		return nil, fmt.Errorf("ssh dial %s: %w", addr, kernel.ErrUpstream)
 	}
 	authMethod := authMethodKey
 	if passphrase != "" {
@@ -142,7 +142,7 @@ func (h *TerminalHandler) dialWithPassword(ctx context.Context, host string, por
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 	client, err := ssh.Dial("tcp", addr, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("ssh dial: %w", err)
+		return nil, fmt.Errorf("ssh dial %s: %w", addr, kernel.ErrUpstream)
 	}
 	return &ConnectionAuthResult{
 		Client:     client,

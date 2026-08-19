@@ -66,3 +66,41 @@
 - **Failures:** `PATCH /auth/profile` 404; `POST /tenants` 404; `POST /auth/magic-link` 404; `POST /auth/accept-invite` 404; `DELETE /api-keys/:id` 404; forgot-password returns no usable dev token; reset with an invalid token returns HTTP 200; brute-force audit event count remains 0.
 - **Impact:** Tier 0 is not end-to-end complete on the running deployment.
 - **Recovery:** Do not claim Tier 0 complete until the live binary is rebuilt/deployed and the same verifier returns 68/68 across four runs.
+
+## 2026-08-18 — Tier 1 live status audit
+
+### E10: User-column assumption in read-only inventory query
+- **Symptom:** `SELECT email, role, is_active FROM users` failed with `ERROR: column "is_active" does not exist`.
+- **Root cause:** The current StackWatch schema does not contain an `is_active` column on `users`.
+- **Impact:** No application state changed; the inventory query did not run.
+- **Recovery:** Query only columns present in the live schema before using the result.
+
+### E11: Tier 1 ACME account detail returns HTTP 500 for a missing account
+- **Symptom:** `GET /api/v1/proxmox/hosts/64059b0a-66a2-43d2-82a1-c68a7beac341/cluster/acme/account/hermes-no-such-account` returned `500 {"error":"Internal error. See server logs.","code":"internal"}`.
+- **Root cause:** The handler does not translate a missing upstream ACME account into a client-level 404.
+- **Impact:** Tier 1 has a deterministic error-path defect; the missing-resource path is not production-safe.
+- **Recovery:** Map the upstream not-found error to HTTP 404 and re-run the complete Tier 1 live verifier.
+
+### E12: Configured SSH path to .115 timed out before deployment
+- **Symptom:** Read-only `ssh -o ConnectTimeout=10 115 ...` through the configured bastion exceeded the 60-second tool timeout (exit 124).
+- **Root cause:** The configured path is `monitor@.115` through `root@.113`; the bastion path did not complete during this attempt.
+- **Impact:** No remote files or services were changed. Live deployment is blocked until a verified SSH path is available.
+- **Recovery:** Do not retry the same path in a loop. Re-check the documented deployment access path, then upload only after explicit deployment approval and a successful read-only connection.
+
+### E13: Gateway process-name limit defeated first cutover stop
+- **Symptom:** Deployment used `pgrep -x api-gateway-linux`; Linux reported the process name is longer than 15 characters and returned no match. The old gateway remained bound to `:8080`, so health still reported `0.1.0-tier0.5` after the new binary was installed.
+- **Root cause:** `pgrep -x` matches the truncated kernel process name; the gateway must be selected by `/proc/*/cmdline` or a safe full-command pattern.
+- **Impact:** The new binary was staged on disk but was not serving yet. The frontend service started successfully on `:8090`. No database mutation occurred.
+- **Recovery:** Identify the live gateway by full command line and `/proc/<pid>/exe`, stop it, start the new binary detached, then verify the running executable checksum and version before endpoint tests.
+
+### E14: Nested shell quoting broke the PID selector
+- **Symptom:** The corrective remote command failed with `bash: line 1: $2: unbound variable` while trying to pass an `awk` field selector through nested double quotes.
+- **Root cause:** The remote shell expanded `$2` before `awk` received it.
+- **Impact:** No process was stopped and no files were changed by this failed corrective attempt.
+- **Recovery:** Use the already verified live PID `123958` for this one recovery, then use `/proc/<pid>/exe` and the listening socket for verification. Avoid nested shell/awk quoting in deployment commands.
+
+### E15: ACME missing-account mapping still failed after first Tier 1 binary deploy
+- **Symptom:** Fresh live Tier 1 pass returned `GET /api/v1/proxmox/hosts/64059b0a-66a2-43d2-82a1-c68a7beac341/cluster/acme/account/hermes-no-such-account` → HTTP 500 `internal`; 37/38 read endpoints passed.
+- **Root cause:** The new sentinel path did not recognize the actual missing-account error returned by the Proxmox client/handler combination.
+- **Impact:** Tier 1 is not complete; the error path remains unsafe for a missing ACME resource.
+- **Recovery:** Capture the exact client error, extend the typed/not-found mapping without broad string matching, rebuild, redeploy, and rerun the full verifier.

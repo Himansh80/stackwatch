@@ -48,9 +48,31 @@ func (h *ProxmoxHandler) GetACMEAccount(c *gin.Context) {
 	}
 	name := c.Param("name")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
+
+	// Older Proxmox versions return 403 ("user != root@pam") for a
+	// direct lookup of an absent ACME account instead of 404. Consult the
+	// list endpoint first so the StackWatch contract stays deterministic:
+	// absent resource -> 404, existing resource -> detail/real error.
+	accounts, err := cli.ListACMEAccounts(c.Request.Context())
+	if err != nil {
+		kernel.RespondError(c, normalizeProxmoxError(err))
+		return
+	}
+	found := false
+	for _, account := range accounts {
+		if account.Name == name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		kernel.RespondError(c, kernel.ErrNotFound)
+		return
+	}
+
 	acct, err := cli.GetACMEAccount(c.Request.Context(), name)
 	if err != nil {
-		kernel.RespondError(c, err)
+		kernel.RespondError(c, normalizeProxmoxError(err))
 		return
 	}
 	kernel.RespondOK(c, acct)

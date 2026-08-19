@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -14,12 +15,24 @@ func isProxmoxNotFound(err error) bool {
 	if err == nil {
 		return false
 	}
+	if errors.Is(err, proxmox.ErrNotFound) {
+		return true
+	}
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "configuration error") ||
 		strings.Contains(msg, "no such vm") ||
-		strings.Contains(msg, "vmid") && strings.Contains(msg, "does not exist") ||
-		strings.Contains(msg, "ct") && strings.Contains(msg, "not running") ||
-		strings.Contains(msg, "configuration file") && strings.Contains(msg, "does not exist")
+		(strings.Contains(msg, "vmid") && strings.Contains(msg, "does not exist")) ||
+		(strings.Contains(msg, "ct") && strings.Contains(msg, "not running")) ||
+		(strings.Contains(msg, "configuration file") && strings.Contains(msg, "does not exist"))
+}
+
+// normalizeProxmoxError maps client sentinels and legacy PVE error strings
+// to the platform error catalog before they reach the HTTP responder.
+func normalizeProxmoxError(err error) error {
+	if isProxmoxNotFound(err) {
+		return fmt.Errorf("%w: remote resource not found", kernel.ErrNotFound)
+	}
+	return err
 }
 
 // handleProxmoxCall runs fn and writes the response. If fn returns
@@ -33,7 +46,7 @@ func handleProxmoxCall(c *gin.Context, fn func() (any, error)) bool {
 		return true
 	}
 	if err != nil {
-		kernel.RespondError(c, err)
+		kernel.RespondError(c, normalizeProxmoxError(err))
 		return true
 	}
 	kernel.RespondOK(c, out)

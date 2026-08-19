@@ -53,3 +53,5 @@ secrets/
 # OS junk
 *~
 .cache/
+web/__pycache__/
+web/dist/

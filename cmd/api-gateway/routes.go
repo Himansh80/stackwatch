@@ -31,7 +31,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 				"status":  "degraded",
 				"db":      "down",
 				"mode":    installMode,
-				"version": "0.1.0-tier0.5",
+				"version": "0.1.0-tier1",
 			})
 			return
 		}
@@ -39,7 +39,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 			"status":  "ok",
 			"db":      "ok",
 			"mode":    installMode,
-			"version": "0.1.0-tier0.5",
+			"version": "0.1.0-tier1",
 		})
 	})
 
@@ -307,7 +307,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.DELETE("/dashboards/:id/default", handler.UnsetDashboardDefault(pool))
 
 	// Tier 6 v4: Real User Monitoring (M8)
-	r.POST("/api/v1/rum/events", handler.IngestRUM(pool))   // unauthenticated — tenant_id query param
+	r.POST("/api/v1/rum/events", handler.IngestRUM(pool)) // unauthenticated — tenant_id query param
 	protected.GET("/rum/summary", handler.RUMSummary(pool))
 	protected.GET("/rum/events", handler.ListRUMEvents(pool))
 

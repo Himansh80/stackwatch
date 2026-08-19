@@ -16,6 +16,14 @@ var (
 	ErrInternal        = errors.New("internal error")
 	ErrConflict        = errors.New("conflict")
 	ErrTooManyRequests = errors.New("too many requests")
+	// ErrConfigInvalid: the request is well-formed but refers to a
+	// misconfigured entity (e.g. a connection with auth_method=key but
+	// no ssh_key_id). Surfaces as HTTP 422 with the config_invalid code.
+	ErrConfigInvalid = errors.New("config invalid")
+	// ErrUpstream: a downstream service / remote host returned an error
+	// the caller needs to know about, but the request itself was fine.
+	// Surfaces as HTTP 502 with the upstream_failed code.
+	ErrUpstream = errors.New("upstream failed")
 )
 
 // Page is a generic pagination request.

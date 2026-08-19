@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -99,9 +98,9 @@ func (h *ProxmoxHandler) GetHost(c *gin.Context) {
 		Scan(&p.ID, &p.TenantID, &p.Name, &p.BaseURL, &p.VerifyTLS,
 			&p.NodeName, &p.Status, &lastCheck, &p.LastError, &created)
 	if errors.Is(err, pgx.ErrNoRows) {
-			kernel.RespondError(c, kernel.ErrNotFound)
-			return
-		}
+		kernel.RespondError(c, kernel.ErrNotFound)
+		return
+	}
 	if err != nil {
 		kernel.RespondError(c, err)
 		return
@@ -189,15 +188,27 @@ func (h *ProxmoxHandler) TestHost(c *gin.Context) {
 	kernel.RespondOK(c, gin.H{"ok": true})
 }
 
-// fetchHostCreds reads the host row including the secret token.
-func (h *ProxmoxHandler) fetchHostCreds(ctx context.Context, hostID uuid.UUID) (*ProxmoxHost, bool) {
+// fetchHostCreds reads the host row including the secret token, scoped to the
+// caller's tenant. A zero UUID is the deliberate super-admin system tenant
+// and can manage all hosts.
+func (h *ProxmoxHandler) fetchHostCreds(c *gin.Context, hostID uuid.UUID) (*ProxmoxHost, bool) {
+	tenantID, ok := tenantIDFromContext(c)
+	if !ok {
+		return nil, false
+	}
 	var p ProxmoxHost
 	var lastCheck, created time.Time
-	err := h.pool.Pgx().QueryRow(ctx, `
+	query := `
 		SELECT id, tenant_id, name, base_url, api_token, verify_tls,
 		       COALESCE(node_name, ''), status, COALESCE(last_check_at, created_at),
 		       COALESCE(last_error, ''), created_at
-		FROM proxmox_hosts WHERE id = $1`, hostID).Scan(
+		FROM proxmox_hosts WHERE id = $1`
+	args := []any{hostID}
+	if tenantID != uuid.Nil {
+		query += ` AND tenant_id = $2`
+		args = append(args, tenantID)
+	}
+	err := h.pool.Pgx().QueryRow(c.Request.Context(), query, args...).Scan(
 		&p.ID, &p.TenantID, &p.Name, &p.BaseURL, &p.APIToken, &p.VerifyTLS,
 		&p.NodeName, &p.Status, &lastCheck, &p.LastError, &created,
 	)

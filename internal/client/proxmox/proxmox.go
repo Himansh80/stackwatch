@@ -22,6 +22,11 @@ import (
 // of showing a hard error.
 var ErrNotSupported = errors.New("proxmox: endpoint not implemented on this cluster version")
 
+// ErrNotFound is returned when Proxmox reports that the requested resource
+// does not exist. Older Proxmox endpoints sometimes return HTTP 500 with a
+// body containing "does not exist" instead of returning HTTP 404.
+var ErrNotFound = errors.New("proxmox: resource not found")
+
 // Client is a Proxmox API client bound to one host.
 type Client struct {
 	baseURL    string
@@ -73,7 +78,11 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 		return ErrNotSupported
 	}
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("proxmox: HTTP %d on %s", resp.StatusCode, path)
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusNotFound || isNotFoundBody(body) {
+			return fmt.Errorf("%w: HTTP %d on %s: %s", ErrNotFound, resp.StatusCode, path, strings.TrimSpace(string(body)))
+		}
+		return fmt.Errorf("proxmox: HTTP %d on %s: %s", resp.StatusCode, path, strings.TrimSpace(string(body)))
 	}
 	var wrapper struct {
 		Data json.RawMessage `json:"data"`
@@ -160,6 +169,25 @@ func (c *Client) deleteForm(ctx context.Context, path string) error {
 		return fmt.Errorf("proxmox: HTTP %d: %s", resp.StatusCode, string(body))
 	}
 	return nil
+}
+
+// isNotFoundBody handles the inconsistent error wording used by Proxmox
+// versions for missing resources. It intentionally only matches resource
+// absence phrases, not generic HTTP 500 messages.
+func isNotFoundBody(body []byte) bool {
+	text := strings.ToLower(strings.TrimSpace(string(body)))
+	for _, phrase := range []string{
+		"not found",
+		"does not exist",
+		"no such file",
+		"unknown resource",
+		"no such acme account",
+	} {
+		if strings.Contains(text, phrase) {
+			return true
+		}
+	}
+	return false
 }
 
 // Ping checks the host is reachable and the token works.

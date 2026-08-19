@@ -50,7 +50,7 @@ func (h *TerminalHandler) ListFS(c *gin.Context) {
 
 	client, sftpClient, err := h.dialSFTP(c.Request.Context(), tenantID, connID)
 	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("connect: %w", err))
+		kernel.RespondError(c, err)
 		return
 	}
 	defer sftpClient.Close()
@@ -107,7 +107,7 @@ func (h *TerminalHandler) ReadFS(c *gin.Context) {
 
 	client, sftpClient, err := h.dialSFTP(c.Request.Context(), tenantID, connID)
 	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("connect: %w", err))
+		kernel.RespondError(c, err)
 		return
 	}
 	defer sftpClient.Close()
@@ -143,10 +143,15 @@ func (h *TerminalHandler) ReadFS(c *gin.Context) {
 
 // WriteFS writes a file (or appends) to the remote host.
 type WriteFSRequest struct {
-	Path       string `json:"path" binding:"required"`
-	ContentB64 string `json:"content_b64" binding:"required"`
-	Append     bool   `json:"append"`
-	Mode       string `json:"mode"` // e.g. "0644" — applied on create
+	Path string `json:"path" binding:"required"`
+	// ContentB64 is the base64-encoded file content. Required unless
+	// Content is provided (UTF-8 text convenience field).
+	ContentB64 string `json:"content_b64"`
+	// Content is UTF-8 text. Auto-encoded to base64 if ContentB64 is empty.
+	// Useful for "create a small config file" flows where base64 is annoying.
+	Content string `json:"content"`
+	Append  bool   `json:"append"`
+	Mode    string `json:"mode"` // e.g. "0644" — applied on create
 }
 
 func (h *TerminalHandler) WriteFS(c *gin.Context) {
@@ -165,15 +170,29 @@ func (h *TerminalHandler) WriteFS(c *gin.Context) {
 		kernel.RespondError(c, kernel.ErrBadRequest) // was: kernel.NewErrBadRequest("path must be absolute"))
 		return
 	}
-	content, err := base64Decode(req.ContentB64)
-	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("decode b64: %w", err))
+	if req.Path == "" {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	// Resolve body → bytes. Prefer content_b64; fall back to content (UTF-8).
+	var content []byte
+	switch {
+	case req.ContentB64 != "":
+		content, err = base64Decode(req.ContentB64)
+		if err != nil {
+			kernel.RespondError(c, fmt.Errorf("decode b64: %w", err))
+			return
+		}
+	case req.Content != "":
+		content = []byte(req.Content)
+	default:
+		kernel.RespondError(c, kernel.ErrBadRequest) // need content or content_b64
 		return
 	}
 
 	client, sftpClient, err := h.dialSFTP(c.Request.Context(), tenantID, connID)
 	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("connect: %w", err))
+		kernel.RespondError(c, err)
 		return
 	}
 	defer sftpClient.Close()
@@ -234,7 +253,7 @@ func (h *TerminalHandler) MkdirFS(c *gin.Context) {
 
 	client, sftpClient, err := h.dialSFTP(c.Request.Context(), tenantID, connID)
 	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("connect: %w", err))
+		kernel.RespondError(c, err)
 		return
 	}
 	defer sftpClient.Close()
@@ -278,7 +297,7 @@ func (h *TerminalHandler) DeleteFS(c *gin.Context) {
 
 	client, sftpClient, err := h.dialSFTP(c.Request.Context(), tenantID, connID)
 	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("connect: %w", err))
+		kernel.RespondError(c, err)
 		return
 	}
 	defer sftpClient.Close()
@@ -317,7 +336,7 @@ func (h *TerminalHandler) StatFS(c *gin.Context) {
 
 	client, sftpClient, err := h.dialSFTP(c.Request.Context(), tenantID, connID)
 	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("connect: %w", err))
+		kernel.RespondError(c, err)
 		return
 	}
 	defer sftpClient.Close()
@@ -363,7 +382,7 @@ func (h *TerminalHandler) RenameFS(c *gin.Context) {
 
 	client, sftpClient, err := h.dialSFTP(c.Request.Context(), tenantID, connID)
 	if err != nil {
-		kernel.RespondError(c, fmt.Errorf("connect: %w", err))
+		kernel.RespondError(c, err)
 		return
 	}
 	defer sftpClient.Close()

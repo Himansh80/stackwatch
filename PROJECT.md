@@ -257,9 +257,12 @@ docs/
 
 ## CURRENT STATE
 
-**Stage:** Planning → Plan delivered → Awaiting your "start building"  
-**Next:** Tier 0 (foundation) — git repo, CI, base Go project, base React project, DB schema, auth, single dummy endpoint  
-**Blocked on:** Nothing  
+**Stage:** Tier 1 Proxmox backend implemented; live A-to-Z audit **not complete** (2026-08-18)  
+**Verified now:** 37/38 read-endpoint checks passed in each of 3 consecutive fresh runs against `.115:8080`  
+**Known defect:** Missing ACME account detail returns HTTP 500 instead of HTTP 404  
+**Missing for true end-to-end completion:** Tier 1 frontend screens; complete safe CRUD/write-endpoint verification; four clean full runs without rate-limit interruption  
+**Next:** Fix the ACME not-found mapping, build the Tier 1 UI, then verify every Tier 1 endpoint and safe lifecycle operation live  
+**Blocked on:** Nothing technical; the fourth fresh-login pass was temporarily blocked by the in-memory login rate limiter  
 
 ---
 
