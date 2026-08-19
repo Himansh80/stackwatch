@@ -55,7 +55,7 @@ func (h *ProxmoxHandler) CreateLXC(c *gin.Context) {
 	}
 	task, err := cli.CreateLXC(c.Request.Context(), node, spec)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondCreated(c, gin.H{
@@ -88,7 +88,7 @@ func (h *ProxmoxHandler) LXCStatusAction(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	task, err := cli.LXCStatus(c.Request.Context(), node, vmid, action)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{
@@ -118,7 +118,7 @@ func (h *ProxmoxHandler) GetLXCConfig(c *gin.Context) {
 			kernel.RespondError(c, kernel.ErrNotFound)
 			return
 		}
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, cfg)
@@ -158,7 +158,7 @@ func (h *ProxmoxHandler) UpdateLXCConfig(c *gin.Context) {
 		Description: req.Description,
 	}
 	if _, err := cli.UpdateLXCConfig(c.Request.Context(), node, vmid, spec); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"updated": true, "vmid": vmid})
@@ -180,7 +180,7 @@ func (h *ProxmoxHandler) DeleteLXC(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	task, err := cli.DeleteLXC(c.Request.Context(), node, vmid, true)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{

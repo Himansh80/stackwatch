@@ -17,7 +17,7 @@ func (h *ProxmoxHandler) ListCertificates(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	certs, err := cli.ListCertificates(c.Request.Context(), node)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"certificates": certs, "total": len(certs)})
@@ -33,7 +33,7 @@ func (h *ProxmoxHandler) ListACMEAccounts(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	accts, err := cli.ListACMEAccounts(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"accounts": accts, "total": len(accts)})
@@ -55,7 +55,7 @@ func (h *ProxmoxHandler) GetACMEAccount(c *gin.Context) {
 	// absent resource -> 404, existing resource -> detail/real error.
 	accounts, err := cli.ListACMEAccounts(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, normalizeProxmoxError(err))
+		respondProxmoxError(c, err)
 		return
 	}
 	found := false
@@ -72,7 +72,7 @@ func (h *ProxmoxHandler) GetACMEAccount(c *gin.Context) {
 
 	acct, err := cli.GetACMEAccount(c.Request.Context(), name)
 	if err != nil {
-		kernel.RespondError(c, normalizeProxmoxError(err))
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, acct)
@@ -98,7 +98,7 @@ func (h *ProxmoxHandler) CreateACMEAccount(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.CreateACMEAccount(c.Request.Context(), req.Name, req.Email, req.Directory, req.TosURL); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"name": req.Name, "email": req.Email, "directory": req.Directory, "status": "registered"})
@@ -114,7 +114,7 @@ func (h *ProxmoxHandler) DeleteACMEAccount(c *gin.Context) {
 	name := c.Param("name")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteACMEAccount(c.Request.Context(), name); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"name": name, "status": "deleted"})
@@ -130,7 +130,7 @@ func (h *ProxmoxHandler) ListACMEPlugins(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	plugins, err := cli.ListACMEPlugins(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"plugins": plugins, "total": len(plugins)})
@@ -155,7 +155,7 @@ func (h *ProxmoxHandler) CreateACMEPlugin(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.CreateACMEPlugin(c.Request.Context(), req.Name, req.Type, req.Data); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"name": req.Name, "type": req.Type, "status": "installed"})
@@ -171,7 +171,7 @@ func (h *ProxmoxHandler) DeleteACMEPlugin(c *gin.Context) {
 	name := c.Param("name")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteACMEPlugin(c.Request.Context(), name); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"name": name, "status": "deleted"})
@@ -187,7 +187,7 @@ func (h *ProxmoxHandler) ListACMEChallengeSchema(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	schema, err := cli.ListACMEChallengeSchema(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"challenges": schema, "total": len(schema)})
@@ -203,7 +203,7 @@ func (h *ProxmoxHandler) ListACMEDirectories(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	dirs, err := cli.ListACMEDirectories(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"directories": dirs, "total": len(dirs)})

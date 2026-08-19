@@ -32,7 +32,25 @@ func normalizeProxmoxError(err error) error {
 	if isProxmoxNotFound(err) {
 		return fmt.Errorf("%w: remote resource not found", kernel.ErrNotFound)
 	}
+	msg := strings.ToLower(err.Error())
+	if strings.Contains(msg, "http 400") || strings.Contains(msg, "parameter verification failed") || strings.Contains(msg, "invalid format") || strings.Contains(msg, "undefined value") || strings.Contains(msg, "does not look like a valid user name") {
+		return fmt.Errorf("%w: %s", kernel.ErrBadRequest, err.Error())
+	}
+	if strings.Contains(msg, "http 403") || strings.Contains(msg, "forbidden") || strings.Contains(msg, "permission check failed") {
+		return fmt.Errorf("%w: %s", kernel.ErrForbidden, err.Error())
+	}
 	return err
+}
+
+// respondProxmoxError converts unsupported legacy PVE operations to a
+// successful capability response and maps all other PVE errors to the
+// platform error catalog.
+func respondProxmoxError(c *gin.Context, err error) {
+	if errors.Is(err, proxmox.ErrNotSupported) {
+		kernel.RespondOK(c, gin.H{"supported": false})
+		return
+	}
+	kernel.RespondError(c, normalizeProxmoxError(err))
 }
 
 // handleProxmoxCall runs fn and writes the response. If fn returns

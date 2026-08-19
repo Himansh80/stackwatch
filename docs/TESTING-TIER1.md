@@ -1,171 +1,178 @@
 # StackWatch — Tier 1 Testing Guide (Proxmox)
 
-**Last updated:** 2026-08-17
-**For:** Himan (the user)
-**Date created:** 2026-08-16
-**Status:** Tier 1 (Proxmox full replacement) shipped. **14/14 live tests pass** on real Proxmox at .107.
+**Last updated:** 2026-08-19
+**Status:** Tier 1 backend and frontend deployed on `.115`; fresh live verification is required before every release.
 
----
+## Scope
 
-## What's live
+Tier 1 covers the Proxmox replacement surface:
 
-API endpoints added:
-- `POST   /api/v1/proxmox/hosts` — register a Proxmox host
-- `GET    /api/v1/proxmox/hosts` — list hosts for your tenant
-- `DELETE /api/v1/proxmox/hosts/:id` — remove a host
-- `GET    /api/v1/proxmox/hosts/:id/test` — test connection
-- `GET    /api/v1/proxmox/hosts/:id/nodes` — list cluster nodes
-- `GET    /api/v1/proxmox/hosts/:id/vms` — list VMs + LXC
-- `GET    /api/v1/proxmox/hosts/:id/storage?node=X` — list storage pools
+- Host registration, listing, connection test, and tenant isolation
+- Cluster nodes, status, info, resources, VMs, and LXC
+- VM/LXC configuration, lifecycle actions, and deletion
+- Storage pools, content, upload/download routes, and deletion
+- Network interfaces and firewall rules/IP sets
+- Disks and ZFS
+- Proxmox users and API tokens
+- Cluster/node tasks
+- Pools
+- Backup jobs and run-now
+- Certificates and ACME accounts/plugins/challenge metadata
+- The deployed Proxmox workspace frontend and static assets
 
-All endpoints are authenticated (JWT), tenant-scoped, and tested with your real Proxmox at `https://192.168.0.107:8006`.
+The live verifier uses a real registered Proxmox host but performs only **read operations and deliberately invalid write requests**. It does not create or delete real VMs, containers, storage, network interfaces, firewall rules, users, tokens, pools, backups, or certificates.
 
----
+## Live URLs
 
-## How to test (live against real .107)
+- API: `http://192.168.0.115:8080`
+- Web UI: `http://192.168.0.115:8090`
+- Health: `http://192.168.0.115:8080/health`
 
-### 1. Sign up
+## Manual test flow
 
-```bash
-curl -X POST http://192.168.0.115:8080/api/v1/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"email":"your@email.com","password":"StrongPassword2026","full_name":"Your Name","tenant_name":"Your Org"}'
-```
-
-### 2. Save the token
+### 1. Login
 
 ```bash
-TOKEN="paste-token-here"
+curl -sS -X POST http://192.168.0.115:8080/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"YOUR_EMAIL","password":"YOUR_PASSWORD"}'
 ```
 
-### 3. Add your real Proxmox host
+Save the returned JWT as `TOKEN`. Never place a real password or Proxmox API token in source control or documentation.
 
 ```bash
-curl -X POST http://192.168.0.115:8080/api/v1/proxmox/hosts \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "name": "lab-proxmox",
-    "base_url": "https://192.168.0.107:8006",
-    "api_token": "PVEAPIToken=root@pam!monitor=613a1a19-718c-4534-93ad-9efb679ffb58",
-    "verify_tls": false
-  }'
+TOKEN='paste-jwt-here'
+AUTH="Authorization: Bearer $TOKEN"
 ```
 
-Expected: 201 with `status: "online"` (it pings the host before persisting).
-
-### 4. List your hosts
+### 2. List registered Proxmox hosts
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" http://192.168.0.115:8080/api/v1/proxmox/hosts
+curl -sS -H "$AUTH" http://192.168.0.115:8080/api/v1/proxmox/hosts
 ```
 
-### 5. Test the connection
+Expected: a tenant-scoped `hosts` array. Proxmox API secrets must not appear in the response.
+
+Set the host ID returned by the API:
 
 ```bash
-# Copy the id from step 4
-HID="host-id-here"
-curl -H "Authorization: Bearer $TOKEN" http://192.168.0.115:8080/api/v1/proxmox/hosts/$HID/test
+HID='host-uuid-here'
+BASE="http://192.168.0.115:8080/api/v1/proxmox/hosts/$HID"
 ```
 
-Expected: `{"ok": true}`
-
-### 6. Discover VMs (real data from .107)
+### 3. Check host and cluster data
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" http://192.168.0.115:8080/api/v1/proxmox/hosts/$HID/vms
+curl -sS -H "$AUTH" "$BASE"
+curl -sS -H "$AUTH" "$BASE/test"
+curl -sS -H "$AUTH" "$BASE/nodes"
+curl -sS -H "$AUTH" "$BASE/cluster/status"
+curl -sS -H "$AUTH" "$BASE/cluster/info"
+curl -sS -H "$AUTH" "$BASE/cluster/resources"
+curl -sS -H "$AUTH" "$BASE/vms"
 ```
 
-Expected: 13 VMs/LXC including pf-sense (qemu), adguard (lxc), nginxproxymanager (lxc), esphome (lxc), homeassistant (qemu), iot-server (qemu), termix (lxc), portfolio (qemu), mail.bluecubeautomations.com (lxc).
+Expected: HTTP 200 JSON. On older Proxmox versions, unsupported native operations return HTTP 200 with `supported:false`, not an unexplained 500.
 
-### 7. Discover nodes
+### 4. Check VM/LXC data
+
+Use a real node name and VMID from the previous response:
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" http://192.168.0.115:8080/api/v1/proxmox/hosts/$HID/nodes
+NODE='router'
+VMID='100'
+CTID='101'
+
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/qemu/$VMID"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/lxc/$CTID"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/qemu/$VMID/status/current"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/lxc/$CTID/status/current"
 ```
 
-Expected: 1 node named "router", status "online", 4 CPU, 16 GB RAM, 65 GB disk.
-
-### 8. Discover storage
+### 5. Check storage, network, firewall, and disks
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" "http://192.168.0.115:8080/api/v1/proxmox/hosts/$HID/storage?node=router"
+curl -sS -H "$AUTH" "$BASE/storage"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/storage/local/content"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/network"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/firewall/rules"
+curl -sS -H "$AUTH" "$BASE/firewall/ipsets"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/disks/list"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/disks/zfs"
 ```
 
-Expected: 2 storage pools — `local` (dir) and `local-lvm` (lvmthin), with used/total/avail bytes.
-
-### 9. Test isolation (different tenant sees nothing)
+### 6. Check users, tokens, tasks, pools, and backups
 
 ```bash
-# Sign up a SECOND tenant
-curl -X POST http://192.168.0.115:8080/api/v1/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"email":"other@x.com","password":"StrongPassword2026","full_name":"Other","tenant_name":"Other Org"}'
-
-TOKEN2="paste-second-token"
-curl -H "Authorization: Bearer $TOKEN2" http://192.168.0.115:8080/api/v1/proxmox/hosts
+curl -sS -H "$AUTH" "$BASE/access/users"
+curl -sS -H "$AUTH" "$BASE/access/users/root@pam"
+curl -sS -H "$AUTH" "$BASE/access/users/root@pam/token"
+curl -sS -H "$AUTH" "$BASE/cluster/tasks"
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/tasks"
+curl -sS -H "$AUTH" "$BASE/pools"
+curl -sS -H "$AUTH" "$BASE/cluster/backup"
 ```
 
-Expected: `{"hosts": [], "total": 0}` — tenant isolation works.
-
-### 10. Verify no token leaks
+### 7. Check certificates and ACME
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" http://192.168.0.115:8080/api/v1/proxmox/hosts
+curl -sS -H "$AUTH" "$BASE/nodes/$NODE/certificates"
+curl -sS -H "$AUTH" "$BASE/cluster/acme/account"
+curl -sS -H "$AUTH" "$BASE/cluster/acme/plugins"
+curl -sS -H "$AUTH" "$BASE/cluster/acme/challenge-schema"
+curl -sS -H "$AUTH" "$BASE/cluster/acme/directories"
+curl -sS -H "$AUTH" "$BASE/cluster/acme/info"
 ```
 
-The JSON should NEVER contain `PVEAPIToken=...`. Only `id`, `name`, `base_url`, `verify_tls`, `status`.
+For an absent ACME account, the expected result is HTTP 404. On older PVE, an account lookup may otherwise return a misleading 403/500; StackWatch normalizes the absent-resource case.
 
-### 11. Delete the host
+## Safe validation of write routes
 
-```bash
-curl -X DELETE -H "Authorization: Bearer $TOKEN" http://192.168.0.115:8080/api/v1/proxmox/hosts/$HID
-```
+The automated verifier sends malformed JSON to every Tier 1 POST/PUT route. Expected behavior is HTTP 400/404/422 before mutation. It also probes fake delete targets:
 
----
+- Missing resources → HTTP 404
+- Invalid identifiers or malformed parameters → HTTP 400
+- Permission failures → HTTP 403
+- Unsupported old-PVE operations → HTTP 200 with `supported:false`
+- Idempotent deletion on supported Proxmox endpoints → HTTP 200
 
-## What you CAN'T do yet (Tier 1 next steps)
+Do not run destructive create/delete commands against production merely to test routing. Use a disposable Proxmox VM or explicit user approval for real lifecycle round-trips.
 
-- Create VMs (`POST /proxmox/hosts/:id/vms`)
-- Start/stop/reboot VMs (`POST /proxmox/hosts/:id/nodes/:node/qemu/:vmid/status/start`)
-- LXC lifecycle
-- Storage create/delete
-- Networking (bridges, VLANs, bonds, firewall)
-- Backup + restore
-- Templates + cloud-init
-- HA + cluster
-- Per-VM monitoring stats (already have data, just need UI)
+## Frontend test
 
-These are Tier 1.2 – 1.9 in the master plan.
-
----
+1. Open `http://192.168.0.115:8090`.
+2. Sign in with a valid StackWatch account.
+3. Open the Proxmox workspace.
+4. Confirm the host list loads.
+5. Open the host and confirm the tabs load: Overview, VMs, Storage, Network, Firewall, Users, and Operations.
+6. Confirm tables show real Proxmox data or an explicit empty state.
+7. Confirm unsupported old-PVE capabilities show a clear unsupported state rather than a blank page.
+8. Refresh the page and confirm the SPA remains usable.
 
 ## Automated verifier
 
 Run from Windows:
+
 ```bash
-python "C:/Users/himan/AppData/Local/Temp/hermes-verify-tier1-proxmox-2026-08-16.py"
+python "C:/Users/himan/AppData/Local/Temp/hermes-tier1-full-live.py"
 ```
 
-**Latest result:** 14/14 PASS (verified 4 consecutive runs).
+The verifier performs one complete pass with one JWT. To meet the release gate, run it four times, restarting the API between passes only to clear the in-memory login limiter. The verifier must report:
 
----
+```text
+FULL PASS RESULT: 78 passed, 0 failed, total=78
+```
 
-## What I need from you
+The separate original read/frontend verifier is also retained at:
 
-After you've tested, tell me one of:
+```text
+C:/Users/himan/AppData/Local/Temp/hermes-tier1-4pass-live.py
+```
 
-1. **"next"** — move to Tier 1.2 (VM lifecycle: create/start/stop/reboot/delete)
-2. **"fix X"** — describe the issue
-3. **"change Y"** — describe the change
+It must reuse one JWT across its four passes; logging in once per pass can trigger the production login limiter and is not valid evidence.
 
-I'll fix or move on. No claim of "done" until you say it works.
+## Known platform constraints
 
----
-
-## Known gaps (Tier 1 partial — addressed in Tier 1.2+)
-
-- **API tokens stored as plaintext in DB** — Tier 9 will encrypt at rest (AES-256-GCM)
-- **No per-VM UI in dashboard yet** — Tier 1.10 frontend (next after backend)
-- **No auto-refresh / WebSocket** — Tier D1 ships this
-- **No VM console (noVNC)** — Tier 3
+- The current API login limiter is in-memory. Restarting the API clears its counters; a future Redis-backed limiter will remove this verifier coordination requirement.
+- The target Proxmox host is an older PVE release. Some native endpoints are unsupported and correctly report `supported:false`.
+- Real destructive lifecycle tests require a disposable VM/CT and must be run separately from the safe release verifier.

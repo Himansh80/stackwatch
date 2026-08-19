@@ -132,6 +132,9 @@ func (c *Client) doForm(ctx context.Context, method, path string, form url.Value
 	}
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusNotFound || isNotFoundBody(body) {
+			return fmt.Errorf("%w: HTTP %d: %s", ErrNotFound, resp.StatusCode, strings.TrimSpace(string(body)))
+		}
 		return fmt.Errorf("proxmox: HTTP %d: %s", resp.StatusCode, string(body))
 	}
 	if out == nil {
@@ -164,8 +167,14 @@ func (c *Client) deleteForm(ctx context.Context, path string) error {
 	if resp.StatusCode == 401 {
 		return fmt.Errorf("proxmox: unauthorized")
 	}
+	if resp.StatusCode == http.StatusNotImplemented {
+		return ErrNotSupported
+	}
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusNotFound || isNotFoundBody(body) {
+			return fmt.Errorf("%w: HTTP %d: %s", ErrNotFound, resp.StatusCode, strings.TrimSpace(string(body)))
+		}
 		return fmt.Errorf("proxmox: HTTP %d: %s", resp.StatusCode, string(body))
 	}
 	return nil
@@ -180,8 +189,13 @@ func isNotFoundBody(body []byte) bool {
 		"not found",
 		"does not exist",
 		"no such file",
+		"no such vm",
+		"no such ct",
+		"configuration error",
+		"configuration file",
 		"unknown resource",
 		"no such acme account",
+		"no such token",
 	} {
 		if strings.Contains(text, phrase) {
 			return true

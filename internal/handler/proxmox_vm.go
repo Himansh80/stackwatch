@@ -72,7 +72,7 @@ func (h *ProxmoxHandler) VMStatusAction(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	task, err := cli.VMStatus(c.Request.Context(), node, vmid, action, req.Force)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{
@@ -118,7 +118,7 @@ func (h *ProxmoxHandler) CreateVM(c *gin.Context) {
 	}
 	task, err := cli.CreateVM(c.Request.Context(), node, spec)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondCreated(c, gin.H{
@@ -145,7 +145,7 @@ func (h *ProxmoxHandler) DeleteVM(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	task, err := cli.DeleteVM(c.Request.Context(), node, vmid, req.Force)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{
@@ -171,7 +171,7 @@ func (h *ProxmoxHandler) TaskStatus(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	ts, err := cli.GetTaskStatus(c.Request.Context(), node, upid)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, ts)
@@ -198,7 +198,7 @@ func (h *ProxmoxHandler) GetVMConfig(c *gin.Context) {
 			kernel.RespondError(c, kernel.ErrNotFound)
 			return
 		}
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, cfg)
@@ -238,7 +238,7 @@ func (h *ProxmoxHandler) UpdateVMConfig(c *gin.Context) {
 		Cores: req.Cores, Boot: req.Boot,
 	}
 	if _, err := cli.UpdateVMConfig(c.Request.Context(), node, vmid, spec); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"updated": true, "vmid": vmid})

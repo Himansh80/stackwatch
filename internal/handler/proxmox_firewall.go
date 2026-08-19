@@ -52,7 +52,7 @@ func (h *ProxmoxHandler) ListFirewallRules(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	rules, err := cli.ListFirewallRules(c.Request.Context(), node)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"rules": rules, "total": len(rules)})
@@ -87,7 +87,7 @@ func (h *ProxmoxHandler) CreateFirewallRule(c *gin.Context) {
 		Log:        req.Log,
 	}
 	if _, err := cli.CreateFirewallRule(c.Request.Context(), node, spec); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	// Get position of newly created rule (last in list)
@@ -164,7 +164,7 @@ func (h *ProxmoxHandler) UpdateFirewallRule(c *gin.Context) {
 
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.UpdateFirewallRule(c.Request.Context(), node, pos, fields); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"updated": true, "pos": pos})
@@ -186,7 +186,7 @@ func (h *ProxmoxHandler) DeleteFirewallRule(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteFirewallRule(c.Request.Context(), node, pos); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"deleted": true, "pos": pos})
@@ -230,7 +230,7 @@ func (h *ProxmoxHandler) CreateIPset(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.CreateIPset(c.Request.Context(), req.Name, req.Comment); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	// Optionally add initial CIDR
@@ -253,7 +253,7 @@ func (h *ProxmoxHandler) DeleteIPset(c *gin.Context) {
 	name := c.Param("name")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteIPset(c.Request.Context(), name); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"deleted": true, "name": name})

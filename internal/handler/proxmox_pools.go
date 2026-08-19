@@ -16,7 +16,7 @@ func (h *ProxmoxHandler) ListPools(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	pools, err := cli.ListPools(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	// Strip members from list (use GET pool for detail)
@@ -37,7 +37,7 @@ func (h *ProxmoxHandler) GetPool(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	pool, err := cli.GetPool(c.Request.Context(), poolID)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, pool)
@@ -61,7 +61,7 @@ func (h *ProxmoxHandler) CreatePool(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	upid, err := cli.CreatePool(c.Request.Context(), req.PoolID, req.Comment)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{
@@ -89,7 +89,7 @@ func (h *ProxmoxHandler) UpdatePool(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.UpdatePool(c.Request.Context(), poolID, req.Comment); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"poolid": poolID, "comment": req.Comment, "status": "updated"})
@@ -105,7 +105,7 @@ func (h *ProxmoxHandler) DeletePool(c *gin.Context) {
 	poolID := c.Param("poolid")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeletePool(c.Request.Context(), poolID); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"poolid": poolID, "status": "deleted"})
@@ -122,7 +122,7 @@ func (h *ProxmoxHandler) ListClusterResources(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	resources, err := cli.ListClusterResources(c.Request.Context(), typeFilter)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"resources": resources, "total": len(resources), "type": typeFilter})
@@ -138,7 +138,7 @@ func (h *ProxmoxHandler) GetClusterStatus(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	nodes, err := cli.GetClusterStatus(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"nodes": nodes, "total": len(nodes)})

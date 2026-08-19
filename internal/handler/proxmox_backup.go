@@ -18,7 +18,7 @@ func (h *ProxmoxHandler) ListBackupJobs(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	jobs, err := cli.ListBackupJobs(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"jobs": jobs, "total": len(jobs)})
@@ -35,7 +35,7 @@ func (h *ProxmoxHandler) GetBackupJob(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	job, err := cli.GetBackupJob(c.Request.Context(), jobID)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, job)
@@ -59,7 +59,7 @@ func (h *ProxmoxHandler) CreateBackupJob(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.CreateBackupJob(c.Request.Context(), req); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"id": req.ID, "schedule": req.Schedule, "storage": req.Storage, "status": "created"})
@@ -80,7 +80,7 @@ func (h *ProxmoxHandler) UpdateBackupJob(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.UpdateBackupJob(c.Request.Context(), jobID, req); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"id": jobID, "status": "updated"})
@@ -96,7 +96,7 @@ func (h *ProxmoxHandler) DeleteBackupJob(c *gin.Context) {
 	jobID := c.Param("jobid")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteBackupJob(c.Request.Context(), jobID); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"id": jobID, "status": "deleted"})
@@ -125,7 +125,7 @@ func (h *ProxmoxHandler) BackupNow(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	upid, err := cli.BackupNow(c.Request.Context(), node, req.VMID, req.Storage, req.Mode, nil)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{

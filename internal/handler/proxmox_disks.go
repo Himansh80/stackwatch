@@ -31,7 +31,7 @@ func (h *ProxmoxHandler) ListDisks(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	disks, err := cli.ListDisks(c.Request.Context(), node)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"disks": disks, "total": len(disks)})
@@ -48,7 +48,7 @@ func (h *ProxmoxHandler) ListZFSPools(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	pools, err := cli.ListZFSPools(c.Request.Context(), node)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"pools": pools, "total": len(pools)})
@@ -88,7 +88,7 @@ func (h *ProxmoxHandler) CreateZFSPool(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.CreateZFSPool(c.Request.Context(), node, req.Name, req.RaidLevel, devices); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondCreated(c, gin.H{"created": true, "name": req.Name, "raidlevel": req.RaidLevel})
@@ -109,7 +109,7 @@ func (h *ProxmoxHandler) DestroyZFSPool(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DestroyZFSPool(c.Request.Context(), node, name); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"deleted": true, "name": name})

@@ -25,7 +25,7 @@ func (h *ProxmoxHandler) ListNodeTasks(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	tasks, err := cli.ListNodeTasks(c.Request.Context(), node, limit)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"tasks": tasks, "total": len(tasks)})
@@ -44,7 +44,7 @@ func (h *ProxmoxHandler) GetTaskStatus(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	status, err := cli.GetTaskStatus(c.Request.Context(), node, upid)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, status)
@@ -68,7 +68,7 @@ func (h *ProxmoxHandler) GetTaskLog(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	log, err := cli.GetTaskLog(c.Request.Context(), node, upid, lines)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, log)
@@ -85,7 +85,7 @@ func (h *ProxmoxHandler) StopTask(c *gin.Context) {
 	upid := c.Param("upid")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.StopTask(c.Request.Context(), node, upid); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"stopped": true, "upid": upid})
@@ -107,7 +107,7 @@ func (h *ProxmoxHandler) ListClusterTasks(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	tasks, err := cli.ListClusterTasks(c.Request.Context(), limit)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"tasks": tasks, "total": len(tasks)})

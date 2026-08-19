@@ -47,6 +47,9 @@ func (c *Client) doTask(req *http.Request) (string, error) {
 		return "", fmt.Errorf("proxmox: bad request: %s", string(body))
 	}
 	if resp.StatusCode >= 400 {
+		if isNotFoundBody(body) {
+			return "", fmt.Errorf("%w: HTTP %d: %s", ErrNotFound, resp.StatusCode, string(body))
+		}
 		return "", fmt.Errorf("proxmox: HTTP %d: %s", resp.StatusCode, string(body))
 	}
 	var tr taskResponse

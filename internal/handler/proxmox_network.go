@@ -53,7 +53,7 @@ func (h *ProxmoxHandler) ListNetwork(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	ifaces, err := cli.ListNetwork(c.Request.Context(), node)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"interfaces": ifaces, "total": len(ifaces)})
@@ -91,7 +91,7 @@ func (h *ProxmoxHandler) CreateNetwork(c *gin.Context) {
 		Comments:        req.Comments,
 	}
 	if _, err := cli.CreateNetwork(c.Request.Context(), node, spec); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondCreated(c, gin.H{
@@ -162,7 +162,7 @@ func (h *ProxmoxHandler) UpdateNetwork(c *gin.Context) {
 
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.UpdateNetwork(c.Request.Context(), node, iface, fields); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"updated": true, "iface": iface})
@@ -179,7 +179,7 @@ func (h *ProxmoxHandler) DeleteNetwork(c *gin.Context) {
 	iface := c.Param("iface")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteNetwork(c.Request.Context(), node, iface); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"deleted": true, "iface": iface})

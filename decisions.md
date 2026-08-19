@@ -73,3 +73,13 @@
 - **Why:** User wants modularity. Foundation locks the structure.
 - **Includes:** git repo, CI, Go base, React base, DB schema, auth, single dummy endpoint
 
+### D14: Proxmox error contract is normalized at the boundary
+- **Decision:** The shared Proxmox client and handler responder translate legacy PVE behavior into stable StackWatch semantics.
+- **Mapping:** 400 invalid input, 403 permission denied, 404 absent resource, 501 unsupported capability represented as HTTP 200 with `supported:false` where safe.
+- **Why:** PVE versions return different status codes and message shapes; leaking them makes the frontend unpredictable.
+- **Trade-off:** The client contains compatibility phrases for older PVE, but this is safer than duplicating version logic in every handler.
+
+### D15: Release verifier uses one JWT per pass
+- **Decision:** A complete verifier pass authenticates once and reuses the token for every endpoint.
+- **Why:** Repeated login attempts trigger the intentional in-memory brute-force limiter and create false failures.
+- **Trade-off:** Four-pass orchestration restarts the gateway between passes until the limiter is moved to Redis.

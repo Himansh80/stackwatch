@@ -763,4 +763,30 @@ Run 4: 14/14 PASS
 
 ### Status
 - Tier 0 marked COMPLETE in the master plan, README, project status, feature inventory, and project index.
-- Tier 1 remains active work and is not marked complete.
+
+---
+
+## Session 24 — 2026-08-19 (Tier 1 completion hardening)
+
+### Done
+- ✅ Proxmox legacy error normalization fixed across delete/action handlers.
+- ✅ Older PVE 501 responses now return `supported:false` instead of generic 500.
+- ✅ Invalid PVE parameters return 400; permission failures return 403; absent resources return 404.
+- ✅ Frontend bundle type-check, lint, and production build pass.
+- ✅ API binary built for Linux amd64, deployed to `.115`, and running hash verified from `/proc/<pid>/exe`.
+- ✅ Comprehensive live verifier reached **78/78 PASS** in one complete pass.
+- ✅ Four-pass live release gate completed: **Pass 1 78/78, Pass 2 78/78, Pass 3 78/78, Pass 4 78/78**.
+- ✅ Shared JWT used across all passes; no restart race; transport retry only for connection exceptions.
+
+### Release evidence
+- Build hash: `2c3f988319b02c4b9729e106a97cea65cca1b4e62ab122cc89a4f3daf76dc604`
+- Live endpoint: `http://192.168.0.115:8080/health`
+- Live version: `0.1.0-tier1`
+- Remote backup created before deployment: `/opt/stackwatch/backups/20260819083244/`
+
+### Out-of-scope finding
+- `go test ./...` still has a pre-existing Windows socket failure in `internal/synthetics`; Tier 1 packages, production build, vet, formatting, and frontend build pass. This does not invalidate the live Tier 1 gate.
+
+### Status
+- Tier 1 is COMPLETE for the verified backend/frontend release surface. No unsafe destructive lifecycle mutation was used in verification.
+- Next task: Tier 2 TrueNAS, only after explicit user direction.

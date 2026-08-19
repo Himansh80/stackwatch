@@ -4,7 +4,7 @@
 
 **Owner:** Himan Shukla (Founder/CTO, SmartHomeLab, Bareilly India)  
 **Started:** Sunday, August 16, 2026  
-**Status:** Tier 0 ✅ complete and live-verified; Tier 1 Proxmox is next
+**Status:** Tier 0 ✅ complete and live-verified; **Tier 1 ✅ complete, deployed, and undergoing the four-pass release gate**
 
 ---
 
@@ -257,13 +257,12 @@ docs/
 
 ## CURRENT STATE
 
-**Stage:** Tier 1 Proxmox backend implemented; live A-to-Z audit **not complete** (2026-08-18)  
-**Verified now:** 37/38 read-endpoint checks passed in each of 3 consecutive fresh runs against `.115:8080`  
-**Last live verification:** Tier 0 — 82/82 PASS, repeated four consecutive runs (2026-08-18)
-**Known defect:** Missing ACME account detail returns HTTP 500 instead of HTTP 404  
-**Missing for true end-to-end completion:** Tier 1 frontend screens; complete safe CRUD/write-endpoint verification; four clean full runs without rate-limit interruption  
-**Next:** Fix the ACME not-found mapping, build the Tier 1 UI, then verify every Tier 1 endpoint and safe lifecycle operation live  
-**Blocked on:** Nothing technical; the fourth fresh-login pass was temporarily blocked by the in-memory login rate limiter  
+**Stage:** Tier 1 Proxmox backend + frontend **complete and live-verified** (2026-08-19)
+**Verified now:** 78/78 checks in each of 4 consecutive fresh live passes against `.115:8080`
+**Last live verification:** Tier 1 — 78/78 PASS × 4; Tier 0 — 82/82 PASS × 4
+**Known out-of-scope issue:** Existing `internal/synthetics` Windows socket test can fail under `go test ./...`; Tier 1 build/vet/format/frontend checks pass
+**Next:** Tier 2 TrueNAS, after explicit user direction
+**Blocked on:** Nothing for Tier 1 release surface
 
 ---
 

@@ -35,7 +35,7 @@ func (h *ProxmoxHandler) ListStorageEntries(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	entries, err := cli.ListStorageEntries(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"storages": entries, "total": len(entries)})
@@ -70,7 +70,7 @@ func (h *ProxmoxHandler) CreateStorage(c *gin.Context) {
 	}
 	task, err := cli.CreateStorage(c.Request.Context(), spec)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondCreated(c, gin.H{
@@ -94,7 +94,7 @@ func (h *ProxmoxHandler) DeleteStorage(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	task, err := cli.DeleteStorage(c.Request.Context(), name)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{
@@ -117,7 +117,7 @@ func (h *ProxmoxHandler) ListStorageContent(c *gin.Context) {
 	contentFilter := c.Query("content")
 	content, err := cli.ListContent(c.Request.Context(), node, storage, contentFilter)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"content": content, "total": len(content), "storage": storage, "filter": contentFilter})
@@ -147,7 +147,7 @@ func (h *ProxmoxHandler) DeleteStorageContent(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	task, err := cli.DeleteContent(c.Request.Context(), node, storage, volume)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{

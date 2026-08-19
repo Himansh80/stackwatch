@@ -67,9 +67,24 @@
 - **Impact:** Tier 0 is not end-to-end complete on the running deployment.
 - **Recovery:** Do not claim Tier 0 complete until the live binary is rebuilt/deployed and the same verifier returns 68/68 across four runs.
 
+## 2026-08-19 — Tier 1 error-contract hardening
+
+### E12: Proxmox legacy delete errors leaked as HTTP 500
+- **Symptoms:** invalid network/firewall/user/token/task/backup/ACME delete requests returned generic API 500s.
+- **Root causes:** older PVE returned 400/403/501/500 with inconsistent message bodies; the client only recognized a small not-found vocabulary; handlers bypassed shared normalization.
+- **Fix:** added `respondProxmoxError`, expanded legacy not-found recognition, mapped PVE 400→API 400, 403→API 403, 501→`supported:false`, and PVE-specific invalid-resource messages to 400/404.
+- **Verification:** comprehensive live suite reached 78/78 PASS after deployment.
+
+### E13: Verifier invalidated itself with login rate limiting
+- **Symptom:** repeated verifier passes failed at login with HTTP 429.
+- **Root cause:** the verifier logged in separately for each pass while the production limiter is intentionally in-memory.
+- **Fix:** one JWT per complete pass; four-pass orchestration restarts only the API process between passes to clear the test account's in-memory counter.
+- **Lesson:** a verifier must not create its own failure condition.
+
 ## 2026-08-18 — Tier 1 live status audit
 
 ### E10: User-column assumption in read-only inventory query
+
 - **Symptom:** `SELECT email, role, is_active FROM users` failed with `ERROR: column "is_active" does not exist`.
 - **Root cause:** The current StackWatch schema does not contain an `is_active` column on `users`.
 - **Impact:** No application state changed; the inventory query did not run.

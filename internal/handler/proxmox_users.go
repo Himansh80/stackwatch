@@ -47,7 +47,7 @@ func (h *ProxmoxHandler) ListUsers(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	users, err := cli.ListUsers(c.Request.Context())
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"users": users, "total": len(users)})
@@ -73,7 +73,7 @@ func (h *ProxmoxHandler) CreateUser(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.CreateUser(c.Request.Context(), req.UserID, req.Password, req.Email, req.Comment, req.FirstName, req.LastName); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondCreated(c, gin.H{"created": true, "userid": req.UserID})
@@ -90,7 +90,7 @@ func (h *ProxmoxHandler) GetUser(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	user, err := cli.GetUser(c.Request.Context(), userid)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	// Proxmox GET /access/users/{userid} does NOT include userid in response.
@@ -150,7 +150,7 @@ func (h *ProxmoxHandler) UpdateUser(c *gin.Context) {
 	}
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.UpdateUser(c.Request.Context(), userid, fields); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"updated": true, "userid": userid})
@@ -166,7 +166,7 @@ func (h *ProxmoxHandler) DeleteUser(c *gin.Context) {
 	userid := c.Param("userid")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteUser(c.Request.Context(), userid); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"deleted": true, "userid": userid})
@@ -183,7 +183,7 @@ func (h *ProxmoxHandler) ListAPITokens(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	tokens, err := cli.ListAPITokens(c.Request.Context(), userid)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	// Strip secret values
@@ -210,7 +210,7 @@ func (h *ProxmoxHandler) CreateAPIToken(c *gin.Context) {
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	tok, err := cli.AddAPIToken(c.Request.Context(), userid, req.TokenID, req.Comment, req.Privsep, req.Expire)
 	if err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	// Return FULL token value here — caller must save it NOW (only time we show it).
@@ -235,7 +235,7 @@ func (h *ProxmoxHandler) DeleteAPIToken(c *gin.Context) {
 	tokenid := c.Param("tokenid")
 	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
 	if _, err := cli.DeleteAPIToken(c.Request.Context(), userid, tokenid); err != nil {
-		kernel.RespondError(c, err)
+		respondProxmoxError(c, err)
 		return
 	}
 	kernel.RespondOK(c, gin.H{"deleted": true, "userid": userid, "tokenid": tokenid})
