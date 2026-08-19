@@ -79,6 +79,13 @@
 - **Why:** PVE versions return different status codes and message shapes; leaking them makes the frontend unpredictable.
 - **Trade-off:** The client contains compatibility phrases for older PVE, but this is safer than duplicating version logic in every handler.
 
+### D16: Frontend foundation = command center before feature pages
+- **Decision:** Make `/` and `/dashboard` a live command center, keep Proxmox and TrueNAS as separate workspaces, and add domain pages incrementally.
+- **Why:** A dashboard needs a stable shell, hierarchy, navigation, live status, loading/error/empty states, and responsive behavior before adding dozens of feature screens.
+- **Visual direction:** Datadog/Grafana/Better Stack information density and operational clarity, with StackWatch cyan-indigo identity and no copied vendor branding.
+- **Data rule:** Every visible metric on the command center comes from an existing API response; no hardcoded sample telemetry.
+- **Trade-off:** Some sidebar destinations remain intentionally routed to the command center until their real API-backed pages are built. This avoids fake functionality.
+
 ### D15: Release verifier uses one JWT per pass
 - **Decision:** A complete verifier pass authenticates once and reuses the token for every endpoint.
 - **Why:** Repeated login attempts trigger the intentional in-memory brute-force limiter and create false failures.

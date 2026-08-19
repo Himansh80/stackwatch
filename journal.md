@@ -818,3 +818,29 @@ Run 4: 14/14 PASS
 ## Audit — Tier 2 TrueNAS status check
 
 Fresh audit result: Tier 2 is NOT complete, NOT deployed, and cannot be claimed fully working. Local TrueNAS connector source exists and `go build ./cmd/truenas-connector` passes, but `gofmt -l` reports `internal/handler/truenas_snapshots.go`. No Tier 2 frontend files were found under `web/src`. SSH to TrueNAS `.112` succeeded, but `truenas-connector.service` is absent, port 8088 is closed, and its binary/unit files are missing. Repository-wide `go test ./...` is red in `internal/synthetics` (`TestRunHTTP_500`: status_code=0, want 500). No code or deployment changes were made during this audit.
+
+---
+
+## Session 26 — 2026-08-19 (dashboard frontend foundation)
+
+### Done
+- ✅ Replaced the Tier-0 JSON dashboard route with a real StackWatch command-center dashboard.
+- ✅ Added Datadog/Grafana-inspired shell: persistent sidebar, top bar, workspace identity, live-sync indicator, responsive mobile navigation.
+- ✅ Added live KPI cards for connected hosts, compute nodes, running workloads, and API health.
+- ✅ Added live workload pressure chart from returned Proxmox resource data, with an honest empty state when data is unavailable.
+- ✅ Added infrastructure status list and workload inventory cards using existing API responses only; no fabricated telemetry.
+- ✅ Preserved existing Proxmox and TrueNAS workspaces; moved Proxmox to `/proxmox` and made `/` + `/dashboard` open the command center.
+- ✅ Added loading, error, retry, refresh, and no-data states.
+
+### Verification
+- `npm run type-check` ✅
+- `npm run lint` ✅
+- `npm run build` ✅ — Vite production bundle generated successfully.
+- `curl http://127.0.0.1:5174/` ✅ — built index served with hashed JS/CSS assets.
+- `git diff --check` ✅ after CSS EOF cleanup.
+- Visual browser harness was unavailable because Chrome remote debugging is disabled; desktop browser background text input was also blocked by Chrome window policy. No false visual-pass claim made.
+
+### Next frontend slices
+- Implement real route pages for Servers, Alerts, Metrics, Terminal, Proxmox, and TrueNAS instead of navigation placeholders.
+- Add charts from historical metrics once the corresponding API contracts are exposed.
+- Add authenticated browser E2E coverage with a dedicated test account.
