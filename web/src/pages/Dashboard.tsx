@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, clearToken, health, me } from '../lib/api';
+import ProfileMenu from '../components/ProfileMenu';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
 
 type Json = Record<string, unknown>;
@@ -166,9 +167,9 @@ export default function Dashboard() {
       <Link className="dash-brand" to="/dashboard"><span className="dash-brand-mark">S</span><span><strong>StackWatch</strong><small>Infrastructure control plane</small></span></Link>
       <div className="dash-nav-section"><span className="dash-nav-heading">Workspace</span>
         <Link className="dash-nav-item dash-nav-active" to="/dashboard"><span>⌂</span>Overview</Link>
-        <Link className="dash-nav-item" to="/dashboard"><span>◫</span>Servers <em>{snapshot.hosts.length || ''}</em></Link>
-        <Link className="dash-nav-item" to="/dashboard"><span>⌁</span>Metrics</Link>
-        <Link className="dash-nav-item" to="/dashboard"><span>△</span>Alerts</Link>
+        <Link className="dash-nav-item" to="/profile"><span>◉</span>Profile</Link>
+        <Link className="dash-nav-item" to="/billing"><span>$</span>Billing</Link>
+        <Link className="dash-nav-item" to="/settings"><span>⚙</span>Settings</Link>
       </div>
       <div className="dash-nav-section"><span className="dash-nav-heading">Infrastructure</span>
         <Link className="dash-nav-item" to="/proxmox"><span>◈</span>Proxmox</Link>
@@ -178,7 +179,7 @@ export default function Dashboard() {
       <div className="dash-sidebar-bottom"><div className="dash-connection"><span className="dash-live-dot" />Control plane online<small>{text(value(snapshot.health, 'version'), 'StackWatch API')}</small></div><button className="dash-sidebar-logout" onClick={logout}>↪ Sign out</button></div>
     </aside>
     <main className="dash-main">
-      <header className="dash-topbar"><div className="dash-greeting"><span className="dash-greeting-eyebrow">Hello, {firstNameOf(userName)}</span><div className="dash-greeting-row"><strong className="dash-greeting-text">{greetingFor(now)}, {firstNameOf(userName)}.</strong><span className="dash-greeting-clock"><span className="dash-greeting-clock-time">{formatClock(now)}</span><span className="dash-greeting-clock-dot" /><span className="dash-greeting-clock-day">{formatDayLabel(now)}</span></span></div></div><div className="dash-top-actions"><button className="dash-icon-button" onClick={() => void loadDashboard()} aria-label="Refresh dashboard">↻</button><div className="dash-user"><span className="dash-avatar">{userName.charAt(0).toUpperCase()}</span><span><strong>{userName}</strong><small>{tenantName}</small></span></div></div></header>
+      <header className="dash-topbar"><div className="dash-greeting"><span className="dash-greeting-eyebrow">Hello, {firstNameOf(userName)}</span><div className="dash-greeting-row"><strong className="dash-greeting-text">{greetingFor(now)}, {firstNameOf(userName)}.</strong><span className="dash-greeting-clock"><span className="dash-greeting-clock-time">{formatClock(now)}</span><span className="dash-greeting-clock-dot" /><span className="dash-greeting-clock-day">{formatDayLabel(now)}</span></span></div></div><div className="dash-top-actions"><button className="dash-icon-button" onClick={() => window.location.reload()} aria-label="Refresh page" title="Refresh page">↻</button><ProfileMenu firstName={firstNameOf(userName)} fullName={userName} tenantName={tenantName} initials={userName.charAt(0).toUpperCase()} /></div></header>
       <div className="dash-content">
         {error && <div className="dash-error"><strong>Live data unavailable</strong><span>{error}</span><button onClick={() => void loadDashboard()}>Retry</button></div>}
         <section className="dash-welcome"><div><span className="dash-eyebrow">Infrastructure overview</span><h2>Good to see you, {userName.split(' ')[0]}.</h2><p>One place to see the health of your infrastructure and move from signal to action.</p></div><div className="dash-welcome-meta"><span className="dash-live-dot" />Live sync<div>{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Syncing now'}</div></div></section>

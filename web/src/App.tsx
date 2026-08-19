@@ -3,6 +3,9 @@ import Dashboard from './pages/Dashboard';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ProfilePage from './pages/ProfilePage';
+import BillingPage from './pages/BillingPage';
+import SettingsPage from './pages/SettingsPage';
 import TrueNASWorkspace from './pages/TrueNASWorkspace';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
 import { isLoggedIn } from './lib/api';
@@ -14,6 +17,9 @@ export default function App() {
       <Route path="/login" element={isLoggedIn() ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/signup" element={isLoggedIn() ? <Navigate to="/dashboard" replace /> : <Signup />} />
       <Route path="/dashboard" element={isLoggedIn() ? <Dashboard /> : <Navigate to="/login" replace />} />
+      <Route path="/profile" element={isLoggedIn() ? <ProfilePage /> : <Navigate to="/login" replace />} />
+      <Route path="/billing" element={isLoggedIn() ? <BillingPage /> : <Navigate to="/login" replace />} />
+      <Route path="/settings" element={isLoggedIn() ? <SettingsPage /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox" element={isLoggedIn() ? <ProxmoxWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/truenas" element={isLoggedIn() ? <TrueNASWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/tier0" element={isLoggedIn() ? <Dashboard /> : <Navigate to="/login" replace />} />

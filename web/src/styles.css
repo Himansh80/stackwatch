@@ -335,3 +335,55 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .dash-greeting-clock-day { color:#8195b3; font-size:11px; font-weight:600; }
 .dash-greeting-clock-dot { width:5px; height:5px; border-radius:50%; background:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.16); }
 @media (max-width: 780px) { .dash-greeting-row { gap:10px; } .dash-greeting-text { font-size:18px; } .dash-greeting-clock { padding:5px 10px; font-size:10px; } }
+
+.dash-user-link { display:flex; align-items:center; gap:9px; padding:4px 10px 4px 4px; margin:0; border:1px solid transparent; border-radius:10px; color:#b4c6dd; text-decoration:none; transition:120ms ease; cursor:pointer; background:transparent; font:inherit; text-align:left; }
+.dash-user-link:hover { background:#14233a; border-color:#243b59; color:#f3f7fd; }
+.dash-user-link:focus-visible { outline:2px solid rgba(34,211,238,.4); outline-offset:2px; }
+.dash-foot-note { margin:18px 0 0; color:#667a99; font-size:11px; }
+
+/* Profile dropdown menu (avatar click) */
+.dash-menu-wrap { position:relative; display:inline-flex; }
+.dash-user-text { display:inline-flex; flex-direction:column; }
+.dash-menu-caret { color:#8195b3; font-size:9px; transition:transform 120ms ease; margin-left:4px; align-self:center; }
+.dash-menu-caret.open { transform:rotate(180deg); color:#67e8f9; }
+.dash-menu { position:absolute; top:calc(100% + 10px); right:0; min-width:300px; padding:8px; border:1px solid #243b59; border-radius:14px; background:linear-gradient(160deg,#101b2d,#0b1525); box-shadow:0 28px 60px rgba(0,0,0,.5),0 0 0 1px rgba(34,211,238,.08); z-index:50; animation:dash-menu-in 140ms ease; }
+@keyframes dash-menu-in { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+.dash-menu-header { display:flex; align-items:center; gap:11px; padding:10px 10px 12px; border-bottom:1px solid #1d324a; margin-bottom:6px; }
+.dash-menu-header strong { display:block; color:#eaf2fc; font-size:13px; }
+.dash-menu-header small { display:block; margin-top:3px; color:#7387a5; font-size:11px; }
+.dash-avatar-lg { width:38px; height:38px; font-size:15px; }
+.dash-menu-group { padding:4px 0; }
+.dash-menu-heading { display:block; padding:6px 10px 4px; color:#5e7391; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }
+.dash-menu-items { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.dash-menu-item { display:flex; align-items:center; gap:11px; padding:10px 11px; border:1px solid transparent; border-radius:10px; color:#cad5e6; text-decoration:none; background:transparent; cursor:pointer; font:inherit; width:100%; text-align:left; }
+.dash-menu-item:hover { background:#14233a; border-color:#243b59; color:#f3f7fd; }
+.dash-menu-item-danger:hover { background:rgba(127,29,48,.35); border-color:rgba(244,63,94,.4); color:#fecdd3; }
+.dash-menu-icon { width:26px; height:26px; display:grid; place-items:center; border-radius:8px; color:#67e8f9; background:rgba(34,211,238,.1); font-size:13px; flex-shrink:0; }
+.dash-menu-item-danger .dash-menu-icon { color:#fb7185; background:rgba(239,68,68,.12); }
+.dash-menu-text { display:flex; flex-direction:column; min-width:0; flex:1; }
+.dash-menu-text strong { display:block; color:#eaf2fc; font-size:13px; }
+.dash-menu-text small { display:block; margin-top:2px; color:#7387a5; font-size:11px; }
+.dash-menu-item-danger .dash-menu-text strong { color:#fecdd3; }
+
+/* Section heading on /billing, /settings, /profile */
+.dash-section { max-width:1280px; margin:32px auto 0; padding:0; }
+.dash-section-title { margin:8px 0 10px; color:#f6f9ff; font-size:26px; letter-spacing:-.6px; }
+.dash-section-lede { margin:0 0 24px; max-width:680px; color:#9eacce; font-size:13px; line-height:1.55; }
+.dash-banner-ok { padding:9px 12px; border:1px solid rgba(52,211,153,.32); border-radius:9px; background:rgba(16,185,129,.12); color:#86efac; font-size:12px; }
+
+/* Pricing cards on /billing */
+.dash-pricing { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.dash-plan { position:relative; padding:22px; border:1px solid #20314a; border-radius:13px; background:linear-gradient(150deg,#0f1a2e,#0a1322); display:flex; flex-direction:column; gap:14px; }
+.dash-plan-current { border-color:#67e8f9; background:linear-gradient(150deg,#112033,#0a1322); box-shadow:0 14px 40px rgba(56,189,248,.18); }
+.dash-plan-badge { position:absolute; top:-10px; left:18px; padding:4px 10px; border-radius:999px; background:linear-gradient(135deg,#67e8f9,#818cf8); color:#04111d; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.dash-plan-head { display:flex; flex-direction:column; gap:4px; }
+.dash-plan-head strong { color:#eaf2fc; font-size:14px; }
+.dash-plan-price { color:#f6f9ff; font-size:28px; font-weight:800; letter-spacing:-1px; }
+.dash-plan-head small { color:#7387a5; font-size:11px; }
+.dash-plan-tag { margin:0; color:#9eacce; font-size:12px; }
+.dash-plan-perks { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; flex:1; }
+.dash-plan-perks li { position:relative; padding-left:18px; color:#b6c3da; font-size:12px; line-height:1.45; }
+.dash-plan-perks li::before { content:''; position:absolute; left:0; top:7px; width:7px; height:7px; border-radius:2px; background:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.12); }
+
+@media (max-width: 1100px) { .dash-pricing { grid-template-columns:1fr; } .dash-menu { min-width:280px; right:-12px; } }
+@media (max-width: 780px) { .dash-menu { right:0; } .dash-pricing { grid-template-columns:1fr; } }
