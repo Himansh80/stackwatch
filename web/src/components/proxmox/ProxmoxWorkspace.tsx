@@ -17,7 +17,7 @@ import {
   pxPost,
 } from '../../lib/proxmox';
 
-type Section = 'overview' | 'compute' | 'storage' | 'network' | 'access' | 'operations' | 'security';
+type Section = 'overview' | 'compute' | 'storage' | 'network' | 'access' | 'operations' | 'security' | 'templates' | 'cluster' | 'monitoring';
 type Row = JsonObject;
 type TableColumn = { key: string; label: string; render?: (row: Row) => ReactNode };
 
@@ -29,6 +29,9 @@ const sections: Array<{ id: Section; label: string; icon: string }> = [
   { id: 'access', label: 'Access & Tokens', icon: '◇' },
   { id: 'operations', label: 'Tasks, Pools & Backup', icon: '◴' },
   { id: 'security', label: 'TLS & ACME', icon: '◈' },
+  { id: 'templates', label: 'Templates & Cloud-init', icon: '◇' },
+  { id: 'cluster', label: 'HA & Cluster', icon: '◎' },
+  { id: 'monitoring', label: 'Monitoring', icon: '⌁' },
 ];
 
 const emptyHost = { name: '', base_url: 'https://192.168.0.107:8006', api_token: '', verify_tls: false };
@@ -149,6 +152,10 @@ export default function ProxmoxWorkspace() {
   const [backups, setBackups] = useState<Row[]>([]);
   const [certificates, setCertificates] = useState<Row[]>([]);
   const [acme, setACME] = useState<Record<string, unknown>>({});
+  const [templates, setTemplates] = useState<Row[]>([]);
+  const [haStatus, setHAStatus] = useState<Row>({});
+  const [haResources, setHAResources] = useState<Row[]>([]);
+  const [monitoring, setMonitoring] = useState<Row[]>([]);
   const [selectedNode, setSelectedNode] = useState('');
   const [selectedStorage, setSelectedStorage] = useState('');
   const [selectedUser, setSelectedUser] = useState<Row | null>(null);
@@ -253,6 +260,25 @@ export default function ProxmoxWorkspace() {
         setCertificates(listFrom(certificatePayload, 'certificates'));
         setACME({ accounts: accountPayload, plugins: pluginPayload, challenges: challengePayload, directories: directoryPayload, info: infoPayload });
       }
+      if (section === 'templates' && selectedNodeName) {
+        const storageName = selectedStorage || readString(storage[0]?.storage || storage[0]?.name);
+        if (storageName) {
+          const payload = await read(pxGet(hostId, `/nodes/${encodeURIComponent(selectedNodeName)}/templates?storage=${encodeURIComponent(storageName)}`), {});
+          setTemplates(listFrom(payload, 'templates'));
+        }
+      }
+      if (section === 'cluster') {
+        const [statusPayload, resourcePayload] = await Promise.all([
+          read(pxGet(hostId, '/cluster/ha/status'), {}),
+          read(pxGet(hostId, '/cluster/ha/resources'), {}),
+        ]);
+        setHAStatus(objectFrom(statusPayload));
+        setHAResources(listFrom(resourcePayload, 'resources'));
+      }
+      if (section === 'monitoring' && selectedNodeName) {
+        const payload = await read(pxGet(hostId, `/nodes/${encodeURIComponent(selectedNodeName)}/monitoring?timeframe=hour&cf=AVERAGE`), {});
+        setMonitoring(listFrom(payload, 'points'));
+      }
     } finally {
       setLoading(false);
     }
@@ -337,6 +363,35 @@ export default function ProxmoxWorkspace() {
     setSelectedUser({ ...row, tokens: listFrom(await read(pxGet(hostId, `/access/users/${encodeURIComponent(readString(row.userid || row.id))}/token`), {}), 'tokens') });
   }
 
+  async function markTemplate(row: Row) {
+    if (!hostId || !window.confirm(`Convert ${readString(row.name || row.vmid)} into a template?`)) return;
+    setBusy(true); setError('');
+    try { await pxPost(hostId, `/nodes/${encodeURIComponent(readString(row.node))}/${readString(row.type).toLowerCase().includes('lxc') ? 'lxc' : 'qemu'}/${row.vmid}/template`, {}); setNotice('Template conversion queued.'); await loadWorkspace(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Template conversion failed.'); }
+    finally { setBusy(false); }
+  }
+
+  async function applyCloudInit(row: Row) {
+    if (!hostId) return;
+    const username = window.prompt('Cloud-init username (optional):', 'stackwatch');
+    if (username === null) return;
+    const sshkeys = window.prompt('SSH public key (optional):', '') || '';
+    setBusy(true); setError('');
+    try { await pxPost(hostId, `/nodes/${encodeURIComponent(readString(row.node))}/${readString(row.type).toLowerCase().includes('lxc') ? 'lxc' : 'qemu'}/${row.vmid}/cloud-init`, { ciuser: username, sshkeys }); setNotice('Cloud-init configuration applied.'); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Cloud-init update failed.'); }
+    finally { setBusy(false); }
+  }
+
+  async function migrateResource(row: Row) {
+    if (!hostId) return;
+    const target = window.prompt(`Target node for ${readString(row.name || row.vmid)}:`);
+    if (!target || !window.confirm(`Migrate ${readString(row.name || row.vmid)} to ${target}?`)) return;
+    setBusy(true); setError('');
+    try { await pxPost(hostId, `/nodes/${encodeURIComponent(readString(row.node))}/${readString(row.type).toLowerCase().includes('lxc') ? 'lxc' : 'qemu'}/${row.vmid}/migrate`, { target, online: true }); setNotice('Migration task queued.'); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Migration failed.'); }
+    finally { setBusy(false); }
+  }
+
   const hostActions = <>
     <Button tone="quiet" onClick={() => void loadWorkspace()} disabled={loading || !hostId}>↻ Refresh</Button>
     <Button tone="quiet" onClick={() => void testHost()} disabled={busy || !hostId}>Test connection</Button>
@@ -370,6 +425,9 @@ export default function ProxmoxWorkspace() {
         {hostId && section === 'access' && <AccessView users={users} selectedUser={selectedUser} onTokens={loadTokens} />}
         {hostId && section === 'operations' && <Operations tasks={tasks} pools={pools} backups={backups} />}
         {hostId && section === 'security' && <Security certificates={certificates} acme={acme} />}
+        {hostId && section === 'templates' && <TemplatesView selectedNode={selectedNodeName} templates={templates} storage={storage} resources={resources} onSelectStorage={(value) => setSelectedStorage(value)} onMarkTemplate={markTemplate} onCloudInit={applyCloudInit} />}
+        {hostId && section === 'cluster' && <ClusterView status={haStatus} resources={haResources} allResources={resources} onMigrate={migrateResource} />}
+        {hostId && section === 'monitoring' && <MonitoringView nodes={nodes} selectedNode={selectedNodeName} setSelectedNode={setSelectedNode} points={monitoring} />}
         {hostId && <div className="sw-danger-zone"><div><strong>Remove registered host</strong><span>This removes StackWatch’s saved connection only. It does not delete anything in Proxmox.</span></div><Button tone="danger" onClick={() => void deleteHost()} disabled={busy}>Remove host</Button></div>}
       </main>
     </div>
@@ -414,4 +472,16 @@ function Operations({ tasks, pools, backups }: { tasks: Row[]; pools: Row[]; bac
 
 function Security({ certificates, acme }: { certificates: Row[]; acme: Record<string, unknown> }) {
   return <><Panel title="Node certificates" eyebrow="TLS inventory"><DataTable rows={certificates} /></Panel><div className="sw-two-col"><Panel title="ACME accounts" eyebrow="Certificate authorities"><Unsupported value={acme.accounts} /><DataTable rows={listFrom(acme.accounts, 'accounts')} /></Panel><Panel title="ACME plugins" eyebrow="DNS and standalone challenges"><Unsupported value={acme.plugins} /><DataTable rows={listFrom(acme.plugins, 'plugins')} /></Panel></div><div className="sw-two-col"><Panel title="Challenge schema" eyebrow="Supported challenge types"><DataTable rows={listFrom(acme.challenges, 'challenges')} /></Panel><Panel title="ACME directories" eyebrow="Certificate authorities"><DataTable rows={listFrom(acme.directories, 'directories')} /></Panel></div><Panel title="ACME cluster info" eyebrow="Capability status"><Unsupported value={acme.info} /><JsonBlock value={acme.info} /></Panel></>;
+}
+
+function TemplatesView({ selectedNode, templates, storage, resources, onSelectStorage, onMarkTemplate, onCloudInit }: { selectedNode: string; templates: Row[]; storage: Row[]; resources: Row[]; onSelectStorage: (value: string) => void; onMarkTemplate: (row: Row) => void; onCloudInit: (row: Row) => void }) {
+  return <><Panel title="Template library" eyebrow="ISO and LXC templates" actions={<><select className="sw-inline-select" value={selectedNode} disabled><option>{selectedNode || 'Select node'}</option></select><select className="sw-inline-select" onChange={(event) => onSelectStorage(event.target.value)}><option value="">Select storage</option>{storage.map((item) => <option key={readString(item.storage || item.name)} value={readString(item.storage || item.name)}>{readString(item.storage || item.name)}</option>)}</select></>}><DataTable rows={templates} empty="Select a storage backend containing vztmpl content." columns={[{ key: 'volid', label: 'Template' }, { key: 'format', label: 'Format' }, { key: 'size', label: 'Size', render: (row) => formatBytes(row.size) }, { key: 'notes', label: 'Notes' }]} /></Panel><Panel title="Guest template actions" eyebrow="Convert and provision"><DataTable rows={resources.filter((row) => readString(row.node) === selectedNode)} empty="No guests on this node." columns={[{ key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status' }, { key: 'actions', label: 'Actions', render: (row) => <div className="sw-row-actions"><Button tone="quiet" onClick={() => void onCloudInit(row)}>Cloud-init</Button><Button tone="quiet" onClick={() => void onMarkTemplate(row)}>Convert to template</Button></div> }]} /></Panel></>;
+}
+
+function ClusterView({ status, resources, allResources, onMigrate }: { status: Row; resources: Row[]; allResources: Row[]; onMigrate: (row: Row) => void }) {
+  return <><div className="sw-stat-grid"><Stat label="HA status" value={readString(status.state || status.type || status.quorate || 'reported')} hint="Live cluster response" accent="green" /><Stat label="HA resources" value={resources.length} hint="Configured resources" accent="blue" /></div><Panel title="HA resources" eyebrow="High availability"><DataTable rows={resources} empty="No HA resources configured on this cluster." /></Panel><Panel title="Migration actions" eyebrow="Workload movement"><DataTable rows={allResources} empty="No workloads available." columns={[{ key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Source node' }, { key: 'status', label: 'Status' }, { key: 'actions', label: 'Action', render: (row) => <Button tone="quiet" onClick={() => void onMigrate(row)}>Migrate</Button> }]} /></Panel></>;
+}
+
+function MonitoringView({ nodes, selectedNode, setSelectedNode, points }: { nodes: Row[]; selectedNode: string; setSelectedNode: (value: string) => void; points: Row[] }) {
+  return <Panel title="Host performance" eyebrow="Proxmox RRD data" actions={<select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">Select node</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select>}><DataTable rows={points} empty="Select a node to load the last-hour performance series." columns={[{ key: 'time', label: 'Timestamp', render: (row) => formatDate(row.time) }, { key: 'cpu', label: 'CPU' }, { key: 'memused', label: 'Memory used', render: (row) => formatBytes(row.memused) }, { key: 'netin', label: 'Network in', render: (row) => formatBytes(row.netin) }, { key: 'netout', label: 'Network out', render: (row) => formatBytes(row.netout) }]} /></Panel>;
 }

@@ -790,3 +790,27 @@ Run 4: 14/14 PASS
 ### Status
 - Tier 1 is COMPLETE for the verified backend/frontend release surface. No unsafe destructive lifecycle mutation was used in verification.
 - Next task: Tier 2 TrueNAS, only after explicit user direction.
+
+---
+
+## Session 25 — 2026-08-19 (Tier 1 remaining scope completion)
+
+### Done
+- ✅ Added documented template and cloud-init endpoint aliases.
+- ✅ Added template conversion, cloud-init application, HA status/resources, cluster join/leave, migration, host/resource RRD statistics, and threshold alert evaluation.
+- ✅ Added frontend Templates, Cluster, and Monitoring sections with confirmation-backed actions.
+- ✅ Fixed HA status decoding for Proxmox array response shape.
+- ✅ Frontend type-check, lint, and production build pass.
+- ✅ New live completion verifier: 13/13 PASS.
+- ✅ Full Tier 1 regression: 78/78 PASS × 4 = 312/312.
+- ✅ API and frontend deployed to `.115` with backup created before replacement.
+
+### Release evidence
+- Final API hash: `ad25af21efcae0ebb25bca2e08ba450b50e983a903e6b323ce61a0cb11b88b88`
+- Live health: `version=0.1.0-tier1`, `db=ok`, `mode=cloud`, `status=ok`
+- Frontend asset serving: PASS
+- New verifier: `C:\Users\himan\AppData\Local\Temp\hermes-tier1-completion-live.py`
+
+### Status
+- Tier 1 is fully built, deployed, and live-verified for the documented scope.
+- No destructive Proxmox lifecycle operation was executed during verification.

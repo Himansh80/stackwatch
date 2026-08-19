@@ -185,6 +185,26 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/proxmox/hosts/:id/cluster/acme/directories", proxmoxH.ListACMEDirectories)
 	protected.GET("/proxmox/hosts/:id/cluster/acme/info", proxmoxH.GetACMEInfo)
 
+	// Tier 1 completion: templates and cloud-init
+	protected.GET("/proxmox/hosts/:id/nodes/:node/templates", proxmoxH.ListTemplates)
+	protected.GET("/proxmox/hosts/:id/templates", proxmoxH.ListTemplates)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/:kind/:vmid/template", proxmoxH.MarkTemplate)
+	protected.POST("/proxmox/hosts/:id/templates/from-vm/:node/:kind/:vmid", proxmoxH.MarkTemplate)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/:kind/:vmid/cloud-init", proxmoxH.ApplyCloudInit)
+	protected.POST("/proxmox/hosts/:id/templates/:node/:kind/:vmid/cloud-init", proxmoxH.ApplyCloudInit)
+	// Tier 1 completion: HA, cluster membership and migration
+	protected.GET("/proxmox/hosts/:id/cluster/ha/status", proxmoxH.GetHAStatus)
+	protected.GET("/proxmox/hosts/:id/cluster/ha/resources", proxmoxH.ListHAResources)
+	protected.POST("/proxmox/hosts/:id/cluster/join", proxmoxH.JoinCluster)
+	protected.DELETE("/proxmox/hosts/:id/cluster/leave", proxmoxH.LeaveCluster)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/:kind/:vmid/migrate", proxmoxH.MigrateResource)
+	// Tier 1 completion: Proxmox RRD monitoring
+	protected.GET("/proxmox/hosts/:id/nodes/:node/monitoring", proxmoxH.HostMonitoring)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/:kind/:vmid/monitoring", proxmoxH.ResourceMonitoring)
+	protected.GET("/proxmox/hosts/:id/host/:node/stats", proxmoxH.HostMonitoring)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/:kind/:vmid/stats", proxmoxH.ResourceMonitoring)
+	protected.GET("/proxmox/hosts/:id/host/:node/alerts", proxmoxH.MonitoringAlerts)
+
 	// Tier 3.1: Terminal (Termius replacement)
 	termH := handler.NewTerminalHandler(pool)
 	// SSH keys
