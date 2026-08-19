@@ -76,7 +76,7 @@ export default function Signup() {
               type="text"
               value={tenantName}
               onChange={(e) => setTenantName(e.target.value)}
-              placeholder="Bareilly Homelab"
+              placeholder="Your team or project name"
               required
               autoFocus
             />
@@ -88,7 +88,7 @@ export default function Signup() {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Himan Shukla"
+              placeholder="Your full name"
               required
             />
           </label>

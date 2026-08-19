@@ -34,7 +34,7 @@ const sections: Array<{ id: Section; label: string; icon: string }> = [
   { id: 'monitoring', label: 'Monitoring', icon: '⌁' },
 ];
 
-const emptyHost = { name: '', base_url: 'https://192.168.0.107:8006', api_token: '', verify_tls: false };
+const emptyHost = { name: '', base_url: '', api_token: '', verify_tls: false };
 const emptyVM = { vmid: '', name: '', memory_mb: '2048', cores: '2', disk_gb: '32', storage: 'local-lvm', bridge: 'vmbr0', iso: '', boot: 'order=scsi0' };
 
 function readString(value: unknown): string {
@@ -413,7 +413,7 @@ export default function ProxmoxWorkspace() {
       <main className="sw-main">
         <div className="sw-page-head"><div><span className="sw-eyebrow">TIER 1 · PROXMOX VE</span><h1>{sections.find((item) => item.id === section)?.label}</h1><p>{host ? `${host.name} · ${host.base_url}` : 'Register a Proxmox VE host to begin.'}</p></div><div className="sw-page-actions">{hostActions}</div></div>
         {showHostForm && <Panel title="Register Proxmox VE" eyebrow="Secure connection">
-          <form className="sw-form-grid" onSubmit={registerHost}><FormField label="Display name" value={hostForm.name} required onChange={(value) => setHostForm({ ...hostForm, name: value })} placeholder="router" /><FormField label="Base URL" value={hostForm.base_url} required onChange={(value) => setHostForm({ ...hostForm, base_url: value })} placeholder="https://192.168.0.107:8006" /><FormField label="API token" value={hostForm.api_token} required type="password" onChange={(value) => setHostForm({ ...hostForm, api_token: value })} placeholder="user@pam!tokenid=uuid" /><label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(event) => setHostForm({ ...hostForm, verify_tls: event.target.checked })} /><span>Verify TLS certificate</span></label><div className="sw-form-actions"><Button tone="quiet" onClick={() => setShowHostForm(false)}>Cancel</Button><Button type="submit" tone="primary" disabled={busy}>Connect and save</Button></div></form>
+          <form className="sw-form-grid" onSubmit={registerHost}><FormField label="Display name" value={hostForm.name} required onChange={(value) => setHostForm({ ...hostForm, name: value })} placeholder="e.g. cluster-prod-eu" /><FormField label="Base URL" value={hostForm.base_url} required onChange={(value) => setHostForm({ ...hostForm, base_url: value })} placeholder="https://proxmox.example.com:8006" /><FormField label="API token" value={hostForm.api_token} required type="password" onChange={(value) => setHostForm({ ...hostForm, api_token: value })} placeholder="user@pam!tokenid=uuid" /><label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(event) => setHostForm({ ...hostForm, verify_tls: event.target.checked })} /><span>Verify TLS certificate</span></label><div className="sw-form-actions"><Button tone="quiet" onClick={() => setShowHostForm(false)}>Cancel</Button><Button type="submit" tone="primary" disabled={busy}>Connect and save</Button></div></form>
         </Panel>}
         {error && <div className="sw-alert sw-alert-error"><strong>Request failed</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
         {notice && <div className="sw-alert sw-alert-success"><strong>Done</strong><span>{notice}</span><button onClick={() => setNotice('')}>×</button></div>}
