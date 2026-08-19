@@ -40,22 +40,35 @@ export class ApiError extends Error {
 
   /** Human-readable message suitable for showing in a UI. */
   get friendlyMessage(): string {
+    // Code-specific overrides first — when the backend tells us exactly
+    // what went wrong, prefer that over the generic status-based message.
+    switch (this.code) {
+      case 'email_not_found':
+        return 'No account exists with that email. Please check the spelling or create a free account.';
+      case 'bad_password':
+        return 'Wrong password. Try again or reset your password.';
+      case 'account_disabled':
+        return 'This account is disabled. Contact your administrator.';
+      case 'must_change_password':
+        return 'You must change your password before you can sign in.';
+      case 'unique_violation':
+      case 'conflict':
+        return 'An account with that email already exists.';
+    }
     switch (this.status) {
       case 400:
         return 'Please double-check the form fields and try again.';
       case 401:
-        return 'Wrong email or password.';
+        // Backend didn't give us a more specific code — fall back to the
+        // generic message rather than the legacy "Wrong email or password"
+        // (we no longer hide which one is wrong; the specific cases are
+        // handled by the code switch above).
+        return 'We could not sign you in. Please check your email and password.';
       case 403:
-        if (this.code === 'must_change_password') {
-          return 'You must change your password before you can sign in.';
-        }
         return 'You do not have permission to do that.';
       case 404:
         return 'We could not find that resource.';
       case 409:
-        if (this.code === 'unique_violation' || this.code === 'conflict') {
-          return 'An account with that email already exists.';
-        }
         return 'That action conflicts with the current state.';
       case 422:
         return 'Please fill in every field correctly.';

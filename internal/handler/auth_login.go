@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"net/http"
 	"strings"
 	"time"
 
@@ -24,6 +26,8 @@ type LoginResponse struct {
 // Login handles POST /auth/login.
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
+	// 1. Email format check (gin binding already validates this, but we
+	//    want a more user-friendly error code than "bad_request").
 	if err := c.ShouldBindJSON(&req); err != nil {
 		kernel.RespondError(c, kernel.ErrBadRequest)
 		return
@@ -39,12 +43,25 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	user, tenant, err := h.lookupUserAndTenant(c.Request.Context(), email)
 	if err != nil {
-		// Hide whether email exists or not
-		kernel.RespondError(c, kernel.ErrUnauthorized)
+		// Distinguish: email-not-registered vs other DB errors.
+		// Product decision (see commit message): tell the user their
+		// email is not registered so they get a clear next step.
+		// The standard anti-enumeration mitigation is the rate
+		// limiter above; we accept the trade-off here because
+		// this is a self-hosted product and the operator wants
+		// honest error feedback.
+		if errors.Is(err, kernel.ErrNotFound) {
+			kernel.RespondErrorWithCode(c, http.StatusNotFound, "email_not_found",
+				"No account exists with that email.")
+			return
+		}
+		kernel.RespondError(c, err)
 		return
 	}
 	if !user.IsActive() {
-		kernel.RespondError(c, kernel.ErrForbidden)
+		// Account exists but is disabled / suspended.
+		kernel.RespondErrorWithCode(c, http.StatusForbidden, "account_disabled",
+			"This account is disabled. Contact your administrator.")
 		return
 	}
 	if !checkHash(user.PasswordHash, req.Password) {
@@ -55,7 +72,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		if count >= 10 {
 			h.auditLog(c.Request.Context(), &user.TenantID, &user.ID, "login.bruteforce_suspected", user.Email, ip, map[string]any{"failed_count_1h": count})
 		}
-		kernel.RespondError(c, kernel.ErrUnauthorized)
+		// Tell the user the password is wrong (not the email).
+		kernel.RespondErrorWithCode(c, http.StatusUnauthorized, "bad_password",
+			"Wrong password. Try again or reset your password.")
 		return
 	}
 

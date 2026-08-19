@@ -91,6 +91,15 @@ func RespondOK(c *gin.Context, body any) {
 	c.JSON(http.StatusOK, body)
 }
 
+// RespondErrorWithCode writes an arbitrary (status, code, message)
+// response without going through a kernel error sentinel. Use it when
+// you need a specific HTTP status and code that aren't covered by the
+// built-in errors (for example, distinguishing "email not registered"
+// from "wrong password" on a login endpoint).
+func RespondErrorWithCode(c *gin.Context, status int, code, message string) {
+	c.JSON(status, ErrorResponse{Error: message, Code: code})
+}
+
 // RespondCreated writes a JSON body with 201.
 func RespondCreated(c *gin.Context, body any) {
 	c.JSON(http.StatusCreated, body)

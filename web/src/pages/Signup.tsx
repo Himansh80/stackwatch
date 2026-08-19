@@ -6,6 +6,8 @@ interface SignupError {
   message: string;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function Signup() {
   const nav = useNavigate();
   const [email, setEmail] = useState('');
@@ -15,8 +17,23 @@ export default function Signup() {
   const [error, setError] = useState<SignupError | null>(null);
   const [loading, setLoading] = useState(false);
 
+  function clientValidate(): string | null {
+    if (!tenantName.trim()) return 'Please enter a workspace name.';
+    if (!fullName.trim()) return 'Please enter your name.';
+    const trimmed = email.trim();
+    if (!trimmed) return 'Please enter your work email.';
+    if (!EMAIL_RE.test(trimmed)) return 'Please enter a valid email address.';
+    if (password.length < 8) return 'Your password needs at least 8 characters.';
+    return null;
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    const clientError = clientValidate();
+    if (clientError) {
+      setError({ message: clientError });
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
