@@ -33,8 +33,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Rate limit BEFORE doing any DB lookup. 5 attempts per ip+email per 5min.
 	if wait, err := checkLoginRateLimit(ip, email); err != nil {
-		kernel.RespondError(c, err)
-		c.Header("Retry-After", wait.Round(time.Second).String())
+		kernel.RespondRateLimited(c, err, int(wait.Round(time.Second).Seconds()))
 		return
 	}
 

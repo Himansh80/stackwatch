@@ -27,13 +27,15 @@ export class ApiError extends Error {
   status: number;
   code: string;
   body: unknown;
+  retryAfterSeconds: number | null;
 
-  constructor(status: number, code: string, message: string, body: unknown) {
+  constructor(status: number, code: string, message: string, body: unknown, retryAfterSeconds: number | null = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.body = body;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 
   /** Human-readable message suitable for showing in a UI. */
@@ -58,6 +60,9 @@ export class ApiError extends Error {
       case 422:
         return 'Please fill in every field correctly.';
       case 429:
+        if (this.retryAfterSeconds != null && this.retryAfterSeconds > 0) {
+          return `Too many attempts. Please wait ${this.retryAfterSeconds} second${this.retryAfterSeconds === 1 ? '' : 's'} and try again.`;
+        }
         return 'Too many attempts. Please wait a few minutes and try again.';
       case 502:
       case 503:
@@ -119,9 +124,23 @@ export async function api<T = any>(
   const text = await res.text();
   const parsed = parseBody(text);
   if (!res.ok) {
-    throw new ApiError(res.status, parsed.code, parsed.message, parsed.body);
+    const retryAfter = parseRetryAfter(res.headers.get('Retry-After'));
+    throw new ApiError(res.status, parsed.code, parsed.message, parsed.body, retryAfter);
   }
   return parsed.body as T;
+}
+
+function parseRetryAfter(header: string | null): number | null {
+  if (!header) return null;
+  // RFC 7231: Retry-After can be either an HTTP-date or a number of seconds.
+  // For our backend it's always seconds (set via time.Duration.String()).
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds);
+  const dateMs = Date.parse(header);
+  if (Number.isFinite(dateMs)) {
+    return Math.max(0, Math.round((dateMs - Date.now()) / 1000));
+  }
+  return null;
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
