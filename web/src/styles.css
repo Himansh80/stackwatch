@@ -228,6 +228,7 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .landing-hero-kpis small { display:block; color:#7387a5; font-size:9px; font-weight:800; letter-spacing:1.1px; text-transform:uppercase; }
 .landing-hero-kpis strong { display:block; margin-top:6px; color:#f3f7fd; font-size:22px; letter-spacing:-.5px; text-transform:capitalize; }
 .landing-good { color:#6ee7b7 !important; }
+.landing-warn { color:#f5c95a !important; }
 .landing-hero-rows { padding:14px 0 0; }
 .landing-hero-rows > div { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid #15243a; font-size:12px; color:#c2d0e6; }
 .landing-hero-rows > div:last-child { border-bottom:0; }

@@ -1,4 +1,84 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+
+const NODE_NAMES = ['edge-01', 'core-a', 'core-b', 'mgmt-01', 'gpu-02', 'storage-1', 'hypervisor-eu', 'worker-3', 'bastion', 'observability-1', 'db-primary', 'cache-01', 'ci-runner-2'];
+const WORKLOAD_NAMES = [
+  'web-api', 'auth-svc', 'payments', 'image-worker', 'search-indexer',
+  'notification-fanout', 'realtime-gateway', 'job-runner', 'metrics-pipeline',
+  'log-shipper', 'backup-agent', 'metrics-api', 'cdn-orchestrator',
+  'analytics-etl', 'queue-worker', 'session-store', 'feature-flags',
+  'rate-limiter', 'audit-writer', 'webhook-router',
+];
+const TYPES = ['qemu', 'lxc', 'container', 'vm'];
+const STATUSES_GOOD = ['running', 'online', 'healthy'];
+const STATUSES_WARN = ['degraded', 'high-cpu', 'high-mem'];
+const STATUSES_BAD = ['stopped', 'offline', 'crashed'];
+
+function pick<T>(arr: T[], seed: () => number): T {
+  return arr[Math.floor(seed() * arr.length)]!;
+}
+
+function makeSeed(): () => number {
+  let state = Math.floor(Math.random() * 0x7fffffff);
+  if (state === 0) state = 1;
+  return () => {
+    state = (state * 48271) % 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+}
+
+function pad(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`;
+}
+
+function generatePreview() {
+  const rand = makeSeed();
+  const hosts = 1 + Math.floor(rand() * 6);
+  const nodes = hosts * (1 + Math.floor(rand() * 3));
+  const totalWorkloads = 4 + Math.floor(rand() * 28);
+  const runningCount = Math.max(1, totalWorkloads - Math.floor(rand() * 4));
+  const rows = Array.from({ length: 4 }).map((_, idx) => {
+    const statusBucket = rand();
+    let tone: 'good' | 'warn' | 'bad';
+    let status: string;
+    if (statusBucket < 0.7) {
+      tone = 'good';
+      status = pick(STATUSES_GOOD, rand);
+    } else if (statusBucket < 0.9) {
+      tone = 'warn';
+      status = pick(STATUSES_WARN, rand);
+    } else {
+      tone = 'bad';
+      status = pick(STATUSES_BAD, rand);
+    }
+    const cpu = Math.floor(rand() * 100);
+    const mem = Math.floor(50 + rand() * 900);
+    const name = idx === 0 ? pick(NODE_NAMES, rand) : pick(WORKLOAD_NAMES, rand);
+    const type = pick(TYPES, rand);
+    return {
+      name,
+      type,
+      tone,
+      status,
+      detail: tone === 'good'
+        ? `${status} · ${cpu}% cpu`
+        : tone === 'warn'
+          ? `${status} · ${cpu}% cpu`
+          : `${status}`,
+      mem: tone === 'good' ? `${mem} MB` : null,
+    };
+  });
+  const stamp = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}:${pad(new Date().getSeconds())}`;
+  return {
+    hosts,
+    nodes,
+    totalWorkloads,
+    runningCount,
+    rows,
+    stamp,
+    apiHealth: rand() < 0.92 ? 'ok' : 'degraded',
+  };
+}
 
 const features = [
   {
@@ -40,6 +120,8 @@ const steps = [
 ];
 
 export default function Landing() {
+  const preview = useMemo(() => generatePreview(), []);
+
   return (
     <div className="landing-app">
       <header className="landing-topbar">
@@ -85,18 +167,20 @@ export default function Landing() {
               <span className="landing-hero-status"><span className="landing-live-dot" />Live</span>
             </header>
             <div className="landing-hero-kpis">
-              <div><small>Connected hosts</small><strong>1</strong></div>
-              <div><small>Compute nodes</small><strong>1</strong></div>
-              <div><small>Running workloads</small><strong>15</strong></div>
-              <div><small>API health</small><strong className="landing-good">ok</strong></div>
+              <div><small>Connected hosts</small><strong>{preview.hosts}</strong></div>
+              <div><small>Compute nodes</small><strong>{preview.nodes}</strong></div>
+              <div><small>Running workloads</small><strong>{preview.runningCount}</strong><small style={{ display: 'block', marginTop: 4, color: '#5e7291', textTransform: 'none', letterSpacing: 0, fontSize: 10 }}>of {preview.totalWorkloads} total</small></div>
+              <div><small>API health</small><strong className={preview.apiHealth === 'ok' ? 'landing-good' : 'landing-warn'}>{preview.apiHealth}</strong></div>
             </div>
             <div className="landing-hero-rows">
-              <div><span className="landing-row-dot landing-row-good" />router <em>online</em></div>
-              <div><span className="landing-row-dot landing-row-good" />pf-sense <em>running · 4% cpu</em></div>
-              <div><span className="landing-row-dot landing-row-good" />adguard <em>running · 0% cpu</em></div>
-              <div><span className="landing-row-dot landing-row-warn" />portfolio <em>running · 62% cpu</em></div>
+              {preview.rows.map((row, idx) => (
+                <div key={`${row.name}-${idx}`}>
+                  <span className={`landing-row-dot landing-row-${row.tone}`} />
+                  {row.name} <em>{row.detail}</em>
+                </div>
+              ))}
             </div>
-            <div className="landing-hero-foot">Live snapshot · updated seconds ago</div>
+            <div className="landing-hero-foot">Example snapshot · regenerated on every page load · {preview.stamp}</div>
           </aside>
         </section>
 
