@@ -387,3 +387,12 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 
 @media (max-width: 1100px) { .dash-pricing { grid-template-columns:1fr; } .dash-menu { min-width:280px; right:-12px; } }
 @media (max-width: 780px) { .dash-menu { right:0; } .dash-pricing { grid-template-columns:1fr; } }
+
+.auth-forgot { margin:10px 0 0; color:#8294ae; font-size:12px; text-align:center; }
+.auth-forgot a { color:#67e8f9; text-decoration:none; font-weight:700; }
+.auth-forgot a:hover { color:#a5f3fc; }
+.auth-success { display:flex; flex-direction:column; gap:14px; }
+.auth-success strong { color:#eaf2fc; font-size:14px; }
+.auth-success-note { margin:0; color:#7387a5; font-size:12px; line-height:1.5; }
+.auth-success-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.auth-success-pre { margin:0; padding:11px 13px; border:1px solid #26344a; border-radius:9px; background:#0a1322; color:#a9c0e0; font-size:11px; overflow-x:auto; word-break:break-all; }

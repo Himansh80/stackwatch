@@ -107,6 +107,9 @@ export default function Login() {
           <button type="submit" className="auth-button-primary" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
+          <p className="auth-forgot">
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
         </form>
         <p className="auth-switch">
           New to StackWatch? <Link to="/signup">Create a free workspace</Link>
