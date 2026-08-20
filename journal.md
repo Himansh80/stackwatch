@@ -816,6 +816,43 @@ Run 4: 14/14 PASS
 - No destructive Proxmox lifecycle operation was executed during verification.
 
 ## Audit — Tier 2 TrueNAS status check
+## Session 27 — 2026-08-20 (api-gateway systemd supervision)
+
+### Symptom
+The dashboard started showing "Live data unavailable / api gateway unavailable" intermittently. Log analysis showed 13 SIGTERM events between 2026-08-18 and 2026-08-19, each followed by a manual restart within 1-5 seconds. The last SIGTERM at 2026-08-19T20:54 left the gateway dead for ~10 hours.
+
+### Root cause
+The api-gateway was being launched via `nohup setsid sh -c '...'` inside Hermes agent SSH sessions. `nohup setsid` did NOT fully detach the process from the SSH session group on this Ubuntu host. Every time a Hermes SSH session closed, the kernel delivered SIGTERM to all processes in the session group; the api-gateway exited cleanly. The auto-restart pattern was the next SSH session detecting the dead process and manually re-running the start command.
+
+There was no external supervisor doing this. static_server.py, truenas-connector, and apt-daily-upgrade were all ruled out via process and cron inspection.
+
+### Fix
+Added a systemd unit modeled after the existing stackwatch-web.service and truenas-connector.service:
+
+`/etc/systemd/system/stackwatch-api-gateway.service`
+- `Type=simple`, `WorkingDirectory=/opt/stackwatch`
+- `ExecStart=/bin/sh -c '. /opt/stackwatch/.env && exec ./bin/api-gateway-linux'` (sh wrapper because .env uses shell `export` syntax that systemd `EnvironmentFile=` cannot parse)
+- `Restart=always`, `RestartSec=3`
+- `KillMode=process` (no kill cascade)
+- `User=root`, `LimitNOFILE=65536`
+- `WantedBy=multi-user.target` so it auto-starts on every boot
+
+`systemctl daemon-reload && systemctl enable --now stackwatch-api-gateway.service`
+
+### Verification (live on .115)
+- `Active: active (running)` under systemd (PID 5927 then 6066 then 6146 across test cycles)
+- `curl http://127.0.0.1:8080/health` -> 200, `{"db":"ok","mode":"cloud","status":"ok"}`
+- SIGKILL x3 in a row -> all three restarted within 3 seconds (journal shows `Scheduled restart job` each time)
+- 30-second SSH disconnect test -> same PID still alive, no restarts in journal since 08:16:55
+- `systemctl is-enabled` -> enabled (will auto-start on reboot)
+
+### Notes
+- /opt/stackwatch/.env still uses `export KEY=value` shell syntax. Did not change it; the systemd unit sources it via `/bin/sh -c '. ...'` which keeps everything compatible.
+- Other services (stackwatch-web, truenas-connector) were unaffected and continued running throughout.
+
+---
+
+
 
 Fresh audit result: Tier 2 is NOT complete, NOT deployed, and cannot be claimed fully working. Local TrueNAS connector source exists and `go build ./cmd/truenas-connector` passes, but `gofmt -l` reports `internal/handler/truenas_snapshots.go`. No Tier 2 frontend files were found under `web/src`. SSH to TrueNAS `.112` succeeded, but `truenas-connector.service` is absent, port 8088 is closed, and its binary/unit files are missing. Repository-wide `go test ./...` is red in `internal/synthetics` (`TestRunHTTP_500`: status_code=0, want 500). No code or deployment changes were made during this audit.
 
