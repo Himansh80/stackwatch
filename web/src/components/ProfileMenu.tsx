@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { clearToken } from '../lib/api';
+import { Link, useLocation } from 'react-router-dom';
+import { useLogout } from '../lib/useLogout';
 
 type MenuItem = {
   label: string;
@@ -27,17 +27,12 @@ export default function ProfileMenu({ firstName, fullName, tenantName, initials 
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const navigate = useNavigate();
   const location = useLocation();
+  const logout = useLogout();
 
   function close() {
     setOpen(false);
     buttonRef.current?.focus();
-  }
-
-  function logout() {
-    clearToken();
-    navigate('/login');
   }
 
   useEffect(() => {

@@ -125,6 +125,7 @@ export async function api<T = any>(
   path: string,
   body?: any,
   auth = true,
+  init?: { signal?: AbortSignal },
 ): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (auth) {
@@ -137,8 +138,15 @@ export async function api<T = any>(
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      signal: init?.signal,
     });
   } catch (cause: any) {
+    // Aborted (logout, navigation, unmount): let the caller decide what
+    // to do via instanceof DOMException check. Don't fabricate an
+    // ApiError for a request the page no longer cares about.
+    if (cause instanceof DOMException && cause.name === 'AbortError') {
+      throw cause;
+    }
     throw new ApiError(0, 'network_error', cause?.message || 'Network error.', null);
   }
   const text = await res.text();
@@ -167,10 +175,10 @@ export async function login(email: string, password: string): Promise<LoginRespo
   return api<LoginResponse>('POST', '/api/v1/auth/login', { email, password }, false);
 }
 
-export async function me(): Promise<{ user: any; tenant: any }> {
-  return api('GET', '/api/v1/auth/me');
+export async function me(init?: { signal?: AbortSignal }): Promise<{ user: any; tenant: any }> {
+  return api('GET', '/api/v1/auth/me', undefined, true, init);
 }
 
-export async function health(): Promise<{ status: string; db: string; version: string }> {
-  return api('GET', '/health', undefined, false);
+export async function health(init?: { signal?: AbortSignal }): Promise<{ status: string; db: string; version: string }> {
+  return api('GET', '/health', undefined, false, init);
 }

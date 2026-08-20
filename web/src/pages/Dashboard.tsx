@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { api, clearToken, health, me } from '../lib/api';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api, health, me } from '../lib/api';
+import { useLogout } from '../lib/useLogout';
 import ProfileMenu from '../components/ProfileMenu';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
 
@@ -106,7 +107,8 @@ function TrendChart({ resources }: { resources: ProxmoxResource[] }) {
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const logout = useLogout();
+  const abortRef = useRef<AbortController | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot>(emptySnapshot);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -115,11 +117,19 @@ export default function Dashboard() {
 
   async function loadDashboard() {
     setError('');
+    // Cancel any in-flight dashboard request before starting a new one.
+    // Without this, a slow request from the previous cycle can land
+    // after the user has already signed out, set state on a now-
+    // unmounted component, and surface an 'unauthorized' error before
+    // the route swap happens.
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
       const [healthData, meData, hostsData] = await Promise.all([
-        health(),
-        me(),
-        api<{ hosts?: ProxmoxHost[] }>('GET', '/api/v1/proxmox/hosts'),
+        health({ signal: ctrl.signal }),
+        me({ signal: ctrl.signal }),
+        api<{ hosts?: ProxmoxHost[] }>('GET', '/api/v1/proxmox/hosts', undefined, true, { signal: ctrl.signal }),
       ]);
       const hosts = hostsData.hosts || [];
       const primary = hosts[0];
@@ -149,6 +159,9 @@ export default function Dashboard() {
     return () => {
       window.clearInterval(timer);
       window.clearInterval(clockTimer);
+      // Cancel any pending request so it can't fire after the user signs
+      // out and surface a stale 401 against the now-unmounted Dashboard.
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -156,11 +169,6 @@ export default function Dashboard() {
   const stopped = useMemo(() => snapshot.resources.filter((row) => text(row.status, '').toLowerCase() === 'stopped').length, [snapshot.resources]);
   const tenantName = text(value(snapshot.tenant, 'name'), 'Workspace');
   const userName = text(value(snapshot.user, 'full_name'), text(value(snapshot.user, 'email'), 'Operator'));
-
-  function logout() {
-    clearToken();
-    navigate('/login');
-  }
 
   return <div className="dash-app">
     <aside className="dash-sidebar">
