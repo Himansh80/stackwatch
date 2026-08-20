@@ -263,13 +263,29 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	// Look up tenant for the audit row.
+	// Look up tenant for the audit row + email/role for the JWT.
 	var tenantID uuid.UUID
+	var email, role string
 	_ = h.pool.Pgx().QueryRow(c.Request.Context(),
-		`SELECT tenant_id FROM users WHERE id=$1`, userID).Scan(&tenantID)
+		`SELECT u.tenant_id, u.email, u.role FROM users u WHERE u.id=$1`, userID,
+	).Scan(&tenantID, &email, &role)
 	h.auditLog(c.Request.Context(), &tenantID, &userID, "password_reset.completed", "", ip, nil)
 
-	kernel.RespondOK(c, gin.H{"ok": true, "message": "password updated"})
+	// Issue a fresh session token so the user lands on the dashboard
+	// immediately — no need to type the new password into the login
+	// form right after they just typed it on this one.
+	tok, err := h.issuer.Issue(userID, tenantID, email, role, false)
+	if err != nil {
+		// Password is already updated; surface the error but don't roll
+		// back the password change. The user will need to sign in.
+		kernel.RespondError(c, kernel.ErrInternal)
+		return
+	}
+	kernel.RespondOK(c, gin.H{
+		"ok":      true,
+		"message": "password updated",
+		"token":   tok,
+	})
 }
 
 // ========== PATCH /auth/profile ==========

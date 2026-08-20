@@ -51,7 +51,7 @@ export default function ResetPassword() {
         setToken(body.token);
         nav('/dashboard');
       } else {
-        setError('Password was reset, but no session token was returned. Please sign in.');
+        setError('Password was reset. Please sign in with your new password.');
       }
     } catch (cause: any) {
       if (cause instanceof ApiError) {
