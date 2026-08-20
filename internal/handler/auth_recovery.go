@@ -163,17 +163,24 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 
 	h.auditLog(c.Request.Context(), &u.TenantID, &u.ID, "password_reset.requested", u.Email, ip, map[string]any{"token_id": hash[:8]})
 
-	// DEV mode: include the token + URL in the response so the customer
-	// can complete the flow without SMTP. Production deployments must
-	// wire SMTP / Resend and remove this block.
 	resetURL := fmt.Sprintf("/reset-password?token=%s", raw)
-	kernel.RespondOK(c, gin.H{
+	resp := gin.H{
 		"ok":         true,
 		"message":    "if the email exists, a reset link has been generated",
-		"dev_token":  raw,
-		"dev_url":    resetURL,
 		"expires_at": expires.Format(time.RFC3339),
-	})
+		"email_sent": h.emailSender != nil,
+	}
+	if h.emailSender == nil {
+		// Self-hosted mode (no SMTP wired): surface the link directly in the
+		// response so the user can complete the reset without mail. Field
+		// names mirror the contract the frontend expects.
+		resp["reset_token"] = raw
+		resp["reset_url"] = resetURL
+		// Legacy aliases kept so older clients keep working.
+		resp["dev_token"] = raw
+		resp["dev_url"] = resetURL
+	}
+	kernel.RespondOK(c, resp)
 }
 
 // ========== POST /auth/reset ==========
@@ -401,13 +408,22 @@ func (h *AuthHandler) MagicLink(c *gin.Context) {
 
 	h.auditLog(c.Request.Context(), &u.TenantID, &u.ID, "magic_link.requested", u.Email, ip, nil)
 
-	kernel.RespondOK(c, gin.H{
+	magicURL := fmt.Sprintf("/auth/magic-link/consume?token=%s", raw)
+	resp := gin.H{
 		"ok":         true,
 		"message":    "if the email exists, a magic link has been generated",
-		"dev_token":  raw,
-		"dev_url":    fmt.Sprintf("/auth/magic-link/consume?token=%s", raw),
 		"expires_at": expires.Format(time.RFC3339),
-	})
+		"email_sent": h.emailSender != nil,
+	}
+	if h.emailSender == nil {
+		// Self-hosted mode: surface the link directly in the response.
+		resp["magic_token"] = raw
+		resp["magic_url"] = magicURL
+		// Legacy aliases.
+		resp["dev_token"] = raw
+		resp["dev_url"] = magicURL
+	}
+	kernel.RespondOK(c, resp)
 }
 
 // ========== POST /auth/accept-invite ==========

@@ -4,13 +4,18 @@ import { ApiError, api } from '../lib/api';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// /auth/forgot returns the reset link in the response body when SMTP
+// is not configured. When SMTP IS configured the backend strips those
+// fields and just sends the email. Either way the frontend should not
+// assume the email went out — it should display whatever the backend
+// gave it.
 interface ForgotResponse {
   ok: boolean;
   message?: string;
-  // Dev-mode fields (returned because no SMTP is wired yet).
-  dev_token?: string;
-  dev_url?: string;
+  reset_token?: string;
+  reset_url?: string;
   expires_at?: string;
+  email_sent?: boolean;
 }
 
 export default function ForgotPassword() {
@@ -52,21 +57,25 @@ export default function ForgotPassword() {
     }
   }
 
-  function copyDevLink() {
-    if (!response?.dev_url) return;
-    const fullUrl = `${window.location.origin}${response.dev_url}`;
-    void navigator.clipboard.writeText(fullUrl);
+  function copyLink(url: string) {
+    void navigator.clipboard.writeText(url);
   }
 
-  function goToReset() {
-    if (!response?.dev_token) return;
-    nav(`/reset-password?token=${response.dev_token}`);
+  function goToReset(url: string) {
+    const u = new URL(url, window.location.origin);
+    nav(`${u.pathname}${u.search}`);
   }
 
-  // Show the dev_token + dev_url when present (no SMTP wired yet).
-  const devUrl = response?.dev_url
-    ? `${window.location.origin}${response.dev_url}`
+  // Whether the backend surfaced a clickable reset link in this
+  // response. We treat it as the canonical source of truth regardless
+  // of whether SMTP was supposed to send the email — if a link is in
+  // the body, we show it.
+  const resetLink = response?.reset_url
+    ? `${window.location.origin}${response.reset_url}`
     : null;
+
+  // Whether to render the form (asking for email) vs the result panel.
+  const showForm = !response;
 
   return (
     <div className="auth-shell">
@@ -77,10 +86,14 @@ export default function ForgotPassword() {
       <div className="auth-card">
         <header>
           <span className="auth-eyebrow">Account recovery</span>
-          <h1>Forgot password?</h1>
-          <p>Enter the email tied to your workspace. We&apos;ll send a reset link.</p>
+          <h1>{showForm ? 'Reset your password' : 'Check your inbox'}</h1>
+          {showForm ? (
+            <p>Enter the email tied to your workspace. We&apos;ll start the reset.</p>
+          ) : (
+            <p>{response?.message || 'If that email exists, a reset link has been generated.'}</p>
+          )}
         </header>
-        {!response ? (
+        {showForm ? (
           <form onSubmit={onSubmit} noValidate>
             <label>
               <span>Email</span>
@@ -96,7 +109,7 @@ export default function ForgotPassword() {
             </label>
             {error && <div className="auth-error">{error}</div>}
             <button type="submit" className="auth-button-primary" disabled={loading}>
-              {loading ? 'Sending…' : 'Send reset link'}
+              {loading ? 'Working…' : 'Reset password'}
             </button>
             <p className="auth-switch">
               <Link to="/login">← Back to sign in</Link>
@@ -104,29 +117,39 @@ export default function ForgotPassword() {
           </form>
         ) : (
           <div className="auth-success">
-            <p>
-              <strong>{response.message || 'If that email exists, a reset link has been sent.'}</strong>
-            </p>
-            {devUrl ? (
+            {resetLink ? (
               <>
                 <p className="auth-success-note">
-                  SMTP is not configured on this server, so we surfaced the reset link here for development.
-                  In production this message goes to your inbox.
+                  Click the button below to open the reset page and set a new password. The link expires in 1 hour.
                 </p>
                 <div className="auth-success-actions">
-                  <button type="button" className="auth-button-primary" onClick={goToReset}>
+                  <button type="button" className="auth-button-primary" onClick={() => goToReset(resetLink)}>
                     Open reset page
                   </button>
-                  <button type="button" className="sw-button sw-button-quiet" onClick={copyDevLink}>
+                  <button type="button" className="sw-button sw-button-quiet" onClick={() => copyLink(resetLink)}>
                     Copy link
                   </button>
                 </div>
-                <pre className="auth-success-pre">{devUrl}</pre>
+                <pre className="auth-success-pre">{resetLink}</pre>
+                <details className="auth-success-details">
+                  <summary>Use a different email?</summary>
+                  <form onSubmit={(e) => { e.preventDefault(); setResponse(null); setEmail(''); }} className="auth-success-resend">
+                    <button type="submit" className="auth-button-ghost">Send a fresh reset link</button>
+                  </form>
+                </details>
               </>
             ) : (
-              <p className="auth-success-note">
-                Check your email for a link to set a new password. The link expires in 1 hour.
-              </p>
+              <>
+                <p className="auth-success-note">
+                  Check your email for a link to set a new password. The link expires in 1 hour.
+                </p>
+                <details className="auth-success-details">
+                  <summary>Didn&apos;t get the email?</summary>
+                  <form onSubmit={(e) => { e.preventDefault(); setResponse(null); setEmail(''); }} className="auth-success-resend">
+                    <button type="submit" className="auth-button-ghost">Send a fresh reset link</button>
+                  </form>
+                </details>
+              </>
             )}
             <p className="auth-switch">
               <Link to="/login">← Back to sign in</Link>
