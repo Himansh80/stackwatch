@@ -6,7 +6,7 @@
 import { COMMON_PASSWORDS } from './password-blocklist';
 
 export const MIN_LENGTH = 10;
-export const MAX_LENGTH = 128;
+export const MAX_LENGTH = 72;
 
 // All rule codes the backend can return. Keep this list in sync
 // with internal/auth/password_policy.go (Err* sentinels).

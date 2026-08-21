@@ -22,10 +22,15 @@ import (
 // MinLength is the shortest password accepted by ValidatePassword.
 const MinLength = 10
 
-// MaxLength is the longest password accepted. bcrypt itself only uses
-// the first 72 bytes; longer passwords would be silently truncated
-// which is a footgun, so we reject anything beyond 128 chars here.
-const MaxLength = 128
+// MaxLength is the longest password accepted. bcrypt's Go binding
+// rejects inputs over 72 bytes with an error rather than the silent
+// truncation some older docs describe, so we cap below that hard limit.
+// Keeping a 72-byte ceiling also matches the well-known caveat: any
+// bytes past 72 are invisible to the hash comparison, so a 200-char
+// password and a 73-byte truncation of it would both match the same
+// stored hash. Better to reject than to accept a password that the
+// server is silently shortening.
+const MaxLength = 72
 
 // PasswordPolicyError codes. Returned as the structured .Err field on
 // a kernel-style error so handlers + frontend can switch on them.

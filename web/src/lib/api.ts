@@ -68,7 +68,7 @@ export class ApiError extends Error {
       case 'password_too_short':
         return 'Password must be at least 10 characters.';
       case 'password_too_long':
-        return 'Password must be 128 characters or fewer.';
+        return 'Password must be 72 characters or fewer.';
       case 'password_whitespace_only':
         return 'Password cannot be only spaces.';
       case 'password_has_leading_trailing_space':
