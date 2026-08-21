@@ -53,9 +53,12 @@ export default function Login() {
     }
   }
 
-  // When the email-not-found error is shown, surface a direct link to
-  // signup so the user has a clear next step.
-  const showSignupHint = errorCode === 'email_not_found';
+  // Forgot password is only useful when we KNOW the email is
+  // registered but the password was wrong. For email_not_found the
+  // right next step is "sign up" (link is in the bottom of the card),
+  // and for client-validation errors the user just needs to fix the
+  // form. The link is otherwise dead noise.
+  const showForgotLink = errorCode === 'bad_password';
 
   return (
     <div className="auth-shell">
@@ -93,23 +96,15 @@ export default function Login() {
               aria-invalid={errorCode === 'client_validation' && password.length > 0 && password.length < 8 ? 'true' : undefined}
             />
           </label>
-          {error && (
-            <div className="auth-error">
-              <span>{error}</span>
-              {showSignupHint && (
-                <>
-                  {' '}
-                  <Link to="/signup">Create a free workspace →</Link>
-                </>
-              )}
-            </div>
-          )}
+          {error && <div className="auth-error"><span>{error}</span></div>}
           <button type="submit" className="auth-button-primary" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
-          <p className="auth-forgot">
-            <Link to="/forgot-password">Forgot password?</Link>
-          </p>
+          {showForgotLink && (
+            <p className="auth-forgot">
+              <Link to="/forgot-password">Forgot password?</Link>
+            </p>
+          )}
         </form>
         <p className="auth-switch">
           New to StackWatch? <Link to="/signup">Create a free workspace</Link>
