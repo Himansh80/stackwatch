@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ApiError, api, clearToken, getToken } from '../lib/api';
+import { ApiError, api, clearToken, getToken, setToken } from '../lib/api';
 import ProfileMenu from '../components/ProfileMenu';
+import PasswordInput from '../components/PasswordInput';
+import { friendlyPasswordMessage } from '../lib/password';
 
 type Tenant = {
   id: string;
@@ -30,6 +32,7 @@ export default function SettingsPage() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMessage, setPwMessage] = useState<string | null>(null);
   const [pwError, setPwError] = useState<string | null>(null);
+  const [pwErrorCode, setPwErrorCode] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,32 +100,43 @@ export default function SettingsPage() {
     event.preventDefault();
     setPwMessage(null);
     setPwError(null);
+    setPwErrorCode(undefined);
     if (!oldPw) {
       setPwError('Please enter your current password.');
       return;
     }
-    if (newPw.length < 8) {
-      setPwError('New password must be at least 8 characters.');
+    if (newPw.length < 10) {
+      setPwError('New password must be at least 10 characters.');
       return;
     }
     if (newPw !== newPw2) {
       setPwError('New password and confirmation do not match.');
       return;
     }
-    if (newPw === oldPw) {
-      setPwError('New password must be different from the current one.');
-      return;
-    }
     setPwSaving(true);
     try {
-      await api('POST', '/api/v1/auth/change-password', { old_password: oldPw, new_password: newPw });
-      setPwMessage('Password updated. Other devices will need to sign in again.');
+      const body = await api<{ ok: boolean; token?: string }>(
+        'POST',
+        '/api/v1/auth/change-password',
+        { old_password: oldPw, new_password: newPw },
+      );
+      // Backend returns a fresh token so we can keep this device signed in.
+      if (body?.token) {
+        setToken(body.token);
+      }
+      setPwMessage('Password updated.');
       setOldPw('');
       setNewPw('');
       setNewPw2('');
     } catch (cause) {
       if (cause instanceof ApiError) {
-        setPwError(cause.friendlyMessage);
+        const code = (cause as ApiError & { code?: string }).code;
+        if (code?.startsWith('password_')) {
+          setPwErrorCode(code);
+          setPwError(friendlyPasswordMessage(code, cause.friendlyMessage));
+        } else {
+          setPwError(cause.friendlyMessage);
+        }
       } else {
         setPwError(cause instanceof Error ? cause.message : 'Could not change your password.');
       }
@@ -214,21 +228,28 @@ export default function SettingsPage() {
                   <form onSubmit={onChangePassword} className="sw-form-grid" style={{ padding: '18px 20px 20px' }}>
                     <label className="sw-field">
                       <span>Current password</span>
-                      <input type="password" value={oldPw} onChange={(e) => { setOldPw(e.target.value); setPwError(null); setPwMessage(null); }} autoComplete="current-password" required />
+                      <input type="password" value={oldPw} onChange={(e) => { setOldPw(e.target.value); setPwError(null); setPwErrorCode(undefined); setPwMessage(null); }} autoComplete="current-password" required />
                     </label>
                     <label className="sw-field">
                       <span>New password</span>
-                      <input type="password" value={newPw} onChange={(e) => { setNewPw(e.target.value); setPwError(null); setPwMessage(null); }} autoComplete="new-password" required minLength={8} />
-                      <small>Minimum 8 characters.</small>
+                      <PasswordInput
+                        value={newPw}
+                        onChange={(v) => { setNewPw(v); setPwError(null); setPwErrorCode(undefined); setPwMessage(null); }}
+                        errorCode={pwErrorCode}
+                        confirmOldPassword={oldPw}
+                        autoComplete="new-password"
+                        required
+                      />
+                      <small>Minimum 10 characters. Must differ from your current password.</small>
                     </label>
                     <label className="sw-field">
                       <span>Confirm new password</span>
-                      <input type="password" value={newPw2} onChange={(e) => { setNewPw2(e.target.value); setPwError(null); setPwMessage(null); }} autoComplete="new-password" required minLength={8} />
+                      <input type="password" value={newPw2} onChange={(e) => { setNewPw2(e.target.value); setPwError(null); setPwMessage(null); }} autoComplete="new-password" required minLength={10} />
                     </label>
                     {pwError && <div className="auth-error" style={{ gridColumn: '1 / -1' }}>{pwError}</div>}
                     {pwMessage && !pwError && <div className="dash-banner-ok" style={{ gridColumn: '1 / -1' }}>{pwMessage}</div>}
                     <div className="sw-form-actions">
-                      <button type="button" className="sw-button sw-button-quiet" onClick={() => { setOldPw(''); setNewPw(''); setNewPw2(''); setPwError(null); setPwMessage(null); }} disabled={pwSaving}>Discard</button>
+                      <button type="button" className="sw-button sw-button-quiet" onClick={() => { setOldPw(''); setNewPw(''); setNewPw2(''); setPwError(null); setPwErrorCode(undefined); setPwMessage(null); }} disabled={pwSaving}>Discard</button>
                       <button type="submit" className="sw-button sw-button-primary" disabled={pwSaving || !oldPw || !newPw || !newPw2}>{pwSaving ? 'Saving...' : 'Update password'}</button>
                     </div>
                   </form>

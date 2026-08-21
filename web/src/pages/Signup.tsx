@@ -1,9 +1,12 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, setToken } from '../lib/api';
+import PasswordInput from '../components/PasswordInput';
+import { friendlyPasswordMessage } from '../lib/password';
 
 interface SignupError {
   message: string;
+  code?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,7 +26,7 @@ export default function Signup() {
     const trimmed = email.trim();
     if (!trimmed) return 'Please enter your work email.';
     if (!EMAIL_RE.test(trimmed)) return 'Please enter a valid email address.';
-    if (password.length < 8) return 'Your password needs at least 8 characters.';
+    if (password.length < 10) return 'Your password needs at least 10 characters.';
     return null;
   }
 
@@ -56,7 +59,13 @@ export default function Signup() {
       nav('/dashboard');
     } catch (cause: any) {
       if (cause instanceof ApiError) {
-        setError({ message: cause.friendlyMessage });
+        const code = (cause as ApiError & { code?: string }).code;
+        setError({
+          message: code?.startsWith('password_')
+            ? friendlyPasswordMessage(code, cause.friendlyMessage)
+            : cause.friendlyMessage,
+          code,
+        });
       } else {
         setError({ message: cause?.message || 'Unable to reach the signup endpoint.' });
       }
@@ -110,17 +119,15 @@ export default function Signup() {
               required
             />
           </label>
-          <label>
+          <label className="auth-pwd-label">
             <span>Password</span>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              onChange={setPassword}
+              errorCode={error?.code}
               required
-              minLength={8}
             />
-            <small>Minimum 8 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
+            <small>Minimum 10 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
           </label>
           {error && <div className="auth-error">{error.message}</div>}
           <button type="submit" className="auth-button-primary" disabled={loading}>

@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, api, setToken } from '../lib/api';
+import PasswordInput from '../components/PasswordInput';
+import { friendlyPasswordMessage } from '../lib/password';
 
 interface ResetResponse {
   ok: boolean;
@@ -16,22 +18,27 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
   // If no token in URL, this page is unusable.
   useEffect(() => {
-    if (!token) setError('This reset link is missing its token. Use the link from your email or from the forgot-password page.');
+    if (!token)
+      setError(
+        'This reset link is missing its token. Use the link from your email or from the forgot-password page.',
+      );
   }, [token]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setErrorCode(undefined);
     if (!token) {
       setError('Reset token missing.');
       return;
     }
-    if (password.length < 8) {
-      setError('Your new password must be at least 8 characters.');
+    if (password.length < 10) {
+      setError('Your new password must be at least 10 characters.');
       return;
     }
     if (password !== password2) {
@@ -55,9 +62,15 @@ export default function ResetPassword() {
       }
     } catch (cause: any) {
       if (cause instanceof ApiError) {
+        const code = (cause as ApiError & { code?: string }).code;
         // Backend returns 401 with code 'invalid_token' (or similar) for bad tokens.
         if (cause.status === 401) {
-          setError('This reset link is invalid or has expired. Request a new one from the forgot-password page.');
+          setError(
+            'This reset link is invalid or has expired. Request a new one from the forgot-password page.',
+          );
+        } else if (code?.startsWith('password_')) {
+          setErrorCode(code);
+          setError(friendlyPasswordMessage(code, cause.friendlyMessage));
         } else {
           setError(cause.friendlyMessage);
         }
@@ -73,7 +86,10 @@ export default function ResetPassword() {
     <div className="auth-shell">
       <Link className="auth-brand" to="/">
         <span className="auth-brand-mark">S</span>
-        <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
+        <span>
+          <strong>StackWatch</strong>
+          <small>Self-hosted infrastructure platform</small>
+        </span>
       </Link>
       <div className="auth-card">
         <header>
@@ -82,30 +98,34 @@ export default function ResetPassword() {
           <p>Choose a new password for your workspace account. The link expires in 1 hour.</p>
         </header>
         <form onSubmit={onSubmit} noValidate>
-          <label>
+          <label className="auth-pwd-label">
             <span>New password</span>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(null); }}
-              placeholder="At least 8 characters"
+              onChange={(v) => {
+                setPassword(v);
+                setError(null);
+                setErrorCode(undefined);
+              }}
+              errorCode={errorCode}
               autoFocus
-              autoComplete="new-password"
               required
-              minLength={8}
             />
-            <small>Minimum 8 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
+            <small>Minimum 10 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
           </label>
           <label>
             <span>Confirm new password</span>
             <input
               type="password"
               value={password2}
-              onChange={(e) => { setPassword2(e.target.value); setError(null); }}
+              onChange={(e) => {
+                setPassword2(e.target.value);
+                setError(null);
+              }}
               placeholder="Type your new password again"
               autoComplete="new-password"
               required
-              minLength={8}
+              minLength={10}
             />
           </label>
           {error && <div className="auth-error">{error}</div>}

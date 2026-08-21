@@ -61,6 +61,24 @@ export class ApiError extends Error {
       case 'unique_violation':
       case 'conflict':
         return 'An account with that email already exists.';
+      // Password policy violations (internal/auth/password_policy.go).
+      // Mirror these so any page that shows cause.friendlyMessage gets
+      // the same helpful text as the live rule checklist in
+      // <PasswordInput/>.
+      case 'password_too_short':
+        return 'Password must be at least 10 characters.';
+      case 'password_too_long':
+        return 'Password must be 128 characters or fewer.';
+      case 'password_whitespace_only':
+        return 'Password cannot be only spaces.';
+      case 'password_has_leading_trailing_space':
+        return 'Remove the spaces at the start and end of your password.';
+      case 'password_in_blocklist':
+        return 'That password is too common. Pick something less guessable.';
+      case 'password_needs_letter_and_digit_or_symbol':
+        return 'Add at least one letter and either a digit or a symbol.';
+      case 'password_must_differ':
+        return 'New password must be different from your current password.';
     }
     switch (this.status) {
       case 400:

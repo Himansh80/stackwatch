@@ -396,3 +396,56 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .auth-success-note { margin:0; color:#7387a5; font-size:12px; line-height:1.5; }
 .auth-success-actions { display:flex; gap:10px; flex-wrap:wrap; }
 .auth-success-pre { margin:0; padding:11px 13px; border:1px solid #26344a; border-radius:9px; background:#0a1322; color:#a9c0e0; font-size:11px; overflow-x:auto; word-break:break-all; }
+
+/* ========== PasswordInput (strength meter + rules) ========== */
+.pwd-input { display:flex; flex-direction:column; gap:10px; }
+.pwd-field { position:relative; }
+.pwd-field input {
+  width:100%; padding-right:64px;
+}
+.pwd-toggle {
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  padding:5px 10px; background:transparent; border:1px solid transparent;
+  color:#9fb3d4; font-size:11px; font-weight:500; border-radius:6px;
+  cursor:pointer; transition:all .15s ease;
+}
+.pwd-toggle:hover { color:#e7edf7; border-color:#26344a; background:#0b1220; }
+.pwd-toggle:focus-visible { outline:none; border-color:var(--accent); }
+
+.pwd-meter { display:flex; flex-direction:column; gap:8px; }
+.pwd-meter-bar {
+  height:4px; background:#0b1220; border:1px solid #26344a; border-radius:99px; overflow:hidden;
+}
+.pwd-meter-fill {
+  height:100%; transition:width .25s ease, background-color .25s ease; border-radius:99px;
+}
+.pwd-strength-weak { background:#ef4444; }
+.pwd-strength-ok   { background:#f59e0b; }
+.pwd-strength-strong { background:#10b981; }
+
+.pwd-meter-label { display:flex; gap:10px; align-items:center; font-size:12px; min-height:16px; }
+.pwd-strength-tag {
+  display:inline-block; padding:1px 8px; border-radius:99px; font-weight:600; font-size:10px; letter-spacing:.5px; text-transform:uppercase;
+}
+.pwd-strength-tag.pwd-strength-weak   { background:rgba(239,68,68,.15);  color:#fca5a5; border:1px solid rgba(239,68,68,.4); }
+.pwd-strength-tag.pwd-strength-ok     { background:rgba(245,158,11,.15); color:#fcd34d; border:1px solid rgba(245,158,11,.4); }
+.pwd-strength-tag.pwd-strength-strong { background:rgba(16,185,129,.15); color:#6ee7b7; border:1px solid rgba(16,185,129,.4); }
+.pwd-meter-help { color:#7387a5; font-size:11px; }
+
+.pwd-rules { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:3px; }
+.pwd-rule {
+  display:flex; align-items:center; gap:8px; padding:3px 0;
+  font-size:11px; color:#7387a5; line-height:1.3;
+}
+.pwd-rule-icon {
+  flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
+  width:14px; height:14px; border-radius:50%; font-size:9px; font-weight:700;
+  transition:all .2s ease;
+}
+.pwd-rule-passed { color:#6ee7b7; }
+.pwd-rule-passed .pwd-rule-icon { background:rgba(16,185,129,.15); color:#10b981; }
+.pwd-rule-failed { color:#7387a5; }
+.pwd-rule-failed .pwd-rule-icon { background:rgba(107,114,128,.15); color:#6b7280; }
+.pwd-rule-errored { color:#fca5a5 !important; }
+.pwd-rule-errored .pwd-rule-icon { background:rgba(239,68,68,.2) !important; color:#ef4444 !important; }
+.pwd-rule-label { flex:1; }
