@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, login, setToken } from '../lib/api';
 
@@ -14,6 +14,8 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [retryUntil, setRetryUntil] = useState<number | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const nav = useNavigate();
 
   function clientValidate(): string | null {
@@ -29,6 +31,7 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     setErrorCode(null);
+    setRetryUntil(null);
     const clientError = clientValidate();
     if (clientError) {
       setError(clientError);
@@ -44,6 +47,10 @@ export default function Login() {
       if (err instanceof ApiError) {
         setError(err.friendlyMessage);
         setErrorCode(err.code);
+        // Start a live countdown if the server told us when to retry.
+        if (err.code === 'rate_limited' && err.retryAfterSeconds && err.retryAfterSeconds > 0) {
+          setRetryUntil(Date.now() + err.retryAfterSeconds * 1000);
+        }
       } else {
         setError(err?.message || 'Login failed.');
         setErrorCode('unknown');
@@ -53,12 +60,38 @@ export default function Login() {
     }
   }
 
+  // Live countdown for the rate-limit error. Ticks once a second,
+  // recomputes the message every tick, and clears the error when the
+  // window expires so the user can try again without a stale timer.
+  useEffect(() => {
+    if (retryUntil == null) return;
+    function tick() {
+      const remaining = Math.max(0, Math.ceil((retryUntil! - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        setError(null);
+        setErrorCode(null);
+        setRetryUntil(null);
+      }
+    }
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [retryUntil]);
+
   // Forgot password is only useful when we KNOW the email is
   // registered but the password was wrong. For email_not_found the
   // right next step is "sign up" (link is in the bottom of the card),
   // and for client-validation errors the user just needs to fix the
   // form. The link is otherwise dead noise.
   const showForgotLink = errorCode === 'bad_password';
+
+  // Live rate-limit message overrides the static one once the
+  // countdown is running.
+  const errorMessage =
+    errorCode === 'rate_limited' && secondsLeft > 0
+      ? `Too many attempts. Please wait ${secondsLeft} second${secondsLeft === 1 ? '' : 's'} and try again.`
+      : error;
 
   return (
     <div className="auth-shell">
@@ -78,8 +111,9 @@ export default function Login() {
             <input
               type="email"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); if (error) { setError(null); setErrorCode(null); } }}
+              onChange={(e) => { setEmail(e.target.value); setError(null); setErrorCode(null); setRetryUntil(null); }}
               placeholder="you@example.com"
+              required
               autoFocus
               autoComplete="email"
               aria-invalid={errorCode === 'client_validation' && !EMAIL_RE.test(email.trim()) ? 'true' : undefined}
@@ -90,15 +124,16 @@ export default function Login() {
             <input
               type="password"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); if (error) { setError(null); setErrorCode(null); } }}
+              onChange={(e) => { setPassword(e.target.value); setError(null); setErrorCode(null); setRetryUntil(null); }}
               placeholder="Your password"
+              required
               autoComplete="current-password"
               aria-invalid={errorCode === 'client_validation' && password.length > 0 && password.length < 8 ? 'true' : undefined}
             />
           </label>
-          {error && <div className="auth-error"><span>{error}</span></div>}
-          <button type="submit" className="auth-button-primary" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
+          {error && <div className="auth-error"><span>{errorMessage}</span></div>}
+          <button type="submit" className="auth-button-primary" disabled={loading || secondsLeft > 0}>
+            {loading ? 'Signing in...' : secondsLeft > 0 ? `Try again in ${secondsLeft}s` : 'Sign in'}
           </button>
           {showForgotLink && (
             <p className="auth-forgot">
