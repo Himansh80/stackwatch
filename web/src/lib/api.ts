@@ -81,9 +81,16 @@ export class ApiError extends Error {
         return 'Please fill in every field correctly.';
       case 429:
         if (this.retryAfterSeconds != null && this.retryAfterSeconds > 0) {
-          return `Too many attempts. Please wait ${this.retryAfterSeconds} second${this.retryAfterSeconds === 1 ? '' : 's'} and try again.`;
+          // Plain "wait N seconds" is misleading because the user is
+          // actually locked out for the full 5-minute sliding window
+          // from their first wrong attempt. After the 60s block lifts,
+          // the next attempt gets blocked again because the same N
+          // attempts are still inside the window. The honest copy is
+          // "locked for 5 minutes" so the user understands why they
+          // keep seeing this.
+          return `Too many attempts. Account locked for 5 minutes. Try again in ${this.retryAfterSeconds} second${this.retryAfterSeconds === 1 ? '' : 's'}.`;
         }
-        return 'Too many attempts. Please wait a few minutes and try again.';
+        return 'Too many attempts. Account locked for 5 minutes. Please wait a few minutes and try again.';
       case 502:
       case 503:
       case 504:

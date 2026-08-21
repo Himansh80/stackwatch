@@ -37,6 +37,14 @@ func newLoginRateLimiter(max int, window, blockFor time.Duration) *loginRateLimi
 // recordAndCheck adds an attempt and returns (allowed, retryAfter).
 // If allowed is false, retryAfter is the duration the caller should wait
 // before retrying (zero if no specific wait is needed).
+//
+// IMPORTANT: when a key is currently blocked, the attempt is NOT
+// recorded against the sliding window and the block is NOT extended.
+// Counting blocked retries against the window would push the
+// block-window deadline further out on every retry — that's the
+// classic "stuck on 'please wait 60 seconds' forever" bug. Instead,
+// blocked keys get the actual remaining-time-until-unblock as
+// their retryAfter and no new timestamp is recorded.
 func (r *loginRateLimiter) recordAndCheck(key string) (bool, time.Duration) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -46,6 +54,9 @@ func (r *loginRateLimiter) recordAndCheck(key string) (bool, time.Duration) {
 	// 1. Is this key currently blocked?
 	if until, ok := r.blocked[key]; ok {
 		if now.Before(until) {
+			// Stay blocked. DO NOT record this attempt against the
+			// sliding window and DO NOT extend the block. Just tell
+			// the caller how long is left until the block lifts.
 			return false, until.Sub(now)
 		}
 		delete(r.blocked, key)
@@ -63,13 +74,17 @@ func (r *loginRateLimiter) recordAndCheck(key string) (bool, time.Duration) {
 		r.attempts[key] = arr[i:]
 	}
 
-	// 3. Record this attempt.
+	// 3. Record this attempt (only if NOT currently blocked — see step 1).
 	r.attempts[key] = append(r.attempts[key], now)
 
 	// 4. If we're at or past the max, block.
 	if len(r.attempts[key]) >= r.max {
-		r.blocked[key] = now.Add(r.blockFor)
-		return false, r.blockFor
+		blockUntil := now.Add(r.blockFor)
+		r.blocked[key] = blockUntil
+		// Return the actual remaining time until the block lifts, not
+		// the full blockFor duration. Lets the caller show a live
+		// countdown that actually counts down to zero.
+		return false, blockUntil.Sub(now)
 	}
 	return true, 0
 }
