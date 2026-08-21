@@ -5,15 +5,25 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stackwatch/platform/internal/auth"
 	"github.com/stackwatch/platform/internal/kernel"
 )
 
 // LoginRequest is the JSON body for POST /auth/login.
+//
+// NOTE: Password has NO min-length binding tag here — we deliberately
+// accept any non-empty password so users with legacy 8-char passwords
+// (created before the policy upgrade) can still sign in. After
+// verifying the password succeeds, if the password is < 10 chars we
+// flip `must_change_password=true` in the DB, which forces them
+// through /auth/change-password on the next request. The new policy
+// itself is enforced inside ChangePassword.
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Password string `json:"password" binding:"required"`
 }
 
 // LoginResponse is the JSON body for successful login.
@@ -82,7 +92,23 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	_, _ = h.pool.Pgx().Exec(c.Request.Context(),
 		`DELETE FROM user_failed_logins WHERE user_id = $1`, user.ID)
 
-	tok, err := h.issuer.Issue(user.ID, user.TenantID, user.Email, user.Role, user.MustChangePW)
+	// Force-change-password upgrade: if the verified password is below
+	// the new minimum length, set must_change_password=true so every
+	// subsequent request is blocked by RequireAuth until the user
+	// calls /auth/change-password with a policy-compliant new password.
+	mustChange := user.MustChangePW
+	if utf8.RuneCountInString(req.Password) < auth.MinLength {
+		if _, err := h.pool.Pgx().Exec(c.Request.Context(),
+			`UPDATE users SET must_change_password=true WHERE id=$1`, user.ID,
+		); err == nil {
+			mustChange = true
+			h.auditLog(c.Request.Context(), &user.TenantID, &user.ID,
+				"password.policy_upgrade_force_reset", user.Email, ip,
+				map[string]any{"reason": "password_below_minimum_length"})
+		}
+	}
+
+	tok, err := h.issuer.Issue(user.ID, user.TenantID, user.Email, user.Role, mustChange)
 	if err != nil {
 		kernel.RespondError(c, err)
 		return

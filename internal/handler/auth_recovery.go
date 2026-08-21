@@ -188,7 +188,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 // ResetRequest is the JSON body for POST /auth/reset.
 type ResetRequest struct {
 	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=8"`
+	NewPassword string `json:"new_password" binding:"required,min=10"`
 }
 
 // ResetPassword consumes a reset token and updates the user's password.
@@ -196,6 +196,9 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	var req ResetRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	if !validatePasswordOrRespond(c, req.NewPassword) {
 		return
 	}
 	ip := clientIP(c)
@@ -326,9 +329,14 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 // ========== POST /auth/change-password (with audit) ==========
 
 // ChangePasswordRequest is the JSON body for POST /auth/change-password.
+//
+// `old_password` has NO min-length binding tag — we need to accept
+// the user's existing password (whatever length it is) so they can
+// upgrade from a legacy 8-char password. Only the NEW password is
+// policy-validated via auth.ValidatePassword inside the handler.
 type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password" binding:"required,min=8"`
-	NewPassword string `json:"new_password" binding:"required,min=8"`
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=10"`
 }
 
 // ChangePassword verifies the current password and updates it.
@@ -352,6 +360,15 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 	if !checkHash(u.PasswordHash, req.OldPassword) {
 		kernel.RespondError(c, kernel.ErrUnauthorized)
+		return
+	}
+	// Enforce full policy (length / blocklist / shape) on the new password
+	// and reject same-as-old. We do this after the old-password check so an
+	// attacker who guesses an old password can't probe policy messages.
+	if !validatePasswordOrRespond(c, req.NewPassword) {
+		return
+	}
+	if !differFromOrRespond(c, u.PasswordHash, req.NewPassword) {
 		return
 	}
 	newHash, err := hashPassword(req.NewPassword)
@@ -447,7 +464,7 @@ func (h *AuthHandler) MagicLink(c *gin.Context) {
 // InviteRequest is the JSON body for POST /auth/accept-invite.
 type InviteRequest struct {
 	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=8"`
+	NewPassword string `json:"new_password" binding:"required,min=10"`
 }
 
 // AcceptInvite consumes an invite token and activates the user with the
@@ -459,6 +476,9 @@ func (h *AuthHandler) AcceptInvite(c *gin.Context) {
 	var req InviteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	if !validatePasswordOrRespond(c, req.NewPassword) {
 		return
 	}
 	ip := clientIP(c)

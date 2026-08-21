@@ -110,7 +110,7 @@ func (h *SetupHandler) GetSetupStatus(c *gin.Context) {
 // InitializeSetupRequest is the wizard's final submit body.
 type InitializeSetupRequest struct {
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
-	AdminPassword string `json:"admin_password" binding:"required,min=8"`
+	AdminPassword string `json:"admin_password" binding:"required,min=10"`
 	Domain        string `json:"domain"`
 	TLSMode       string `json:"tls_mode"`
 	PublicURL     string `json:"public_url"`
@@ -146,6 +146,9 @@ func (h *SetupHandler) InitializeSetup(c *gin.Context) {
 	var req InitializeSetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	if !validatePasswordOrRespond(c, req.AdminPassword) {
 		return
 	}
 	email := strings.ToLower(strings.TrimSpace(req.AdminEmail))

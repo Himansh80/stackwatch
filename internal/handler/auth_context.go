@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -98,4 +99,39 @@ func (h *AuthHandler) lookupTenant(ctx context.Context, id uuid.UUID) (*kernel.T
 // hashPassword is a thin wrapper around auth.HashPassword for handler use.
 func hashPassword(plain string) (string, error) {
 	return auth.HashPassword(plain)
+}
+
+// validatePasswordOrRespond runs auth.ValidatePassword against the supplied
+// plain password. On failure it writes the structured error response
+// (HTTP 400, with a `password_*` code) and returns false so the caller
+// can short-circuit. Use this immediately before hashing on every
+// endpoint that accepts a new password.
+func validatePasswordOrRespond(c *gin.Context, plain string) bool {
+	if err := auth.ValidatePassword(plain); err != nil {
+		var ppe *auth.PasswordPolicyError
+		if errors.As(err, &ppe) {
+			kernel.RespondErrorWithCode(c, http.StatusBadRequest, ppe.Code, ppe.Msg)
+			return false
+		}
+		// Unknown validation failure — still surface a clean error.
+		kernel.RespondErrorWithCode(c, http.StatusBadRequest, "bad_request", err.Error())
+		return false
+	}
+	return true
+}
+
+// differFromOrRespond enforces the "new password must differ from old"
+// rule. existingHash is the user's current bcrypt hash. On a violation
+// it writes the structured 400 response and returns false. On a
+// malformed-hash error (which is fine — will fail at the actual verify
+// step) it returns true to let the caller proceed.
+func differFromOrRespond(c *gin.Context, existingHash, plain string) bool {
+	if err := auth.MustDifferFrom(existingHash, plain); err != nil {
+		var ppe *auth.PasswordPolicyError
+		if errors.As(err, &ppe) {
+			kernel.RespondErrorWithCode(c, http.StatusBadRequest, ppe.Code, ppe.Msg)
+			return false
+		}
+	}
+	return true
 }

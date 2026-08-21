@@ -12,7 +12,7 @@ import (
 // SignupRequest is the JSON body for POST /auth/signup.
 type SignupRequest struct {
 	Email      string `json:"email" binding:"required,email"`
-	Password   string `json:"password" binding:"required,min=8"`
+	Password   string `json:"password" binding:"required,min=10"`
 	FullName   string `json:"full_name" binding:"required"`
 	TenantName string `json:"tenant_name" binding:"required"`
 }
@@ -25,6 +25,9 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 	email := strings.ToLower(strings.TrimSpace(req.Email))
+	if !validatePasswordOrRespond(c, req.Password) {
+		return
+	}
 	hash, err := auth.HashPassword(req.Password)
 	if err != nil {
 		kernel.RespondError(c, kernel.ErrBadRequest)

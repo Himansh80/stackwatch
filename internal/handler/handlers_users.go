@@ -32,10 +32,11 @@ type User struct {
 // ListTier0Users returns users in the caller's tenant with pagination.
 //
 // Query params (all optional):
-//   limit  int 1..200 (default 50)
-//   offset int >=0  (default 0)
-//   role   string filter by role (admin/viewer/super_admin)
-//   q      string case-insensitive substring match on email/full_name
+//
+//	limit  int 1..200 (default 50)
+//	offset int >=0  (default 0)
+//	role   string filter by role (admin/viewer/super_admin)
+//	q      string case-insensitive substring match on email/full_name
 func ListTier0Users(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)
@@ -164,7 +165,7 @@ func CreateTier0User(pool *db.Pool) gin.HandlerFunc {
 		Email    string `json:"email" binding:"required,email,max=320"`
 		FullName string `json:"full_name" binding:"max=255"`
 		Role     string `json:"role" binding:"omitempty,oneof=admin viewer"`
-		Password string `json:"password" binding:"omitempty,min=12,max=128"`
+		Password string `json:"password" binding:"omitempty,min=10,max=128"`
 	}
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)
@@ -183,6 +184,12 @@ func CreateTier0User(pool *db.Pool) gin.HandlerFunc {
 		pw := r.Password
 		if pw == "" {
 			pw = newRandomPassword()
+		}
+		// Only validate policy when the caller actually supplied a password.
+		// The auto-generated password from newRandomPassword() is already
+		// policy-compliant (built to satisfy the same constraints).
+		if r.Password != "" && !validatePasswordOrRespond(c, r.Password) {
+			return
 		}
 		hashed, err := auth.HashPassword(pw)
 		if err != nil {
