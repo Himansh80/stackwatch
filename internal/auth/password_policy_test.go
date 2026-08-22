@@ -6,20 +6,27 @@ import (
 )
 
 // Valid password = at least 10 chars, has letter + digit-or-symbol,
-// not whitespace-only, no leading/trailing whitespace, not in blocklist.
+// not whitespace-only, no leading/trailing whitespace, not in blocklist,
+// does not contain a top-1000 entry as a 4+ char substring, and
+// scores >= 40 on the entropy-based strength gate.
+//
+// The fixture set is small but each entry has been hand-checked against
+// the FULL policy (substring blocklist + score gate + class check)
+// as of the 2026-08-22 strengthening pass.
+var goodPasswords = []string{
+	"Hx42!kr9@pT",     // mixed classes, no common substrings
+	"Tr0ub4dor&3",     // xkcd classic with digit + symbol
+	"MyCat_!n_2026",   // letters + digits + symbols
+	"K8mZ!qP3@vR5",    // 12 chars, 4 classes
+	"Wx9!mK2#pL4@",    // 12 chars, 4 classes
+	"Ranchero77!Bay",  // letters + digits + symbol
+	"Sundrop#Mango42", // mixed words + numbers + symbol
+}
 
-func valid() string { return "Hunter2x42!" }
+func valid() string { return "K8mZ!qP3@vR5" }
 
 func TestValidatePassword_AcceptsValid(t *testing.T) {
-	good := []string{
-		"Hunter2x42",    // letters + digits
-		"correct horse battery staple!", // passphrase with symbol
-		"Tr0ub4dor&3",    // xkcd classic with digit + symbol
-		"MyDog9!!2026",  // letters + digits + symbols (14 chars)
-		"I-Love-Code-2026", // letters + digits + symbols
-		"ab1!@#$%^&*",   // exactly 10 chars
-	}
-	for _, p := range good {
+	for _, p := range goodPasswords {
 		if err := ValidatePassword(p); err != nil {
 			t.Errorf("ValidatePassword(%q) unexpectedly rejected: %v", p, err)
 		}
@@ -61,7 +68,7 @@ func TestValidatePassword_RejectsWhitespaceOnly(t *testing.T) {
 }
 
 func TestValidatePassword_RejectsLeadingTrailingSpace(t *testing.T) {
-	cases := []string{" Hunter2x42", "Hunter2x42 ", "  Hunter2x42  "}
+	cases := []string{" K8mZ!qP3@vR5", "K8mZ!qP3@vR5 ", "  K8mZ!qP3@vR5  "}
 	for _, p := range cases {
 		err := ValidatePassword(p)
 		if err == nil {
@@ -103,10 +110,9 @@ func TestValidatePassword_RejectsBlocklist(t *testing.T) {
 	})
 	t.Run("direct-lookup-misses-non-entries", func(t *testing.T) {
 		for _, p := range []string{
-			"correct horse battery staple",
-			"Hunter2x42",
-			"MyDog9!!2026",
-			"hunter22",
+			"K8mZ!qP3@vR5",
+			"Wx9!mK2#pL4@",
+			"Ranchero77!Bay",
 		} {
 			if inBlocklist(p) {
 				t.Errorf("inBlocklist(%q) should be false (not in top-1000)", p)
@@ -143,18 +149,47 @@ func TestValidatePassword_RejectsBlocklistCaseInsensitive(t *testing.T) {
 	}
 }
 
-func TestValidatePassword_RejectsAllLetters(t *testing.T) {
+func TestValidatePassword_RejectsContainsCommonSubstring(t *testing.T) {
+	// New in 2026-08-22: substring match catches things like
+	// "passwordpassword" that exact-match would miss.
 	cases := []string{
-		"abcdefghijk",  // 11 letters, no digit/symbol
-		"longpassword", // 12 letters
+		"passwordpassword", // contains "password"
+		"qwertyqwerty",     // contains "qwerty"
+		"adminadmin123",    // contains "admin"
+		"MyHunter2026",     // contains "hunter"
+		"I-Love-Code-2026", // contains "love" + "code"
 	}
 	for _, p := range cases {
 		err := ValidatePassword(p)
 		if err == nil {
-			t.Errorf("ValidatePassword(%q) should reject (all letters)", p)
+			t.Errorf("ValidatePassword(%q) should reject (contains common substring)", p)
+			continue
 		}
-		if err != nil && err.(*PasswordPolicyError).Code != CodePasswordNeedsLetter {
-			t.Errorf("ValidatePassword(%q) wrong code: %s", p, err.(*PasswordPolicyError).Code)
+		// Could also hit inBlocklist exact match if the substring happens
+		// to equal a blocklist entry verbatim. Both are correct rejections.
+		code := err.(*PasswordPolicyError).Code
+		if code != CodePasswordContainsCommon && code != CodePasswordInBlocklist {
+			t.Errorf("ValidatePassword(%q) wrong code: %s", p, code)
+		}
+	}
+}
+
+func TestValidatePassword_RejectsAllLetters(t *testing.T) {
+	// 10+ letters with no digit/symbol must fail the shape check.
+	cases := []string{
+		"abcdefghijk",  // 11 letters, no digit/symbol
+		"qwertyqwerty", // 12 letters (also caught by substring rule)
+	}
+	for _, p := range cases {
+		err := ValidatePassword(p)
+		if err == nil {
+			t.Errorf("ValidatePassword(%q) should reject (no digit/symbol)", p)
+			continue
+		}
+		// Could be substring rule OR class rule depending on the password.
+		code := err.(*PasswordPolicyError).Code
+		if code != CodePasswordNeedsLetter && code != CodePasswordContainsCommon && code != CodePasswordInBlocklist {
+			t.Errorf("ValidatePassword(%q) wrong code: %s", p, code)
 		}
 	}
 }
@@ -175,7 +210,7 @@ func TestValidatePassword_RejectsAllDigits(t *testing.T) {
 func TestValidatePassword_AcceptsAllSymbolsWithLetter(t *testing.T) {
 	// A long symbol-only run is fine if there's at least one letter
 	// mixed in. e.g. "!@#$%^&*()" with one letter -> still works.
-	if err := ValidatePassword("!a@#$%^&*()"); err != nil {
+	if err := ValidatePassword("!K8@#$%^&*()"); err != nil {
 		t.Errorf("ValidatePassword with mixed letter+symbol should accept: %v", err)
 	}
 }
@@ -186,6 +221,62 @@ func TestValidatePassword_BlocklistContainsKnownTop10(t *testing.T) {
 	for _, p := range []string{"password", "123456", "qwerty"} {
 		if !inBlocklist(p) {
 			t.Errorf("blocklist missing %q", p)
+		}
+	}
+}
+
+func TestValidatePassword_RejectsTooWeak(t *testing.T) {
+	// New in 2026-08-22: passes all binary rules but fails the
+	// entropy-based score gate (score < 40). The classic case the
+	// user complained about: a 15-char run of "h"s with a digit at
+	// the end used to pass all 6 rules and rate as "strong".
+	cases := []string{
+		"hhhhhhhhh1", // 10 chars, all h + 1 digit, scores < 40
+	}
+	for _, p := range cases {
+		err := ValidatePassword(p)
+		if err == nil {
+			t.Errorf("ValidatePassword(%q) should reject (too weak)", p)
+			continue
+		}
+		if err.(*PasswordPolicyError).Code != CodePasswordTooWeak {
+			t.Errorf("ValidatePassword(%q) wrong code: want %s, got %s", p, CodePasswordTooWeak, err.(*PasswordPolicyError).Code)
+		}
+	}
+}
+
+func TestScorePassword_Examples(t *testing.T) {
+	// Score sanity checks. We don't pin exact values (the algorithm
+	// is allowed to evolve) but we do pin the bucket so a refactor
+	// can't silently flip a strong password to weak or vice versa.
+	// The user's complaint was that "hhhhhhhhhhhhhh1" was rated as
+	// "strong" because all 6 binary rules passed. After 2026-08-22
+	// strengthening, it scores in "ok" or "weak" — never "strong".
+	cases := []struct {
+		pwd    string
+		bucket string // "weak" | "ok" | "strong"
+	}{
+		{"hhhhhhhhhhhhhh1", "ok"},     // 15 chars, all same letter + 1 digit (low uniqueness)
+		{"aaaaaaaaaa1", "weak"},       // contains "aaaa" substring → caught before scoring; score not used
+		{"abcdefghij1", "ok"},         // 11 chars, low uniqueness
+		{"Tr0ub4dor&3", "strong"},     // xkcd classic — well above strong
+		{"Hx42!kr9@pT", "strong"},     // 11 chars, 4 classes
+		{"K8mZ!qP3@vR5", "strong"},    // 12 chars, 4 classes
+		{"Sundrop#Mango42", "strong"}, // mixed words + numbers + symbol
+	}
+	for _, c := range cases {
+		score := ScorePassword(c.pwd)
+		var got string
+		switch {
+		case score < OKScoreThreshold:
+			got = "weak"
+		case score < StrongScoreThreshold:
+			got = "ok"
+		default:
+			got = "strong"
+		}
+		if got != c.bucket {
+			t.Errorf("ScorePassword(%q) = %d, expected bucket %q, got %q", c.pwd, score, c.bucket, got)
 		}
 	}
 }

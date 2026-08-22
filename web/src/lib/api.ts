@@ -75,8 +75,12 @@ export class ApiError extends Error {
         return 'Remove the spaces at the start and end of your password.';
       case 'password_in_blocklist':
         return 'That password is too common. Pick something less guessable.';
+      case 'password_contains_common':
+        return 'That password contains a commonly-used word. Try mixing it up.';
       case 'password_needs_letter_and_digit_or_symbol':
         return 'Add at least one letter and either a digit or a symbol.';
+      case 'password_too_weak':
+        return 'That password is too simple — try mixing in some variety (different characters, no repeats, no obvious patterns).';
       case 'password_must_differ':
         return 'New password must be different from your current password.';
     }

@@ -12,6 +12,7 @@ package auth
 
 import (
 	"errors"
+	"math"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -32,6 +33,14 @@ const MinLength = 10
 // server is silently shortening.
 const MaxLength = 72
 
+// Score thresholds for the strength gate. Scores below OKThreshold
+// are rejected outright on signup/change-password/reset with
+// CodePasswordTooWeak. Scores between OK and Strong are accepted but
+// the UI shows "ok" instead of "strong". Mirrors the frontend's
+// scoring in web/src/lib/password.ts — keep in sync.
+const OKScoreThreshold = 40
+const StrongScoreThreshold = 70
+
 // PasswordPolicyError codes. Returned as the structured .Err field on
 // a kernel-style error so handlers + frontend can switch on them.
 const (
@@ -41,6 +50,8 @@ const (
 	CodePasswordLeadingTrailing = "password_has_leading_trailing_space"
 	CodePasswordInBlocklist     = "password_in_blocklist"
 	CodePasswordNeedsLetter     = "password_needs_letter_and_digit_or_symbol"
+	CodePasswordContainsCommon  = "password_contains_common"
+	CodePasswordTooWeak         = "password_too_weak"
 )
 
 // PasswordPolicyError wraps a violation with a stable error code.
@@ -1072,6 +1083,126 @@ func inBlocklist(plain string) bool {
 	return ok
 }
 
+// containsCommonSubstring reports whether plain contains any entry
+// from the top-1000 blocklist as a case-insensitive substring of
+// length >= 4. Catches "passwordpassword" (contains "password"),
+// "qwertyqwerty", "adminadmin123" etc. that the exact-match
+// blocklist would miss.
+//
+// 1000 entries * average word length ~7 chars = ~7000 char
+// comparisons worst case. Fast enough to run on every signup /
+// change-password / reset-password request.
+func containsCommonSubstring(plain string) bool {
+	lower := strings.ToLower(plain)
+	if len(lower) == 0 {
+		return false
+	}
+	for word := range blocklist {
+		if len(word) >= 4 && strings.Contains(lower, word) {
+			return true
+		}
+	}
+	return false
+}
+
+// ScorePassword returns a 0-100 score that approximates the actual
+// entropy / guessability of plain. Same algorithm as the frontend
+// (web/src/lib/password.ts scorePassword) — keep in sync.
+//
+// Components:
+//   - Length tier (0-40 pts): longer is better, with diminishing returns.
+//   - Character diversity (0-25 pts): lowercase/uppercase/digit/symbol.
+//   - Uniqueness (0-25 pts): uniqueChars / length, scaled.
+//   - No obvious patterns (0-10 pts): no 4+ char runs, not in common-passwords.
+func ScorePassword(plain string) int {
+	pwd := plain
+	if len(pwd) == 0 {
+		return 0
+	}
+
+	// 1. Length tier (0-40 pts).
+	lengthScore := 0
+	switch {
+	case len(pwd) >= 10 && len(pwd) <= 11:
+		lengthScore = 15
+	case len(pwd) <= 13:
+		lengthScore = 22
+	case len(pwd) <= 15:
+		lengthScore = 28
+	case len(pwd) <= 19:
+		lengthScore = 33
+	case len(pwd) <= 31:
+		lengthScore = 38
+	default:
+		lengthScore = 40
+	}
+
+	// 2. Character diversity (0-25 pts).
+	diversityScore := 0
+	hasLower, hasUpper, hasDigit, hasSymbol := false, false, false, false
+	for _, r := range pwd {
+		switch {
+		case unicode.IsLower(r):
+			hasLower = true
+		case unicode.IsUpper(r):
+			hasUpper = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		case unicode.IsPunct(r) || unicode.IsSymbol(r):
+			hasSymbol = true
+		}
+	}
+	if hasLower {
+		diversityScore += 6
+	}
+	if hasUpper {
+		diversityScore += 6
+	}
+	if hasDigit {
+		diversityScore += 6
+	}
+	if hasSymbol {
+		diversityScore += 6
+	}
+	if hasLower && hasUpper && hasDigit && hasSymbol {
+		diversityScore++
+	}
+
+	// 3. Uniqueness (0-25 pts). Penalize runs and low diversity
+	// heavily. "hhhhhhhhhhhhhh1" has 2 unique chars out of 15
+	// (ratio 0.13) → ~3 pts. We use a quadratic curve so that very
+	// low ratios (< 0.3) get crushed: uniqueRatio^1.5 * 25.
+	seen := make(map[rune]struct{}, len(pwd))
+	for _, r := range pwd {
+		seen[r] = struct{}{}
+	}
+	uniqueRatio := float64(len(seen)) / float64(len(pwd))
+	uniquenessScore := int(math.Pow(uniqueRatio, 1.5) * 25)
+
+	// 4. No obvious patterns (0-10 pts).
+	patternScore := 0
+	if !hasLongRun(pwd) {
+		patternScore += 5
+	}
+	if !inBlocklist(pwd) {
+		patternScore += 5
+	}
+
+	return lengthScore + diversityScore + uniquenessScore + patternScore
+}
+
+// hasLongRun reports whether plain contains a run of 4+ identical
+// characters in a row (e.g. "hhhh", "1111", "aaaa"). Simple regex
+// because that's all we need.
+func hasLongRun(plain string) bool {
+	for i := 0; i+3 < len(plain); i++ {
+		if plain[i] == plain[i+1] && plain[i+1] == plain[i+2] && plain[i+2] == plain[i+3] {
+			return true
+		}
+	}
+	return false
+}
+
 // ValidatePassword applies the full policy and returns the first
 // violation found. nil = password is acceptable.
 func ValidatePassword(plain string) error {
@@ -1105,10 +1236,22 @@ func ValidatePassword(plain string) error {
 			Msg:  "that password is too common; pick something less guessable",
 		}
 	}
+	if containsCommonSubstring(plain) {
+		return &PasswordPolicyError{
+			Code: CodePasswordContainsCommon,
+			Msg:  "that password contains a commonly-used word; try mixing it up",
+		}
+	}
 	if !hasLetterAndDigitOrSymbol(plain) {
 		return &PasswordPolicyError{
 			Code: CodePasswordNeedsLetter,
 			Msg:  "add at least one letter and either a digit or a symbol",
+		}
+	}
+	if ScorePassword(plain) < OKScoreThreshold {
+		return &PasswordPolicyError{
+			Code: CodePasswordTooWeak,
+			Msg:  "that password is too simple — try mixing in some variety (different characters, no repeats, no obvious patterns)",
 		}
 	}
 	return nil
