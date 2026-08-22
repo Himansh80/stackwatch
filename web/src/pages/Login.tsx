@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, login, setToken } from '../lib/api';
+import PasswordField from '../components/PasswordField';
 
 // Lightweight RFC-5322-ish check. Same shape browser's <input type="email">
 // uses, but we surface the error inline instead of relying on the
@@ -121,14 +122,13 @@ export default function Login() {
           </label>
           <label>
             <span>Password</span>
-            <input
-              type="password"
+            <PasswordField
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(null); setErrorCode(null); setRetryUntil(null); }}
+              onChange={(v) => { setPassword(v); setError(null); setErrorCode(null); setRetryUntil(null); }}
               placeholder="Your password"
               required
               autoComplete="current-password"
-              aria-invalid={errorCode === 'client_validation' && password.length > 0 && password.length < 8 ? 'true' : undefined}
+              ariaInvalid={errorCode === 'client_validation' && password.length > 0 && password.length < 8 ? 'true' : undefined}
             />
           </label>
           {error && <div className="auth-error"><span>{errorMessage}</span></div>}

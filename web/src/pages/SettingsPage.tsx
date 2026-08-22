@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, clearToken, getToken, setToken } from '../lib/api';
 import ProfileMenu from '../components/ProfileMenu';
 import PasswordInput from '../components/PasswordInput';
+import PasswordField from '../components/PasswordField';
 import { friendlyPasswordMessage } from '../lib/password';
 
 type Tenant = {
@@ -228,7 +229,12 @@ export default function SettingsPage() {
                   <form onSubmit={onChangePassword} className="sw-form-grid" style={{ padding: '18px 20px 20px' }}>
                     <label className="sw-field">
                       <span>Current password</span>
-                      <input type="password" value={oldPw} onChange={(e) => { setOldPw(e.target.value); setPwError(null); setPwErrorCode(undefined); setPwMessage(null); }} autoComplete="current-password" required />
+                      <PasswordField
+                        value={oldPw}
+                        onChange={(v) => { setOldPw(v); setPwError(null); setPwErrorCode(undefined); setPwMessage(null); }}
+                        autoComplete="current-password"
+                        required
+                      />
                     </label>
                     <label className="sw-field">
                       <span>New password</span>
@@ -244,7 +250,13 @@ export default function SettingsPage() {
                     </label>
                     <label className="sw-field">
                       <span>Confirm new password</span>
-                      <input type="password" value={newPw2} onChange={(e) => { setNewPw2(e.target.value); setPwError(null); setPwMessage(null); }} autoComplete="new-password" required minLength={10} />
+                      <PasswordField
+                        value={newPw2}
+                        onChange={(v) => { setNewPw2(v); setPwError(null); setPwMessage(null); }}
+                        autoComplete="new-password"
+                        required
+                        minLength={10}
+                      />
                     </label>
                     {pwError && <div className="auth-error" style={{ gridColumn: '1 / -1' }}>{pwError}</div>}
                     {pwMessage && !pwError && <div className="dash-banner-ok" style={{ gridColumn: '1 / -1' }}>{pwMessage}</div>}

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, api, setToken } from '../lib/api';
 import PasswordInput from '../components/PasswordInput';
+import PasswordField from '../components/PasswordField';
 import { friendlyPasswordMessage } from '../lib/password';
 
 interface ResetResponse {
@@ -115,13 +116,9 @@ export default function ResetPassword() {
           </label>
           <label>
             <span>Confirm new password</span>
-            <input
-              type="password"
+            <PasswordField
               value={password2}
-              onChange={(e) => {
-                setPassword2(e.target.value);
-                setError(null);
-              }}
+              onChange={(v) => { setPassword2(v); setError(null); }}
               placeholder="Type your new password again"
               autoComplete="new-password"
               required
