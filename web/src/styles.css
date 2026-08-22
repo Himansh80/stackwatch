@@ -399,10 +399,17 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 
 /* ========== PasswordInput (strength meter + rules) ========== */
 .pwd-input { display:flex; flex-direction:column; gap:10px; }
-.pwd-field { position:relative; }
-.pwd-field input {
-  width:100%; padding-right:64px;
-}
+/* Position context for the eye-icon toggle. Doubling the class bumps
+   specificity above .auth-card input so position:relative sticks. */
+.pwd-field.pwd-field { position:relative; }
+/* Default padding matches the surrounding .auth-card input rule
+   (11px 13px). When the eye-icon toggle is present, the :has() rule
+   below bumps padding-right to make room. */
+.pwd-field input { width:100%; }
+.pwd-field:has(.pwd-toggle-eye) input { padding-right:48px; }
+
+/* Text-button variant (legacy, kept for any other .pwd-toggle usages
+   that don't get the eye-icon class). */
 .pwd-toggle {
   position:absolute; right:6px; top:50%; transform:translateY(-50%);
   padding:5px 10px; background:transparent; border:1px solid transparent;
@@ -411,6 +418,19 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 }
 .pwd-toggle:hover { color:#e7edf7; border-color:#26344a; background:#0b1220; }
 .pwd-toggle:focus-visible { outline:none; border-color:var(--accent); }
+
+/* Eye-icon variant: square hit area, sits inside the right edge. */
+.pwd-toggle-eye {
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:36px; height:36px;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:0; background:transparent; border:1px solid transparent;
+  color:#9fb3d4; border-radius:6px; cursor:pointer;
+  transition:color .15s ease, background .15s ease, border-color .15s ease;
+}
+.pwd-toggle-eye:hover { color:#e7edf7; border-color:#26344a; background:#0b1220; }
+.pwd-toggle-eye:focus-visible { outline:none; border-color:var(--accent); }
+.pwd-toggle-eye[aria-pressed="true"] { color:var(--accent); }
 
 .pwd-meter { display:flex; flex-direction:column; gap:8px; }
 .pwd-meter-bar {
@@ -450,20 +470,4 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .pwd-rule-errored .pwd-rule-icon { background:rgba(239,68,68,.2) !important; color:#ef4444 !important; }
 .pwd-rule-label { flex:1; }
 
-/* ========== PasswordField / PasswordInput show-hide eye toggle ========== */
-/* Square hit area, sits inside the right edge of the field. Sized so
-   the input's existing 64px right-padding (line 404) lines up cleanly
-   regardless of whether the icon is showing or not. */
-.pwd-toggle-eye {
-  width:36px; height:36px;
-  display:inline-flex; align-items:center; justify-content:center;
-  padding:0; background:transparent; border:1px solid transparent;
-  color:#9fb3d4; border-radius:6px; cursor:pointer;
-  transition:color .15s ease, background .15s ease, border-color .15s ease;
-}
-.pwd-toggle-eye:hover { color:#e7edf7; border-color:#26344a; background:#0b1220; }
-.pwd-toggle-eye:focus-visible { outline:none; border-color:var(--accent); }
-.pwd-toggle-eye[aria-pressed="true"] { color:var(--accent); }
-/* When the toggle is rendered, give the input a little more breathing
-   room so the eye icon doesn't crowd the typed text. */
-.pwd-field:has(.pwd-toggle-eye) input { padding-right:56px; }
+
