@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createTrueNASHost, deleteTrueNASHost, listTrueNASHosts, testTrueNASHost, truenasCall, TNHost, TNRow } from '../lib/truenas';
+import FilterBar from '../components/FilterBar';
 
 type Section = { id: string; label: string; path: string };
 const sections: Section[] = [
@@ -55,6 +56,10 @@ export default function TrueNASWorkspace() {
   const [showAction, setShowAction] = useState(false);
   const [actionJSON, setActionJSON] = useState('{\n  "name": "example"\n}');
   const [hostForm, setHostForm] = useState({ name: '', base_url: '', username: '', password: '', api_key: '', verify_tls: false });
+  // Client-side filter for the live upstream response table. The
+  // JSON-RPC payload is small enough that filtering in-place is
+  // fine — no need for a backend roundtrip per keystroke.
+  const [search, setSearch] = useState('');
   const selected = useMemo(() => hosts.find((host) => host.id === hostId), [hosts, hostId]);
   const current = sections.find((item) => item.id === section) ?? sections[0];
 
@@ -120,7 +125,24 @@ export default function TrueNASWorkspace() {
       {message && <div className="sw-alert sw-alert-success"><strong>Success</strong><span>{message}</span><button onClick={() => setMessage('')}>×</button></div>}{error && <div className="sw-alert sw-alert-error"><strong>Error</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
       {showHostForm && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Secure registration</span><h2>Connect a TrueNAS SCALE system</h2></div></div><form className="sw-form-grid" onSubmit={submitHost}><label className="sw-field"><span>Name</span><input required value={hostForm.name} onChange={(e) => setHostForm({ ...hostForm, name: e.target.value })} placeholder="e.g. storage-prod" /></label><label className="sw-field"><span>Base URL</span><input required value={hostForm.base_url} onChange={(e) => setHostForm({ ...hostForm, base_url: e.target.value })} placeholder="https://truenas.example.com" /></label><label className="sw-field"><span>Username</span><input value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} /></label><label className="sw-field"><span>Password</span><input type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} /></label><label className="sw-field"><span>API key (optional)</span><input type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} /></label><label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label><div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowHostForm(false)}>Cancel</button><button type="submit" className="sw-button sw-button-primary" disabled={busy}>Test and save</button></div></form></section>}
       {!hostId && <section className="sw-panel"><div className="sw-empty sw-empty-large"><div className="sw-empty-icon">◇</div><h3>No TrueNAS host registered</h3><p>Add a TrueNAS SCALE host to manage pools, datasets, shares, iSCSI, snapshots, disks, users, services, boot environments, and cloud sync from StackWatch.</p><button className="sw-button sw-button-primary" onClick={() => setShowHostForm(true)}>Register first host</button></div></section>}
-      {hostId && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Live upstream response</span><h2>{busy ? 'Loading…' : `${rows.length} records`}</h2></div>{selected && <span className={`sw-status ${selected.status === 'online' ? 'status-good' : 'status-neutral'}`}>{selected.status ?? 'unknown'}</span>}</div>{rows.length ? <div className="sw-table-wrap"><table className="sw-table"><thead><tr>{Object.keys(rows[0]).slice(0, 8).map((key) => <th key={key}>{key}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? row.name ?? index)}>{Object.keys(rows[0]).slice(0, 8).map((key) => <td key={key}>{value(row, key)}</td>)}</tr>)}</tbody></table></div> : <div className="sw-empty">{busy ? 'Loading live data…' : 'No records returned by TrueNAS.'}</div>}<pre className="sw-json">{JSON.stringify(raw, null, 2)}</pre></section>}
+      {hostId && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Live upstream response</span><h2>{busy ? 'Loading…' : `${rows.length} records`}</h2></div>{selected && <span className={`sw-status ${selected.status === 'online' ? 'status-good' : 'status-neutral'}`}>{selected.status ?? 'unknown'}</span>}</div>
+        <FilterBar search={search} onSearchChange={setSearch} placeholder={`Filter ${current.label.toLowerCase()} by name, ID, or any column…`} ariaLabel={`Search ${current.label}`} />
+        {(() => {
+          const q = search.trim().toLowerCase();
+          const filtered = q ? rows.filter((row) => {
+            for (const key in row) {
+              const v = row[key];
+              if (v === null || v === undefined) continue;
+              if (String(v).toLowerCase().includes(q)) return true;
+            }
+            return false;
+          }) : rows;
+          if (!rows.length) return <div className="sw-empty">{busy ? 'Loading live data…' : 'No records returned by TrueNAS.'}</div>;
+          if (!filtered.length) return <div className="sw-empty"><strong>No matches for &ldquo;{search}&rdquo;</strong><span>Try a different search term, or clear the field to see all {rows.length} row{rows.length === 1 ? '' : 's'}.</span></div>;
+          return <div className="sw-table-wrap"><table className="sw-table"><thead><tr>{Object.keys(rows[0]).slice(0, 8).map((key) => <th key={key}>{key}</th>)}</tr></thead><tbody>{filtered.map((row, index) => <tr key={String(row.id ?? row.name ?? index)}>{Object.keys(rows[0]).slice(0, 8).map((key) => <td key={key}>{value(row, key)}</td>)}</tr>)}</tbody></table></div>;
+        })()}
+        <pre className="sw-json">{JSON.stringify(raw, null, 2)}</pre>
+      </section>}
       {hostId && <div className="sw-danger-zone"><div><strong>Remove saved connection</strong><span>This removes StackWatch credentials only; it does not delete anything on TrueNAS.</span></div><button className="sw-button sw-button-danger" onClick={() => void removeHost()} disabled={busy}>Remove host</button></div>}
       {showAction && <div className="sw-modal-backdrop"><div className="sw-modal"><div className="sw-panel-head"><div><span className="sw-eyebrow">Authenticated mutation</span><h2>Create {current.label}</h2></div></div><form onSubmit={runAction}><textarea className="sw-json-editor" value={actionJSON} onChange={(e) => setActionJSON(e.target.value)} spellCheck={false} /><div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowAction(false)}>Cancel</button><button className="sw-button sw-button-primary" disabled={busy}>Submit action</button></div></form></div></div>}
     </main></div></div>;

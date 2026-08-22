@@ -1,5 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
+import FilterBar from '../FilterBar';
 import {
   ProxmoxHost,
   ProxmoxNode,
@@ -90,11 +91,61 @@ function Stat({ label, value, hint, accent = 'cyan' }: { label: string; value: R
   return <div className={`sw-stat sw-stat-${accent}`}><span>{label}</span><strong>{value}</strong>{hint && <small>{hint}</small>}</div>;
 }
 
-function DataTable({ rows, columns, empty = 'No records returned from this host.', onRowClick }: {
+/**
+ * SearchablePanel — Panel + FilterBar + DataTable in one. Section
+ * components declare a title, eyebrow, optional actions slot, and a
+ * rows/columns DataTable spec; the FilterBar search field filters
+ * rows in place without lifting state to the parent. Lets every
+ * Proxmox workspace section get a search box "for free" without
+ * each section component having to declare a useState + memo.
+ *
+ * We deliberately don't expose chip filters here — those need backend
+ * counts we don't have, and they complicate the empty state. Search
+ * alone is the highest-leverage 80%.
+ */
+function SearchablePanel({
+  title,
+  eyebrow,
+  actions,
+  rows,
+  columns,
+  empty,
+  searchPlaceholder,
+  onRowClick,
+}: {
+  title: string;
+  eyebrow?: string;
+  actions?: React.ReactNode;
+  rows: Row[];
+  columns?: TableColumn[];
+  empty?: string;
+  searchPlaceholder?: string;
+  onRowClick?: (row: Row) => void;
+}) {
+  const [search, setSearch] = useState('');
+  return <Panel title={title} eyebrow={eyebrow} actions={actions}>
+    <FilterBar
+      search={search}
+      onSearchChange={setSearch}
+      placeholder={searchPlaceholder || `Search ${title.toLowerCase()}...`}
+      ariaLabel={`Search ${title}`}
+    />
+    <DataTable rows={rows} columns={columns} empty={empty} onRowClick={onRowClick} search={search} />
+  </Panel>;
+}
+
+function DataTable({ rows, columns, empty = 'No records returned from this host.', onRowClick, search = '' }: {
   rows: Row[];
   columns?: TableColumn[];
   empty?: string;
   onRowClick?: (row: Row) => void;
+  /**
+   * Optional case-insensitive substring filter applied across all
+   * cell values. Datadog-style client-side filter that doesn't
+   * require a backend round-trip — fine for the workspace page
+   * which already loads the full row set.
+   */
+  search?: string;
 }) {
   const detected: TableColumn[] = useMemo(() => {
     if (columns) return columns;
@@ -102,9 +153,25 @@ function DataTable({ rows, columns, empty = 'No records returned from this host.
     rows.slice(0, 20).forEach((row) => Object.keys(row).slice(0, 10).forEach((key) => keys.add(key)));
     return Array.from(keys).slice(0, 8).map((key) => ({ key, label: key.replaceAll('_', ' ') }));
   }, [columns, rows]);
+  const q = search.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!q) return rows;
+    return rows.filter((row) => {
+      // Scan every key once per row. We deliberately scan the raw
+      // row object (not just detected.columns) so search catches
+      // fields the auto-detected columns didn't surface.
+      for (const key in row) {
+        const value = row[key];
+        if (value === null || value === undefined) continue;
+        if (String(value).toLowerCase().includes(q)) return true;
+      }
+      return false;
+    });
+  }, [rows, q]);
   if (!rows.length) return <div className="sw-empty">{empty}</div>;
+  if (!filtered.length) return <div className="sw-empty"><strong>No matches for &ldquo;{search}&rdquo;</strong><span>Try a different search term, or clear the field to see all {rows.length} row{rows.length === 1 ? '' : 's'}.</span></div>;
   return <div className="sw-table-wrap"><table className="sw-table"><thead><tr>{detected.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>
-    {rows.map((row, index) => <tr key={readString(row.id) || `${index}`} onClick={() => onRowClick?.(row)} className={onRowClick ? 'sw-row-clickable' : ''}>
+    {filtered.map((row, index) => <tr key={readString(row.id) || `${index}`} onClick={() => onRowClick?.(row)} className={onRowClick ? 'sw-row-clickable' : ''}>
       {detected.map((column) => <td key={column.key}>{column.render ? column.render(row) : valueFor(row, column.key)}</td>)}
     </tr>)}
   </tbody></table></div>;
@@ -439,49 +506,59 @@ function Overview({ nodes, resources, hostState, onResource }: { nodes: ProxmoxN
   const stopped = resources.filter((row) => readString(row.status).toLowerCase() === 'stopped').length;
   return <>
     <div className="sw-stat-grid"><Stat label="Cluster nodes" value={nodes.length} hint="Live from Proxmox" /><Stat label="Resources" value={resources.length} hint={`${running} running · ${stopped} stopped`} accent="blue" /><Stat label="Connection" value={readString(objectFrom(hostState.connectivity).ok) === 'false' ? 'Degraded' : 'Healthy'} hint="Last live test" accent="green" /><Stat label="Cluster mode" value={readString(objectFrom(hostState.cluster).type || hostState.status || 'standalone')} hint="Reported by host" accent="purple" /></div>
-    <Panel title="Nodes" eyebrow="Compute fabric"><DataTable rows={nodes} columns={[{ key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'maxcpu', label: 'CPU capacity' }, { key: 'maxmem', label: 'Memory', render: (row) => formatBytes(row.maxmem) }, { key: 'uptime', label: 'Uptime', render: (row) => row.uptime ? `${Math.floor(Number(row.uptime) / 86400)}d` : '—' }]} /></Panel>
-    <Panel title="Cluster resources" eyebrow="VMs and containers"><DataTable rows={resources} onRowClick={onResource} columns={[{ key: 'type', label: 'Type' }, { key: 'vmid', label: 'ID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'cpu', label: 'CPU', render: (row) => formatPercent(row.cpu) }, { key: 'mem', label: 'Memory', render: (row) => formatBytes(row.mem) }]} /></Panel>
+    <SearchablePanel title="Nodes" eyebrow="Compute fabric" rows={nodes} columns={[{ key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'maxcpu', label: 'CPU capacity' }, { key: 'maxmem', label: 'Memory', render: (row) => formatBytes(row.maxmem) }, { key: 'uptime', label: 'Uptime', render: (row) => row.uptime ? `${Math.floor(Number(row.uptime) / 86400)}d` : '—' }]} />
+    <SearchablePanel title="Cluster resources" eyebrow="VMs and containers" rows={resources} onRowClick={onResource} columns={[{ key: 'type', label: 'Type' }, { key: 'vmid', label: 'ID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'cpu', label: 'CPU', render: (row) => formatPercent(row.cpu) }, { key: 'mem', label: 'Memory', render: (row) => formatBytes(row.mem) }]} />
   </>;
 }
 
 function Compute({ nodes, resources, selectedNode, setSelectedNode, showCreate, setShowCreate, form, setForm, onCreate, onLifecycle, loading }: { nodes: ProxmoxNode[]; resources: ProxmoxResource[]; selectedNode: string; setSelectedNode: (value: string) => void; showCreate: 'vm' | 'lxc' | null; setShowCreate: (value: 'vm' | 'lxc' | null) => void; form: typeof emptyVM; setForm: (value: typeof emptyVM) => void; onCreate: (event: FormEvent) => void; onLifecycle: (resource: ProxmoxResource, action: string) => void; loading: boolean }) {
+  // Local search state — DataTable filters by this string across every
+  // column. The compute fleet can have hundreds of VMs, so search is
+  // the difference between finding a guest and giving up.
+  const [search, setSearch] = useState('');
   const nodeResources = resources.filter((row) => !selectedNode || readString(row.node) === selectedNode);
   return <>
     <Panel title="Compute fleet" eyebrow="QEMU + LXC" actions={<><select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">All nodes</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select><Button tone="primary" onClick={() => setShowCreate('vm')}>+ Create VM</Button><Button tone="quiet" onClick={() => setShowCreate('lxc')}>+ Create LXC</Button></>}>
-      <DataTable rows={nodeResources} empty={loading ? 'Loading live resources…' : 'No VMs or containers on this node.'} columns={[{ key: 'type', label: 'Type' }, { key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'cpu', label: 'CPU', render: (row) => formatPercent(row.cpu) }, { key: 'mem', label: 'Memory', render: (row) => formatBytes(row.mem) }, { key: 'actions', label: 'Actions', render: (row) => <div className="sw-row-actions"><Button tone="quiet" onClick={() => void onLifecycle(row as ProxmoxResource, 'start')}>Start</Button><Button tone="quiet" onClick={() => void onLifecycle(row as ProxmoxResource, 'shutdown')}>Stop</Button><Button tone="quiet" onClick={() => void onLifecycle(row as ProxmoxResource, 'reboot')}>Reboot</Button></div> }]} />
+      <FilterBar
+        search={search}
+        onSearchChange={setSearch}
+        placeholder="Search workloads on this node..."
+        ariaLabel="Search node workloads"
+      />
+      <DataTable rows={nodeResources} search={search} empty={loading ? 'Loading live resources…' : 'No VMs or containers on this node.'} columns={[{ key: 'type', label: 'Type' }, { key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'cpu', label: 'CPU', render: (row) => formatPercent(row.cpu) }, { key: 'mem', label: 'Memory', render: (row) => formatBytes(row.mem) }, { key: 'actions', label: 'Actions', render: (row) => <div className="sw-row-actions"><Button tone="quiet" onClick={() => void onLifecycle(row as ProxmoxResource, 'start')}>Start</Button><Button tone="quiet" onClick={() => void onLifecycle(row as ProxmoxResource, 'shutdown')}>Stop</Button><Button tone="quiet" onClick={() => void onLifecycle(row as ProxmoxResource, 'reboot')}>Reboot</Button></div> }]} />
     </Panel>
     {showCreate && <Panel title={`Create ${showCreate === 'vm' ? 'QEMU virtual machine' : 'LXC container'}`} eyebrow={`On node ${selectedNode || 'select a node'}`}><form className="sw-form-grid" onSubmit={onCreate}><FormField label="VMID" value={form.vmid} required type="number" min="100" onChange={(value) => setForm({ ...form, vmid: value })} /><FormField label={showCreate === 'vm' ? 'Name' : 'Hostname'} value={form.name} required onChange={(value) => setForm({ ...form, name: value })} /><FormField label="Memory MB" value={form.memory_mb} required type="number" min="128" onChange={(value) => setForm({ ...form, memory_mb: value })} /><FormField label="CPU cores" value={form.cores} required type="number" min="1" onChange={(value) => setForm({ ...form, cores: value })} /><FormField label="Disk GB" value={form.disk_gb} required type="number" min="1" onChange={(value) => setForm({ ...form, disk_gb: value })} /><FormField label="Storage" value={form.storage} onChange={(value) => setForm({ ...form, storage: value })} /><FormField label="Bridge" value={form.bridge} onChange={(value) => setForm({ ...form, bridge: value })} /><FormField label={showCreate === 'vm' ? 'ISO path (optional)' : 'OS template (optional)'} value={form.iso} onChange={(value) => setForm({ ...form, iso: value })} /><div className="sw-form-actions"><Button tone="quiet" onClick={() => setShowCreate(null)}>Cancel</Button><Button type="submit" tone="primary">Queue creation</Button></div></form></Panel>}
   </>;
 }
 
 function StorageView({ nodes, selectedNode, setSelectedNode, storage, disks, zfs, content, selectedStorage, onContent }: { nodes: ProxmoxNode[]; selectedNode: string; setSelectedNode: (value: string) => void; storage: Row[]; disks: Row[]; zfs: Row[]; content: Row[]; selectedStorage: string; onContent: (storage: string) => void }) {
-  return <><Panel title="Storage pools" eyebrow="Datacenter storage" actions={<select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">Select node</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select>}><DataTable rows={storage} columns={[{ key: 'storage', label: 'Storage' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'content', label: 'Content' }, { key: 'total', label: 'Capacity', render: (row) => formatBytes(row.total) }, { key: 'used', label: 'Used', render: (row) => formatBytes(row.used) }, { key: 'actions', label: 'Browse', render: (row) => <Button tone="quiet" onClick={() => onContent(readString(row.storage || row.name))}>View content</Button> }]} /></Panel><div className="sw-two-col"><Panel title={selectedStorage ? `Content · ${selectedStorage}` : 'Storage content'} eyebrow="Images, templates and volumes"><DataTable rows={content} empty="Choose View content on a storage pool." /></Panel><Panel title="Physical disks" eyebrow="Node inventory"><DataTable rows={disks} empty="Select a node to inspect disks." /></Panel></div><Panel title="ZFS pools" eyebrow="Node inventory"><DataTable rows={zfs} empty="No ZFS pools reported by this node." /></Panel></>;
+  return <><SearchablePanel title="Storage pools" eyebrow="Datacenter storage" actions={<select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">Select node</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select>} rows={storage} columns={[{ key: 'storage', label: 'Storage' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'content', label: 'Content' }, { key: 'total', label: 'Capacity', render: (row) => formatBytes(row.total) }, { key: 'used', label: 'Used', render: (row) => formatBytes(row.used) }, { key: 'actions', label: 'Browse', render: (row) => <Button tone="quiet" onClick={() => onContent(readString(row.storage || row.name))}>View content</Button> }]} /><div className="sw-two-col"><SearchablePanel title={selectedStorage ? `Content · ${selectedStorage}` : 'Storage content'} eyebrow="Images, templates and volumes" rows={content} empty="Choose View content on a storage pool." /><SearchablePanel title="Physical disks" eyebrow="Node inventory" rows={disks} empty="Select a node to inspect disks." /></div><SearchablePanel title="ZFS pools" eyebrow="Node inventory" rows={zfs} empty="No ZFS pools reported by this node." /></>;
 }
 
 function NetworkView({ nodes, selectedNode, setSelectedNode, network, firewall, ipsets }: { nodes: ProxmoxNode[]; selectedNode: string; setSelectedNode: (value: string) => void; network: Row[]; firewall: Row[]; ipsets: Row[] }) {
-  return <><Panel title="Network interfaces" eyebrow="Node networking" actions={<select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">Select node</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select>}><DataTable rows={network} empty="Select a node to load interfaces." /></Panel><div className="sw-two-col"><Panel title="Firewall rules" eyebrow="Node firewall"><DataTable rows={firewall} /></Panel><Panel title="IP sets" eyebrow="Cluster firewall"><DataTable rows={ipsets} /></Panel></div></>;
+  return <><SearchablePanel title="Network interfaces" eyebrow="Node networking" actions={<select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">Select node</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select>} rows={network} empty="Select a node to load interfaces." /><div className="sw-two-col"><SearchablePanel title="Firewall rules" eyebrow="Node firewall" rows={firewall} /><SearchablePanel title="IP sets" eyebrow="Cluster firewall" rows={ipsets} /></div></>;
 }
 
 function AccessView({ users, selectedUser, onTokens }: { users: Row[]; selectedUser: Row | null; onTokens: (row: Row) => void }) {
-  return <div className="sw-two-col"><Panel title="Proxmox users" eyebrow="Access control"><DataTable rows={users} onRowClick={onTokens} columns={[{ key: 'userid', label: 'User' }, { key: 'comment', label: 'Comment' }, { key: 'enable', label: 'Enabled', render: (row) => displayValue(row.enable ?? row.enabled) }, { key: 'expire', label: 'Expires' }, { key: 'actions', label: 'Tokens', render: (row) => <Button tone="quiet" onClick={() => onTokens(row)}>View tokens</Button> }]} /></Panel><Panel title={selectedUser ? `API tokens · ${readString(selectedUser.userid || selectedUser.id)}` : 'API tokens'} eyebrow="Credentials"><DataTable rows={listFrom(selectedUser?.tokens, 'tokens')} empty="Select a user to load API tokens." /></Panel></div>;
+  return <div className="sw-two-col"><SearchablePanel title="Proxmox users" eyebrow="Access control" rows={users} onRowClick={onTokens} columns={[{ key: 'userid', label: 'User' }, { key: 'comment', label: 'Comment' }, { key: 'enable', label: 'Enabled', render: (row) => displayValue(row.enable ?? row.enabled) }, { key: 'expire', label: 'Expires' }, { key: 'actions', label: 'Tokens', render: (row) => <Button tone="quiet" onClick={() => onTokens(row)}>View tokens</Button> }]} /><SearchablePanel title={selectedUser ? `API tokens · ${readString(selectedUser.userid || selectedUser.id)}` : 'API tokens'} eyebrow="Credentials" rows={listFrom(selectedUser?.tokens, 'tokens')} empty="Select a user to load API tokens." /></div>;
 }
 
 function Operations({ tasks, pools, backups }: { tasks: Row[]; pools: Row[]; backups: Row[] }) {
-  return <><Panel title="Cluster tasks" eyebrow="Recent operations"><DataTable rows={tasks} columns={[{ key: 'upid', label: 'UPID' }, { key: 'type', label: 'Type' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'starttime', label: 'Started' }, { key: 'user', label: 'User' }]} /></Panel><div className="sw-two-col"><Panel title="Pools" eyebrow="Resource pools"><DataTable rows={pools} /></Panel><Panel title="Backup jobs" eyebrow="Scheduled backups"><DataTable rows={backups} /></Panel></div></>;
+  return <><SearchablePanel title="Cluster tasks" eyebrow="Recent operations" rows={tasks} columns={[{ key: 'upid', label: 'UPID' }, { key: 'type', label: 'Type' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'starttime', label: 'Started' }, { key: 'user', label: 'User' }]} /><div className="sw-two-col"><SearchablePanel title="Pools" eyebrow="Resource pools" rows={pools} /><SearchablePanel title="Backup jobs" eyebrow="Scheduled backups" rows={backups} /></div></>;
 }
 
 function Security({ certificates, acme }: { certificates: Row[]; acme: Record<string, unknown> }) {
-  return <><Panel title="Node certificates" eyebrow="TLS inventory"><DataTable rows={certificates} /></Panel><div className="sw-two-col"><Panel title="ACME accounts" eyebrow="Certificate authorities"><Unsupported value={acme.accounts} /><DataTable rows={listFrom(acme.accounts, 'accounts')} /></Panel><Panel title="ACME plugins" eyebrow="DNS and standalone challenges"><Unsupported value={acme.plugins} /><DataTable rows={listFrom(acme.plugins, 'plugins')} /></Panel></div><div className="sw-two-col"><Panel title="Challenge schema" eyebrow="Supported challenge types"><DataTable rows={listFrom(acme.challenges, 'challenges')} /></Panel><Panel title="ACME directories" eyebrow="Certificate authorities"><DataTable rows={listFrom(acme.directories, 'directories')} /></Panel></div><Panel title="ACME cluster info" eyebrow="Capability status"><Unsupported value={acme.info} /><JsonBlock value={acme.info} /></Panel></>;
+  return <><SearchablePanel title="Node certificates" eyebrow="TLS inventory" rows={certificates} /><div className="sw-two-col"><SearchablePanel title="ACME accounts" eyebrow="Certificate authorities" rows={listFrom(acme.accounts, 'accounts')} actions={<Unsupported value={acme.accounts} />} /><SearchablePanel title="ACME plugins" eyebrow="DNS and standalone challenges" rows={listFrom(acme.plugins, 'plugins')} actions={<Unsupported value={acme.plugins} />} /></div><div className="sw-two-col"><SearchablePanel title="Challenge schema" eyebrow="Supported challenge types" rows={listFrom(acme.challenges, 'challenges')} /><SearchablePanel title="ACME directories" eyebrow="Certificate authorities" rows={listFrom(acme.directories, 'directories')} /></div><Panel title="ACME cluster info" eyebrow="Capability status"><Unsupported value={acme.info} /><JsonBlock value={acme.info} /></Panel></>;
 }
 
 function TemplatesView({ selectedNode, templates, storage, resources, onSelectStorage, onMarkTemplate, onCloudInit }: { selectedNode: string; templates: Row[]; storage: Row[]; resources: Row[]; onSelectStorage: (value: string) => void; onMarkTemplate: (row: Row) => void; onCloudInit: (row: Row) => void }) {
-  return <><Panel title="Template library" eyebrow="ISO and LXC templates" actions={<><select className="sw-inline-select" value={selectedNode} disabled><option>{selectedNode || 'Select node'}</option></select><select className="sw-inline-select" onChange={(event) => onSelectStorage(event.target.value)}><option value="">Select storage</option>{storage.map((item) => <option key={readString(item.storage || item.name)} value={readString(item.storage || item.name)}>{readString(item.storage || item.name)}</option>)}</select></>}><DataTable rows={templates} empty="Select a storage backend containing vztmpl content." columns={[{ key: 'volid', label: 'Template' }, { key: 'format', label: 'Format' }, { key: 'size', label: 'Size', render: (row) => formatBytes(row.size) }, { key: 'notes', label: 'Notes' }]} /></Panel><Panel title="Guest template actions" eyebrow="Convert and provision"><DataTable rows={resources.filter((row) => readString(row.node) === selectedNode)} empty="No guests on this node." columns={[{ key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status' }, { key: 'actions', label: 'Actions', render: (row) => <div className="sw-row-actions"><Button tone="quiet" onClick={() => void onCloudInit(row)}>Cloud-init</Button><Button tone="quiet" onClick={() => void onMarkTemplate(row)}>Convert to template</Button></div> }]} /></Panel></>;
+  return <><SearchablePanel title="Template library" eyebrow="ISO and LXC templates" actions={<><select className="sw-inline-select" value={selectedNode} disabled><option>{selectedNode || 'Select node'}</option></select><select className="sw-inline-select" onChange={(event) => onSelectStorage(event.target.value)}><option value="">Select storage</option>{storage.map((item) => <option key={readString(item.storage || item.name)} value={readString(item.storage || item.name)}>{readString(item.storage || item.name)}</option>)}</select></>} rows={templates} empty="Select a storage backend containing vztmpl content." columns={[{ key: 'volid', label: 'Template' }, { key: 'format', label: 'Format' }, { key: 'size', label: 'Size', render: (row) => formatBytes(row.size) }, { key: 'notes', label: 'Notes' }]} /><Panel title="Guest template actions" eyebrow="Convert and provision"><DataTable rows={resources.filter((row) => readString(row.node) === selectedNode)} empty="No guests on this node." columns={[{ key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status' }, { key: 'actions', label: 'Actions', render: (row) => <div className="sw-row-actions"><Button tone="quiet" onClick={() => void onCloudInit(row)}>Cloud-init</Button><Button tone="quiet" onClick={() => void onMarkTemplate(row)}>Convert to template</Button></div> }]} /></Panel></>;
 }
 
 function ClusterView({ status, resources, allResources, onMigrate }: { status: Row; resources: Row[]; allResources: Row[]; onMigrate: (row: Row) => void }) {
-  return <><div className="sw-stat-grid"><Stat label="HA status" value={readString(status.state || status.type || status.quorate || 'reported')} hint="Live cluster response" accent="green" /><Stat label="HA resources" value={resources.length} hint="Configured resources" accent="blue" /></div><Panel title="HA resources" eyebrow="High availability"><DataTable rows={resources} empty="No HA resources configured on this cluster." /></Panel><Panel title="Migration actions" eyebrow="Workload movement"><DataTable rows={allResources} empty="No workloads available." columns={[{ key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Source node' }, { key: 'status', label: 'Status' }, { key: 'actions', label: 'Action', render: (row) => <Button tone="quiet" onClick={() => void onMigrate(row)}>Migrate</Button> }]} /></Panel></>;
+  return <><div className="sw-stat-grid"><Stat label="HA status" value={readString(status.state || status.type || status.quorate || 'reported')} hint="Live cluster response" accent="green" /><Stat label="HA resources" value={resources.length} hint="Configured resources" accent="blue" /></div><SearchablePanel title="HA resources" eyebrow="High availability" rows={resources} empty="No HA resources configured on this cluster." /><SearchablePanel title="Migration actions" eyebrow="Workload movement" rows={allResources} empty="No workloads available." columns={[{ key: 'vmid', label: 'VMID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Source node' }, { key: 'status', label: 'Status' }, { key: 'actions', label: 'Action', render: (row) => <Button tone="quiet" onClick={() => void onMigrate(row)}>Migrate</Button> }]} /></>;
 }
 
 function MonitoringView({ nodes, selectedNode, setSelectedNode, points }: { nodes: Row[]; selectedNode: string; setSelectedNode: (value: string) => void; points: Row[] }) {
-  return <Panel title="Host performance" eyebrow="Proxmox RRD data" actions={<select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">Select node</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select>}><DataTable rows={points} empty="Select a node to load the last-hour performance series." columns={[{ key: 'time', label: 'Timestamp', render: (row) => formatDate(row.time) }, { key: 'cpu', label: 'CPU' }, { key: 'memused', label: 'Memory used', render: (row) => formatBytes(row.memused) }, { key: 'netin', label: 'Network in', render: (row) => formatBytes(row.netin) }, { key: 'netout', label: 'Network out', render: (row) => formatBytes(row.netout) }]} /></Panel>;
+  return <SearchablePanel title="Host performance" eyebrow="Proxmox RRD data" actions={<select className="sw-inline-select" value={selectedNode} onChange={(event) => setSelectedNode(event.target.value)}><option value="">Select node</option>{nodes.map((node) => <option key={readString(node.node)} value={readString(node.node)}>{readString(node.node)}</option>)}</select>} rows={points} empty="Select a node to load the last-hour performance series." columns={[{ key: 'time', label: 'Timestamp', render: (row) => formatDate(row.time) }, { key: 'cpu', label: 'CPU' }, { key: 'memused', label: 'Memory used', render: (row) => formatBytes(row.memused) }, { key: 'netin', label: 'Network in', render: (row) => formatBytes(row.netin) }, { key: 'netout', label: 'Network out', render: (row) => formatBytes(row.netout) }]} />;
 }
