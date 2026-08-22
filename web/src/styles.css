@@ -484,3 +484,135 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .pwd-rule-label { flex:1; }
 
 
+
+/* =================================================================
+   Dashboard polish layer — sparklines, skeletons, command palette,
+   search input, sidebar badges, hover states, alert pill.
+   Datadog / Grafana visual language applied to the StackWatch
+   overview + sidebar. Keep additions additive (no overrides of
+   existing rules) so individual polish items can be reverted.
+   ================================================================= */
+
+/* ------- Sparkline (mini trend line inside KPI cards) ------- */
+.dash-spark { width:60px; height:24px; display:block; opacity:.85; }
+.dash-spark-empty { width:60px; height:24px; border-bottom:1px dashed #2a3b53; }
+
+/* Skeleton (loading) state for MetricCard. The shimmer uses
+   opacity instead of background-position animation so we don't
+   pay a 16ms layout cost on every render of the dashboard. */
+.dash-skel-line { display:inline-block; background:#1a2540; border-radius:6px; opacity:.55; }
+.dash-metric-skeleton .dash-metric-icon { background:#1a2540; border-radius:6px; opacity:.5; }
+
+/* MetricCard row layout — strong value + sparkline sit on a
+   horizontal flex line so they don't fight each other for space. */
+.dash-metric-row { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+
+/* ------- Sidebar nav polish ------- */
+.dash-nav-item { display:flex; align-items:center; gap:10px; }
+.dash-nav-icon { width:18px; text-align:center; opacity:.85; flex-shrink:0; }
+.dash-nav-label { flex:1; }
+.dash-nav-item:hover .dash-nav-icon { opacity:1; color:var(--accent); }
+.dash-nav-item:hover { background:#16243d; color:#e7edf7; }
+.dash-nav-active { background:linear-gradient(90deg,rgba(34,211,238,.14),transparent); border-left:2px solid var(--accent); padding-left:10px; }
+
+/* Alert pill under the nav — at-a-glance "things are on fire". */
+.dash-nav-alert-pill {
+  display:flex; align-items:center; gap:8px; padding:8px 12px; margin:6px 4px;
+  background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); border-radius:8px;
+  font-size:11px; font-weight:600; color:#fca5a5;
+}
+
+/* ------- Topbar Cmd+K hint button ------- */
+.dash-topbar-hint {
+  display:inline-flex; align-items:center; gap:6px; padding:5px 11px;
+  background:transparent; border:1px solid #2a3b53; border-radius:7px;
+  color:#7387a5; font-size:11px; font-weight:500; cursor:pointer;
+  transition:all .15s ease;
+}
+.dash-topbar-hint:hover { background:#16243d; border-color:var(--accent); color:#cfe6f7; }
+.dash-topbar-hint kbd {
+  display:inline-block; min-width:18px; text-align:center; padding:1px 4px;
+  background:#0e1a30; border:1px solid #2a3b53; border-radius:4px;
+  font:600 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace; color:#a9c0e0;
+}
+
+/* ------- Search input (workloads inventory) ------- */
+.dash-panel-controls { display:flex; align-items:center; gap:14px; }
+.dash-search-input { position:relative; display:flex; align-items:center; }
+.dash-search-icon { position:absolute; left:10px; color:#7387a5; font-size:14px; pointer-events:none; }
+.dash-search-input input {
+  width:220px; padding:7px 10px 7px 30px;
+  background:#0a1322; border:1px solid #26344a; border-radius:7px;
+  color:#e7edf7; font-size:12px;
+}
+.dash-search-input input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(34,211,238,.18); }
+.dash-search-input input::placeholder { color:#677790; }
+
+/* ------- Empty-state illustrations (inline SVG, line-art only) ------- */
+.dash-empty-illustration {
+  width:80px; height:54px; margin:0 auto 12px;
+  color:#38bdf8; opacity:.6;
+}
+.dash-empty-illustration svg { width:100%; height:100%; }
+
+/* ------- Skeleton shimmer (subtle) ------- */
+@keyframes dashSkelShimmer { 0%,100% { opacity:.55; } 50% { opacity:.35; } }
+.dash-metric-skeleton .dash-skel-line { animation:dashSkelShimmer 1.6s ease-in-out infinite; }
+
+/* =================================================================
+   Command palette — modal dialog with input + filtered list.
+   Uses CSS variables + the existing dark theme; no new color tokens.
+   ================================================================= */
+.cmd-palette-backdrop {
+  position:fixed; inset:0; z-index:100;
+  background:rgba(2,6,23,.74); backdrop-filter:blur(6px);
+  display:grid; place-items:flex-start center; padding-top:14vh;
+  animation:cmdFadeIn .12s ease-out;
+}
+@keyframes cmdFadeIn { from { opacity:0; } to { opacity:1; } }
+.cmd-palette {
+  width:min(640px,94vw); max-height:60vh; display:flex; flex-direction:column;
+  background:linear-gradient(160deg,#101a2e,#0a1322);
+  border:1px solid #26344a; border-radius:14px;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+  overflow:hidden; animation:cmdPopIn .14s ease-out;
+}
+@keyframes cmdPopIn { from { opacity:0; transform:translateY(-6px) scale(.99); } to { opacity:1; transform:none; } }
+.cmd-palette-input-wrap {
+  display:flex; align-items:center; gap:10px; padding:14px 16px;
+  border-bottom:1px solid #20304a;
+}
+.cmd-palette-icon { color:#7387a5; font-size:16px; }
+.cmd-palette-input {
+  flex:1; background:transparent; border:0; outline:0; color:#f6f9ff;
+  font-size:15px; font-weight:500;
+}
+.cmd-palette-input::placeholder { color:#5d6e8c; }
+.cmd-palette-kbd {
+  display:inline-block; padding:2px 7px; background:#0e1a30; border:1px solid #2a3b53;
+  border-radius:5px; font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#a9c0e0; text-transform:uppercase;
+}
+.cmd-palette-list { flex:1; overflow-y:auto; padding:6px; }
+.cmd-palette-item {
+  display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px;
+  background:transparent; border:0; border-radius:8px;
+  color:#dae8f7; font-size:13px; cursor:pointer; text-align:left;
+  transition:background .12s ease;
+}
+.cmd-palette-item:hover, .cmd-palette-item-active { background:#16243d; }
+.cmd-palette-item-group {
+  flex-shrink:0; padding:2px 7px; background:#0e1a30; border:1px solid #2a3b53;
+  border-radius:5px; font:600 9.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#7387a5; text-transform:uppercase; letter-spacing:.5px;
+}
+.cmd-palette-item-body { flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.cmd-palette-item-body strong { font-weight:600; color:#f6f9ff; }
+.cmd-palette-item-body small { font-size:11px; color:#7387a5; }
+.cmd-palette-empty {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:32px 20px; color:#7387a5; text-align:center;
+}
+.cmd-palette-empty span { font-size:28px; opacity:.4; }
+.cmd-palette-empty strong { font-weight:600; color:#cfe6f7; }
+CSS_EOF
