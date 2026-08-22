@@ -418,7 +418,7 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
   color:#9fb3d4; font-size:11px; font-weight:500; border-radius:6px;
   cursor:pointer; transition:color .15s ease, background .15s ease;
 }
-.pwd-toggle:hover { color:#e7edf7; background:rgba(255,255,255,.04); }
+.pwd-toggle:hover { color:#e7edf7; }
 
 /* Eye-icon variant: square hit area, sits inside the right edge.
    margin:0 is REQUIRED — the global `button { margin-top:20px }`
@@ -435,9 +435,14 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
   color:#9fb3d4; border-radius:6px; cursor:pointer;
   transition:color .15s ease, background .15s ease;
 }
-.pwd-toggle-eye:hover { color:#e7edf7; background:rgba(255,255,255,.06); }
+.pwd-toggle-eye:hover { color:#e7edf7; }
+/* Focus/active: change ONLY the icon color, never the background.
+   Any background tint — even rgba(103,232,249,0.08) — renders as a
+   visible filled rectangle around the 36x36 hit area, which the user
+   reads as a "box" wrapping the icon. */
 .pwd-toggle-eye:focus,
-.pwd-toggle-eye:focus-visible { outline:none; color:#67e8f9; background:rgba(103,232,249,.08); }
+.pwd-toggle-eye:focus-visible { outline:none; color:#67e8f9; }
+.pwd-toggle-eye:active { color:#67e8f9; background:transparent; }
 .pwd-toggle-eye[aria-pressed="true"] { color:var(--accent); }
 
 .pwd-meter { display:flex; flex-direction:column; gap:8px; }
