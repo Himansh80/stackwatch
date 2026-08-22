@@ -409,27 +409,35 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .pwd-field:has(.pwd-toggle-eye) input { padding-right:48px; }
 
 /* Text-button variant (legacy, kept for any other .pwd-toggle usages
-   that don't get the eye-icon class). */
+   that don't get the eye-icon class). Same border-stripping rule as
+   the eye variant — user feedback was that hover/focus borders look
+   like a wrapping box around the icon. */
 .pwd-toggle {
   position:absolute; right:6px; top:50%; transform:translateY(-50%);
-  padding:5px 10px; background:transparent; border:1px solid transparent;
+  padding:5px 10px; background:transparent; border:0;
   color:#9fb3d4; font-size:11px; font-weight:500; border-radius:6px;
-  cursor:pointer; transition:all .15s ease;
+  cursor:pointer; transition:color .15s ease, background .15s ease;
 }
-.pwd-toggle:hover { color:#e7edf7; border-color:#26344a; background:#0b1220; }
-.pwd-toggle:focus-visible { outline:none; border-color:var(--accent); }
+.pwd-toggle:hover { color:#e7edf7; background:rgba(255,255,255,.04); }
 
-/* Eye-icon variant: square hit area, sits inside the right edge. */
+/* Eye-icon variant: square hit area, sits inside the right edge.
+   margin:0 is REQUIRED — the global `button { margin-top:20px }`
+   rule (line 59) was pushing the absolutely-positioned toggle
+   down by 20px so its top sat on the input's bottom border.
+   border:0 on all states because the eye-icon hover/focus border
+   was rendering as a visible box around the icon. We use a soft
+   background fill + color change instead. */
 .pwd-toggle-eye {
   position:absolute; right:6px; top:50%; transform:translateY(-50%);
-  width:36px; height:36px;
+  margin:0; width:36px; height:36px;
   display:inline-flex; align-items:center; justify-content:center;
-  padding:0; background:transparent; border:1px solid transparent;
+  padding:0; background:transparent; border:0;
   color:#9fb3d4; border-radius:6px; cursor:pointer;
-  transition:color .15s ease, background .15s ease, border-color .15s ease;
+  transition:color .15s ease, background .15s ease;
 }
-.pwd-toggle-eye:hover { color:#e7edf7; border-color:#26344a; background:#0b1220; }
-.pwd-toggle-eye:focus-visible { outline:none; border-color:var(--accent); }
+.pwd-toggle-eye:hover { color:#e7edf7; background:rgba(255,255,255,.06); }
+.pwd-toggle-eye:focus,
+.pwd-toggle-eye:focus-visible { outline:none; color:#67e8f9; background:rgba(103,232,249,.08); }
 .pwd-toggle-eye[aria-pressed="true"] { color:var(--accent); }
 
 .pwd-meter { display:flex; flex-direction:column; gap:8px; }
