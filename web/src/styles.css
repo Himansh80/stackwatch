@@ -616,3 +616,69 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .cmd-palette-empty span { font-size:28px; opacity:.4; }
 .cmd-palette-empty strong { font-weight:600; color:#cfe6f7; }
 CSS_EOF
+
+/* =================================================================
+   FilterBar — search + status chips + actions row.
+   Used on Proxmox workspace, TrueNAS workspace, and any future
+   list-page. Mirrors the Datadog / Linear "Filter" affordance.
+   ================================================================= */
+.sw-filter-bar {
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:10px 0; border-bottom:1px solid #20304a; margin-bottom:12px;
+}
+.sw-filter-search {
+  position:relative; display:flex; align-items:center; flex:0 1 280px; min-width:200px;
+}
+.sw-filter-search input {
+  width:100%; padding:7px 28px 7px 30px;
+  background:#0a1322; border:1px solid #26344a; border-radius:7px;
+  color:#e7edf7; font-size:12.5px; transition:border-color .15s ease, box-shadow .15s ease;
+}
+.sw-filter-search input:focus { outline:0; }
+.sw-filter-search-focus input { border-color:var(--accent); box-shadow:0 0 0 3px rgba(34,211,238,.16); }
+.sw-filter-search input::placeholder { color:#677790; }
+.sw-filter-search-icon { position:absolute; left:10px; color:#7387a5; font-size:14px; pointer-events:none; }
+.sw-filter-search-clear {
+  position:absolute; right:4px; top:50%; transform:translateY(-50%);
+  width:22px; height:22px; padding:0; background:transparent; border:0;
+  border-radius:4px; color:#7387a5; font-size:16px; line-height:1;
+  cursor:pointer;
+}
+.sw-filter-search-clear:hover { background:#16243d; color:#e7edf7; }
+.sw-filter-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.sw-filter-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 11px; background:transparent; border:1px solid #2a3b53;
+  border-radius:99px; color:#a9c0e0; font-size:11.5px; font-weight:600;
+  cursor:pointer; transition:all .12s ease;
+}
+.sw-filter-chip:hover { background:#16243d; color:#e7edf7; }
+.sw-filter-chip-active {
+  background:rgba(34,211,238,.12); border-color:rgba(34,211,238,.5);
+  color:#67e8f9;
+}
+.sw-filter-chip-count {
+  display:inline-block; min-width:18px; padding:1px 6px;
+  background:#0e1a30; border:1px solid #2a3b53; border-radius:99px;
+  font:600 10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; color:#a9c0e0;
+}
+.sw-filter-chip-active .sw-filter-chip-count { background:rgba(34,211,238,.18); border-color:rgba(34,211,238,.4); color:#67e8f9; }
+.sw-filter-actions { margin-left:auto; display:flex; gap:8px; }
+.sw-filter-reset {
+  padding:5px 11px; background:transparent; border:0; border-radius:6px;
+  color:#7387a5; font-size:11.5px; cursor:pointer;
+}
+.sw-filter-reset:hover { color:#e7edf7; }
+
+/* Resource table hover lift — Datadog pattern. */
+.sw-row-clickable { transition:background .12s ease; }
+.sw-row-clickable:hover { background:#0f1c33; cursor:pointer; }
+.sw-row-actions { opacity:0; transition:opacity .12s ease; }
+.sw-row-clickable:hover .sw-row-actions { opacity:1; }
+
+/* Status badges that aren't tied to the existing pill component.
+   Reuses the existing .dash-status-* tones. */
+.sw-status-good { color:#10b981; background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.35); }
+.sw-status-bad { color:#ef4444; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); }
+.sw-status-warn { color:#f59e0b; background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); }
+.sw-status-neutral { color:#94a3b8; background:#0e1a30; border:1px solid #2a3b53; }

@@ -4,6 +4,7 @@ import { api, health, me } from '../lib/api';
 import { useLogout } from '../lib/useLogout';
 import ProfileMenu from '../components/ProfileMenu';
 import CommandPalette from '../components/CommandPalette';
+import FilterBar from '../components/FilterBar';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
 
 type Json = Record<string, unknown>;
@@ -352,10 +353,12 @@ export default function Dashboard() {
           <div className="dash-panel-head">
             <div><span className="dash-eyebrow">Compute inventory</span><h3>Workloads and resources</h3></div>
             <div className="dash-panel-controls">
-              <div className="dash-search-input">
-                <span className="dash-search-icon" aria-hidden="true">⌕</span>
-                <input type="search" placeholder="Search workloads..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search workloads by name, type, or status" />
-              </div>
+              <FilterBar
+                search={search}
+                onSearchChange={setSearch}
+                placeholder="Search workloads by name, type, or status..."
+                ariaLabel="Search workloads"
+              />
               <Link className="dash-text-link" to="/proxmox">Open full workspace →</Link>
             </div>
           </div>
