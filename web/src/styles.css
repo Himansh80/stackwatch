@@ -390,6 +390,201 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
   letter-spacing:.7px; text-transform:uppercase;
   line-height:1;
 }
+/* ------- TimeWidget popover (calendar + live time) -------
+   Clicking the clock pill in the topbar opens this dropdown
+   with:
+     - Big live HH:MM:SS AM/PM clock (updates every second)
+     - Full date with weekday + day + month + year
+     - Mini calendar with prev/next month nav and year picker
+     - Holidays for India (public + observances) marked
+     - Today highlighted
+   Anchored below the trigger pill, right-aligned. */
+.tw-wrapper { position:relative; display:inline-flex; }
+.dash-topbar-clock-clickable {
+  cursor:pointer;
+  border:1px solid #20314a;
+  transition:border-color .15s, background .15s;
+}
+.dash-topbar-clock-clickable:hover {
+  border-color:rgba(52,211,153,.5);
+  background:linear-gradient(150deg,rgba(52,211,153,.12),rgba(99,102,241,.12));
+}
+.dash-topbar-clock-clickable[aria-expanded="true"] {
+  border-color:#34d399;
+  background:linear-gradient(150deg,rgba(52,211,153,.18),rgba(99,102,241,.18));
+}
+.tw-popover {
+  position:absolute; top:calc(100% + 10px); right:0;
+  width:340px;
+  padding:18px;
+  background:linear-gradient(160deg,#0e1626 0%,#0a0f1c 100%);
+  border:1px solid #20314a;
+  border-radius:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(52,211,153,.08);
+  z-index:120;
+  animation:tw-pop-in .18s ease-out;
+}
+@keyframes tw-pop-in {
+  from { opacity:0; transform:translateY(-6px) scale(.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.tw-header {
+  text-align:center;
+  padding-bottom:14px;
+  border-bottom:1px solid #1a273d;
+  margin-bottom:14px;
+}
+.tw-clock-big {
+  font-size:34px; font-weight:700;
+  color:#f3f7fd;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:1px;
+  line-height:1.1;
+}
+.tw-date-full {
+  margin-top:6px;
+  color:#a9bdd7;
+  font-size:13px; font-weight:600;
+}
+.tw-tz {
+  margin-top:6px;
+  color:#5b6c87;
+  font-size:11px;
+  letter-spacing:.3px;
+}
+.tw-tz strong { color:#67e8f9; font-weight:700; }
+
+.tw-cal-header {
+  display:grid;
+  grid-template-columns:32px 1fr 32px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.tw-cal-title {
+  text-align:center;
+  color:#f3f7fd;
+  font-size:15px; font-weight:700;
+  letter-spacing:.3px;
+}
+.tw-cal-nav {
+  background:transparent;
+  border:1px solid #20314a;
+  color:#a9bdd7;
+  font-size:18px; line-height:1;
+  width:28px; height:28px;
+  border-radius:8px;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.tw-cal-nav:hover { background:#16243b; border-color:#34d399; color:#f3f7fd; }
+
+.tw-cal-years {
+  display:flex; gap:4px;
+  justify-content:center;
+  margin-bottom:10px;
+}
+.tw-cal-year {
+  flex:1;
+  background:transparent;
+  border:1px solid #18263b;
+  color:#5b6c87;
+  font-size:10px; font-weight:700;
+  letter-spacing:.4px;
+  padding:4px 0;
+  border-radius:6px;
+  cursor:pointer;
+  transition:all .15s;
+}
+.tw-cal-year:hover { background:#16243b; color:#a9bdd7; }
+.tw-cal-year.is-active {
+  background:linear-gradient(150deg,#34d399,#22d3ee);
+  border-color:transparent;
+  color:#0a0f1c;
+}
+
+.tw-cal-grid {
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:2px;
+}
+.tw-cal-dow {
+  text-align:center;
+  color:#5b6c87;
+  font-size:10px; font-weight:800;
+  letter-spacing:.5px;
+  padding:6px 0;
+}
+.tw-cal-cell {
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  aspect-ratio:1;
+  color:#a9bdd7;
+  font-size:12px; font-weight:600;
+  border-radius:6px;
+  font-variant-numeric:tabular-nums;
+}
+.tw-cal-cell:hover {
+  background:#16243b;
+  color:#f3f7fd;
+  cursor:default;
+}
+.tw-cal-cell-pad { background:transparent; }
+.tw-cal-cell-public {
+  background:rgba(52,211,153,.08);
+  color:#6ee7b7;
+  font-weight:700;
+}
+.tw-cal-cell-public:hover {
+  background:rgba(52,211,153,.18);
+  color:#a7f3d0;
+}
+.tw-cal-cell-observance {
+  background:rgba(99,102,241,.07);
+  color:#a5b4fc;
+}
+.tw-cal-cell-today {
+  outline:2px solid #22d3ee;
+  outline-offset:-2px;
+  color:#fff !important;
+  font-weight:800 !important;
+  background:rgba(34,211,238,.12) !important;
+}
+.tw-cal-day { line-height:1; }
+.tw-cal-marker {
+  position:absolute;
+  bottom:3px;
+  width:4px; height:4px;
+  border-radius:50%;
+}
+.tw-cal-marker-public { background:#34d399; box-shadow:0 0 4px #34d399; }
+.tw-cal-marker-observance { background:#818cf8; }
+
+.tw-legend {
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid #1a273d;
+  display:flex; flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  color:#5b6c87;
+  font-size:10px; font-weight:600;
+  letter-spacing:.3px;
+}
+.tw-legend-item { display:inline-flex; align-items:center; gap:5px; }
+.tw-dot {
+  display:inline-block;
+  width:7px; height:7px;
+  border-radius:50%;
+}
+.tw-dot-public { background:#34d399; }
+.tw-dot-observance { background:#818cf8; }
+.tw-dot-today {
+  background:transparent;
+  outline:2px solid #22d3ee;
+  outline-offset:-2px;
+}
+
 .dash-greeting-text { color:#f3f7fd; font-size:22px; font-weight:700; letter-spacing:-.5px; }
 .dash-greeting-clock-time { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px; display:inline-block; }
 .dash-greeting-clock { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border:1px solid #20314a; border-radius:999px; background:linear-gradient(150deg,rgba(34,211,238,.06),rgba(99,102,241,.06)); color:#a9bdd7; font-size:11px; font-weight:700; letter-spacing:.4px; }

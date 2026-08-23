@@ -5,6 +5,7 @@ import { useLogout } from '../lib/useLogout';
 import ProfileMenu from '../components/ProfileMenu';
 import CommandPalette from '../components/CommandPalette';
 import FilterBar from '../components/FilterBar';
+import TimeWidget from '../components/TimeWidget';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
 
 type Json = Record<string, unknown>;
@@ -30,10 +31,6 @@ function text(valueToRead: unknown, fallback = '—'): string {
   return String(valueToRead);
 }
 
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : `${n}`;
-}
-
 function greetingFor(date: Date): string {
   const hour = date.getHours();
   if (hour < 5) return 'Working late';
@@ -49,23 +46,6 @@ function firstNameOf(full: string): string {
   return trimmed.split(/\s+/)[0]!;
 }
 
-function formatClock(date: Date): string {
-  const rawHour = date.getHours();
-  const hour12 = rawHour % 12 === 0 ? 12 : rawHour % 12;
-  const meridiem = rawHour < 12 ? 'AM' : 'PM';
-  return `${pad2(hour12)}:${pad2(date.getMinutes())} ${meridiem}`;
-}
-
-function formatDayLabel(date: Date): string {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${days[date.getDay()]} · ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-/**
- * Relative time formatter. Datadog-style: "3 sec ago", "4 min ago",
- * "1 hr ago", "yesterday". Falls back to absolute time after a day.
- */
 function formatRelative(date: Date, now: Date): string {
   const seconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
   if (seconds < 5) return 'just now';
@@ -319,7 +299,7 @@ export default function Dashboard() {
       <div className="dash-sidebar-bottom"><div className="dash-connection"><span className="dash-live-dot" />Control plane online<small>{text(value(snapshot.health, 'version'), 'StackWatch API')}</small></div><button className="dash-sidebar-logout" onClick={logout}>↪ Sign out</button></div>
     </aside>
     <main className="dash-main">
-      <header className="dash-topbar"><div className="dash-greeting"><span className="dash-greeting-eyebrow">Hello, {firstNameOf(userName)}</span><div className="dash-greeting-row"><strong className="dash-greeting-text">{greetingFor(now)}.</strong><span className="dash-greeting-live" title="You are live" aria-label="Live"><span className="dash-live-dot" aria-hidden /><span className="dash-greeting-live-text">Live</span></span></div></div><div className="dash-topbar-center"><button className="dash-topbar-search" onClick={() => setPaletteOpen(true)} title="Search & navigate (Cmd+K)" aria-label="Open command palette"><span className="dash-topbar-search-icon" aria-hidden="true">⌕</span><span className="dash-topbar-search-placeholder">Search & navigate…</span><kbd className="dash-topbar-search-kbd">⌘</kbd><kbd className="dash-topbar-search-kbd">K</kbd></button></div><div className="dash-top-actions"><span className="dash-topbar-clock" title={formatDayLabel(now)}><span className="dash-topbar-clock-time">{formatClock(now)}</span><span className="dash-topbar-clock-day">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]}</span></span><button className="dash-icon-button" onClick={() => window.location.reload()} aria-label="Refresh page" title="Refresh page">↻</button>
+      <header className="dash-topbar"><div className="dash-greeting"><span className="dash-greeting-eyebrow">Hello, {firstNameOf(userName)}</span><div className="dash-greeting-row"><strong className="dash-greeting-text">{greetingFor(now)}.</strong><span className="dash-greeting-live" title="You are live" aria-label="Live"><span className="dash-live-dot" aria-hidden /><span className="dash-greeting-live-text">Live</span></span></div></div><div className="dash-topbar-center"><button className="dash-topbar-search" onClick={() => setPaletteOpen(true)} title="Search & navigate (Cmd+K)" aria-label="Open command palette"><span className="dash-topbar-search-icon" aria-hidden="true">⌕</span><span className="dash-topbar-search-placeholder">Search & navigate…</span><kbd className="dash-topbar-search-kbd">⌘</kbd><kbd className="dash-topbar-search-kbd">K</kbd></button></div><div className="dash-top-actions"><TimeWidget /><button className="dash-icon-button" onClick={() => window.location.reload()} aria-label="Refresh page" title="Refresh page">↻</button>
         <ProfileMenu firstName={firstNameOf(userName)} fullName={userName} tenantName={tenantName} initials={userName.charAt(0).toUpperCase()} />
       </div></header>
       <div className="dash-content">
