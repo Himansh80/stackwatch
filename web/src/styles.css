@@ -342,13 +342,13 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .dash-greeting-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .dash-greeting-clock { min-width:0; }
 /* ------- Greeting live indicator -------
-   Larger green-dot + "Live" text pill that sits to the right of
-   the greeting. The dot is 10px (vs sidebar's 7px) so it reads
-   clearly next to the 22px greeting text. The pill has a subtle
-   green border + soft glow background so it looks like a status
-   badge rather than punctuation. The pill is baseline-aligned
-   with the text via inline-flex so it sits naturally at the
-   bottom of the text line. */
+   Green-dot + "Live" text pill to the right of the greeting.
+   The dot is 8px (between sidebar's 7px and the first attempt's
+   10px) so it reads clearly without dominating the 22px greeting
+   text. The dot has a breathing pulse animation - the green
+   ring expands and fades out on a 1.8s loop, signaling real-time
+   liveness rather than static text. Inline-flex + align-items
+   centers the dot perfectly with the text. */
 .dash-greeting-live {
   display:inline-flex; align-items:center; gap:7px;
   padding:4px 11px 4px 9px;
@@ -359,8 +359,30 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
   align-self:center;
 }
 .dash-greeting-live .dash-live-dot {
-  width:10px; height:10px;
-  box-shadow:0 0 0 4px rgba(52,211,153,.22), 0 0 6px rgba(52,211,153,.5);
+  width:8px; height:8px;
+  position:relative;
+  box-shadow:0 0 0 3px rgba(52,211,153,.22);
+}
+.dash-greeting-live .dash-live-dot::after {
+  content:"";
+  position:absolute; inset:0;
+  border-radius:50%;
+  background:#34d399;
+  animation:sw-live-breath 1.8s ease-out infinite;
+}
+.dash-greeting-live .dash-live-dot::before {
+  content:"";
+  position:absolute; left:50%; top:50%;
+  width:8px; height:8px;
+  margin:-4px 0 0 -4px;
+  border-radius:50%;
+  background:#34d399;
+  z-index:1;
+}
+@keyframes sw-live-breath {
+  0%   { transform:scale(1);   opacity:.7; }
+  70%  { transform:scale(2.6); opacity:0; }
+  100% { transform:scale(2.6); opacity:0; }
 }
 .dash-greeting-live-text {
   color:#6ee7b7;
