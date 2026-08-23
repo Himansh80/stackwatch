@@ -108,9 +108,9 @@ func GetTenant(pool *db.Pool) gin.HandlerFunc {
 // CreateTenantRequest is the JSON body for POST /tenants.
 // Super_admin only — creates a new tenant with default plan.
 type CreateTenantRequest struct {
-	Name  string `json:"name" binding:"required,min=1,max=255"`
-	Slug  string `json:"slug" binding:"required,min=1,max=64"`
-	Plan  string `json:"plan"`
+	Name string `json:"name" binding:"required,min=1,max=255"`
+	Slug string `json:"slug" binding:"required,min=1,max=64"`
+	Plan string `json:"plan"`
 }
 
 // CreateTenant creates a new tenant row. Super-admin only.

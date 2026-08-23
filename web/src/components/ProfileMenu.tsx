@@ -90,10 +90,6 @@ export default function ProfileMenu({ firstName, fullName, tenantName, initials 
         onClick={() => setOpen((o) => !o)}
       >
         <span className="dash-avatar">{initials}</span>
-        <span className="dash-user-text">
-          <strong>{fullName || 'Profile'}</strong>
-          <small>{tenantName || 'Workspace'}</small>
-        </span>
         <span className={`dash-menu-caret ${open ? 'open' : ''}`} aria-hidden>▾</span>
       </button>
       {open && (

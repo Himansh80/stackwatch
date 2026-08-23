@@ -1,18 +1,18 @@
 // Tier 5 — Container create (C6).
 //
-//   POST /api/v1/containers?connection_id=X
-//   body: {
-//     "image": "nginx:latest",       (required)
-//     "name": "webserver",           (optional, --name)
-//     "ports": ["8080:80"],          (optional, -p)
-//     "env": ["KEY=VAL"],            (optional, -e)
-//     "volumes": ["/host/path:/container/path"], (optional, -v)
-//     "network": "bridge",           (optional, --network)
-//     "detach": true,                (default true; false = --interactive --tty)
-//     "rm": false,                   (default false; true = --rm)
-//     "restart": "no",               (optional, --restart)
-//     "command": ["arg1", "arg2"]    (optional, overrides image CMD)
-//   }
+//	POST /api/v1/containers?connection_id=X
+//	body: {
+//	  "image": "nginx:latest",       (required)
+//	  "name": "webserver",           (optional, --name)
+//	  "ports": ["8080:80"],          (optional, -p)
+//	  "env": ["KEY=VAL"],            (optional, -e)
+//	  "volumes": ["/host/path:/container/path"], (optional, -v)
+//	  "network": "bridge",           (optional, --network)
+//	  "detach": true,                (default true; false = --interactive --tty)
+//	  "rm": false,                   (default false; true = --rm)
+//	  "restart": "no",               (optional, --restart)
+//	  "command": ["arg1", "arg2"]    (optional, overrides image CMD)
+//	}
 package handler
 
 import (
@@ -30,7 +30,7 @@ type createRequest struct {
 	Env     []string `json:"env"`
 	Volumes []string `json:"volumes"`
 	Network string   `json:"network"`
-	Detach  *bool    `json:"detach"`  // pointer so we can default to true
+	Detach  *bool    `json:"detach"` // pointer so we can default to true
 	RM      bool     `json:"rm"`
 	Restart string   `json:"restart"`
 	Command []string `json:"command"`
@@ -97,11 +97,11 @@ func (h *ContainerHandler) CreateContainer(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"image": req.Image,
+			"image":     req.Image,
 			"exit_code": resp.ExitCode,
-			"stdout": strings.TrimSpace(resp.Stdout),
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker run exited " + fmt.Sprint(resp.ExitCode),
+			"stdout":    strings.TrimSpace(resp.Stdout),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker run exited " + fmt.Sprint(resp.ExitCode),
 		})
 		return
 	}

@@ -1,6 +1,6 @@
 // Tier 4 S7: Users (system users, sudoers, SSH keys).
 //
-//   GET /api/v1/admin/users?connection_id=X
+//	GET /api/v1/admin/users?connection_id=X
 //
 // Commands:
 //   - getent passwd                  → system users
@@ -111,7 +111,8 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 // parsePasswd parses `getent passwd`.
 //
 // Example: "root:x:0:0:root:/root:/bin/bash"
-//   fields: name : passwd : uid : gid : gecos : home : shell
+//
+//	fields: name : passwd : uid : gid : gecos : home : shell
 func parsePasswd(s string) []SystemUser {
 	out := []SystemUser{}
 	for _, line := range splitLines(s) {

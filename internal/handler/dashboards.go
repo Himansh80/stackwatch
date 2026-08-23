@@ -1,13 +1,13 @@
 // Tier 6 v3 — Dashboard Builder (M10).
 //
-//   POST   /api/v1/dashboards            — create
-//   GET    /api/v1/dashboards            — list
-//   GET    /api/v1/dashboards/:id        — get
-//   PATCH  /api/v1/dashboards/:id        — update
-//   DELETE /api/v1/dashboards/:id        — delete
-//   POST   /api/v1/dashboards/:id/eval   — evaluate all panels
-//   POST   /api/v1/dashboards/:id/default — mark as default
-//   DELETE /api/v1/dashboards/:id/default — unmark
+//	POST   /api/v1/dashboards            — create
+//	GET    /api/v1/dashboards            — list
+//	GET    /api/v1/dashboards/:id        — get
+//	PATCH  /api/v1/dashboards/:id        — update
+//	DELETE /api/v1/dashboards/:id        — delete
+//	POST   /api/v1/dashboards/:id/eval   — evaluate all panels
+//	POST   /api/v1/dashboards/:id/default — mark as default
+//	DELETE /api/v1/dashboards/:id/default — unmark
 //
 // A dashboard is a name + JSONB layout (array of panel objects).
 // Panels have {id, type, title, query, grid}. The eval endpoint runs
@@ -31,7 +31,7 @@ import (
 // Stored as JSONB array element; we type it for read access.
 type Panel struct {
 	ID    string                 `json:"id"`
-	Type  string                 `json:"type"`  // "timeseries" | "stat" | "table"
+	Type  string                 `json:"type"` // "timeseries" | "stat" | "table"
 	Title string                 `json:"title"`
 	Query string                 `json:"query"` // PromQL-lite
 	Grid  map[string]interface{} `json:"grid"`  // {x, y, w, h}
@@ -59,26 +59,26 @@ type createDashboardRequest struct {
 
 // patchDashboardRequest is the body for PATCH /dashboards/:id.
 type patchDashboardRequest struct {
-	Name        *string  `json:"name"`
-	Description *string  `json:"description"`
-	Layout      []Panel  `json:"layout"`
-	IsDefault   *bool    `json:"is_default"`
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	Layout      []Panel `json:"layout"`
+	IsDefault   *bool   `json:"is_default"`
 }
 
 // evalDashboardRequest is the body for POST /dashboards/:id/eval.
 type evalDashboardRequest struct {
-	From  int64 `json:"from"`  // unix ms
-	To    int64 `json:"to"`    // unix ms
-	Step  int64 `json:"step"`  // ms
+	From int64 `json:"from"` // unix ms
+	To   int64 `json:"to"`   // unix ms
+	Step int64 `json:"step"` // ms
 }
 
 // evalPanelResult is the per-panel output of /eval.
 type evalPanelResult struct {
-	PanelID string                   `json:"panel_id"`
-	Title   string                   `json:"title"`
-	Type    string                   `json:"type"`
-	Values  [][2]interface{}         `json:"values"` // [[unix_sec, value], ...]
-	Error   string                   `json:"error,omitempty"`
+	PanelID string           `json:"panel_id"`
+	Title   string           `json:"title"`
+	Type    string           `json:"type"`
+	Values  [][2]interface{} `json:"values"` // [[unix_sec, value], ...]
+	Error   string           `json:"error,omitempty"`
 }
 
 // ListDashboards returns all dashboards for the caller's tenant

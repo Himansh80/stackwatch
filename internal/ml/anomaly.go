@@ -7,11 +7,11 @@
 //
 // Usage:
 //
-//   d := ml.NewDetector(20, 3.0)  // window=20, anomaly threshold=3.0
-//   for v := range stream {
-//       score, isAnomaly := d.Update(v)
-//       if isAnomaly { alert(score) }
-//   }
+//	d := ml.NewDetector(20, 3.0)  // window=20, anomaly threshold=3.0
+//	for v := range stream {
+//	    score, isAnomaly := d.Update(v)
+//	    if isAnomaly { alert(score) }
+//	}
 package ml
 
 import (
@@ -31,10 +31,10 @@ type Detector struct {
 	full   bool      // true once we've seen >= Window samples
 
 	// Running statistics (Welford-style for stability).
-	mean   float64
-	m2     float64 // sum of (x - mean)^2
-	ewma   float64 // exponentially-weighted moving average
-	count  int     // total samples seen
+	mean  float64
+	m2    float64 // sum of (x - mean)^2
+	ewma  float64 // exponentially-weighted moving average
+	count int     // total samples seen
 }
 
 // NewDetector returns a Detector with the given window and threshold.

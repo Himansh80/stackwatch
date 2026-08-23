@@ -4,11 +4,11 @@ import "os"
 
 // config is the runtime configuration for the API gateway.
 type config struct {
-	HTTPAddr        string
-	DatabaseURL     string
-	JWTSecret       string
-	InstallMode     string // "cloud" (default) or "self-hosted"
-	WebTerminalURL  string // URL of the web-terminal sidecar (Tier 4 admin SSH bridge)
+	HTTPAddr       string
+	DatabaseURL    string
+	JWTSecret      string
+	InstallMode    string // "cloud" (default) or "self-hosted"
+	WebTerminalURL string // URL of the web-terminal sidecar (Tier 4 admin SSH bridge)
 }
 
 // loadConfig reads configuration from environment with sensible defaults.

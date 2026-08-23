@@ -3,10 +3,10 @@
 // Admin endpoints all run SSH commands via the web-terminal sidecar.
 // The flow is:
 //
-//   browser → api-gateway /api/v1/admin/*
-//           → POST http://web-terminal:8085/api/v1/admin/exec
-//           → SSH session → command on target server
-//           → parse stdout (JSON or text) → return structured response
+//	browser → api-gateway /api/v1/admin/*
+//	        → POST http://web-terminal:8085/api/v1/admin/exec
+//	        → SSH session → command on target server
+//	        → parse stdout (JSON or text) → return structured response
 //
 // The handlers in this file (admin_services.go, admin_storage.go, etc.)
 // all use the shared helpers below: SSHExec (raw command) and SSHExecJSON

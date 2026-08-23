@@ -1,6 +1,6 @@
 // Tier 5 — Container logs (C4).
 //
-//   GET /api/v1/containers/:id/logs?connection_id=X&tail=100&since=1h
+//	GET /api/v1/containers/:id/logs?connection_id=X&tail=100&since=1h
 package handler
 
 import (
@@ -58,10 +58,10 @@ func (h *ContainerHandler) ContainerLogs(c *gin.Context) {
 	// docker logs outputs stderr + stdout interleaved. Split lines.
 	lines := splitLines(resp.Stdout)
 	c.JSON(200, gin.H{
-		"logs":       lines,
-		"total":      len(lines),
-		"id":         id,
-		"exit_code":  resp.ExitCode,
-		"stderr":     strings.TrimSpace(resp.Stderr),
+		"logs":      lines,
+		"total":     len(lines),
+		"id":        id,
+		"exit_code": resp.ExitCode,
+		"stderr":    strings.TrimSpace(resp.Stderr),
 	})
 }

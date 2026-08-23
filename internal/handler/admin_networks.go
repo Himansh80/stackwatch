@@ -1,8 +1,8 @@
 // Tier 5 — Networks (C9).
 //
-//   GET    /api/v1/containers/networks?connection_id=X
-//   POST   /api/v1/containers/networks?connection_id=X  body: {"name": "frontend"}
-//   DELETE /api/v1/containers/networks/:id?connection_id=X
+//	GET    /api/v1/containers/networks?connection_id=X
+//	POST   /api/v1/containers/networks?connection_id=X  body: {"name": "frontend"}
+//	DELETE /api/v1/containers/networks/:id?connection_id=X
 package handler
 
 import (
@@ -13,14 +13,14 @@ import (
 
 // networkJSON is one row of `docker network ls --format '{{json .}}'`.
 type networkJSON struct {
-	CreatedAt  string `json:"CreatedAt"`
-	Driver     string `json:"Driver"`
-	ID         string `json:"ID"`
-	Name       string `json:"Name"`
-	Scope      string `json:"Scope"`
-	IPv6       string `json:"IPv6"`
-	Internal   string `json:"Internal"`
-	Labels     string `json:"Labels"`
+	CreatedAt string `json:"CreatedAt"`
+	Driver    string `json:"Driver"`
+	ID        string `json:"ID"`
+	Name      string `json:"Name"`
+	Scope     string `json:"Scope"`
+	IPv6      string `json:"IPv6"`
+	Internal  string `json:"Internal"`
+	Labels    string `json:"Labels"`
 }
 
 // ListNetworks returns all docker networks.
@@ -67,17 +67,17 @@ func (h *ContainerHandler) CreateNetwork(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"name": body.Name,
+			"name":      body.Name,
 			"exit_code": resp.ExitCode,
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker network create exited " + itoa(resp.ExitCode),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker network create exited " + itoa(resp.ExitCode),
 		})
 		return
 	}
 	// stdout is the new network ID
 	c.JSON(201, gin.H{
-		"name": body.Name,
-		"id":   strings.TrimSpace(resp.Stdout),
+		"name":   body.Name,
+		"id":     strings.TrimSpace(resp.Stdout),
 		"status": "created",
 	})
 }
@@ -101,10 +101,10 @@ func (h *ContainerHandler) RemoveNetwork(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"id": id,
+			"id":        id,
 			"exit_code": resp.ExitCode,
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker network rm exited " + itoa(resp.ExitCode),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker network rm exited " + itoa(resp.ExitCode),
 		})
 		return
 	}

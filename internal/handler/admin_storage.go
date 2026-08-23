@@ -1,6 +1,6 @@
 // Tier 4 S2: Storage (block devices, mounts, SMART, ZFS).
 //
-//   GET /api/v1/admin/storage?connection_id=X
+//	GET /api/v1/admin/storage?connection_id=X
 //
 // Runs multiple commands in one round-trip:
 //   - lsblk -Jp          → block devices + partitions
@@ -24,8 +24,8 @@ type lsblkOutput struct {
 type lsblkDevice struct {
 	Name       string        `json:"name"`
 	Size       int64         `json:"size"`
-	Rota       bool          `json:"rota"`   // true = HDD, false = SSD
-	Type       string        `json:"type"`   // disk / part / rom / lvm / raid
+	Rota       bool          `json:"rota"` // true = HDD, false = SSD
+	Type       string        `json:"type"` // disk / part / rom / lvm / raid
 	Model      string        `json:"model"`
 	Serial     string        `json:"serial"`
 	Mountpoint string        `json:"mountpoint"`

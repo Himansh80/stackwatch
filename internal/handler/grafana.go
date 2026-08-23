@@ -1,7 +1,7 @@
 // Tier 6 v2 — Grafana Prometheus datasource adapter (M4).
 //
-//   GET  /api/v1/grafana/search?query=<prefix>
-//   POST /api/v1/grafana/query  body: {query, from, to, step}
+//	GET  /api/v1/grafana/search?query=<prefix>
+//	POST /api/v1/grafana/query  body: {query, from, to, step}
 //
 // These match Grafana's built-in Prometheus datasource protocol so
 // existing Grafana instances can connect to StackWatch without writing
@@ -74,11 +74,11 @@ func GrafanaSearch(pool *db.Pool) gin.HandlerFunc {
 
 // grafanaQueryRequest matches what Grafana sends for /api/v1/query.
 type grafanaQueryRequest struct {
-	Query    string `json:"query"`
-	From     int64  `json:"from"`     // unix seconds (not ms)
-	To       int64  `json:"to"`       // unix seconds
-	Step     int64  `json:"step"`     // seconds
-	Instant  bool   `json:"instant"`  // for /api/v1/query (instant query)
+	Query   string `json:"query"`
+	From    int64  `json:"from"`    // unix seconds (not ms)
+	To      int64  `json:"to"`      // unix seconds
+	Step    int64  `json:"step"`    // seconds
+	Instant bool   `json:"instant"` // for /api/v1/query (instant query)
 }
 
 // GrafanaQuery runs a PromQL-lite query and returns Grafana-format result.
@@ -150,7 +150,7 @@ func GrafanaQuery(pool *db.Pool) gin.HandlerFunc {
 		// Prometheus datasource speaks that natively.
 		type metric struct {
 			Metric map[string]string `json:"metric"`
-			Values [][2]interface{}   `json:"values"`
+			Values [][2]interface{}  `json:"values"`
 		}
 		var single metric
 		single.Metric = map[string]string{"__name__": q.Metric}

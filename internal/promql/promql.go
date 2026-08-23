@@ -2,11 +2,11 @@
 //
 // Supported syntax (subset of PromQL):
 //
-//   cpu_pct                       — bare metric
-//   avg(cpu_pct)                  — aggregation
-//   max(cpu_pct), min, sum, count
-//   cpu_pct{host_id="abc"}        — label filter (eq only)
-//   avg(cpu_pct{host_id="abc"})
+//	cpu_pct                       — bare metric
+//	avg(cpu_pct)                  — aggregation
+//	max(cpu_pct), min, sum, count
+//	cpu_pct{host_id="abc"}        — label filter (eq only)
+//	avg(cpu_pct{host_id="abc"})
 //
 // NOT supported (deferred):
 //   - rate(), increase(), irate()

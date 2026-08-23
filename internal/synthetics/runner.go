@@ -22,27 +22,27 @@ import (
 type Kind string
 
 const (
-	KindHTTP  Kind = "http"
-	KindTCP   Kind = "tcp"
-	KindICMP  Kind = "icmp"
+	KindHTTP Kind = "http"
+	KindTCP  Kind = "tcp"
+	KindICMP Kind = "icmp"
 )
 
 // Check is one synthetic check to run. Matches the synthetics_checks row.
 type Check struct {
-	ID         string
-	TenantID   string
-	Name       string
-	Kind       Kind
-	Target     string // URL (HTTP), host:port (TCP), hostname (ICMP)
-	TimeoutMs  int
-	Enabled    bool
+	ID        string
+	TenantID  string
+	Name      string
+	Kind      Kind
+	Target    string // URL (HTTP), host:port (TCP), hostname (ICMP)
+	TimeoutMs int
+	Enabled   bool
 }
 
 // Result is the outcome of one check run.
 type Result struct {
 	Status     string // "success" | "failure" | "timeout"
 	ResponseMs int
-	StatusCode int  // 0 for TCP/ICMP
+	StatusCode int // 0 for TCP/ICMP
 	Error      string
 }
 

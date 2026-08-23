@@ -1,6 +1,6 @@
 // Tier 5 — Container stats (C5).
 //
-//   GET /api/v1/containers/:id/stats?connection_id=X[&no_stream=true]
+//	GET /api/v1/containers/:id/stats?connection_id=X[&no_stream=true]
 //
 // Uses `docker stats --no-stream --format '{{json .}}'` for a single
 // snapshot. Returns CPU%, mem usage, net I/O, block I/O.
@@ -15,15 +15,15 @@ import (
 
 // dockerStatsRow is one row of `docker stats --no-stream --format '{{json .}}'`.
 type dockerStatsRow struct {
-	BlockIO       string `json:"BlockIO"`
-	CPUPerc       string `json:"CPUPerc"`
-	Container     string `json:"Container"`
-	ID            string `json:"ID"`
-	MemPerc       string `json:"MemPerc"`
-	MemUsage      string `json:"MemUsage"`
-	Name          string `json:"Name"`
-	NetIO         string `json:"NetIO"`
-	PIDs          string `json:"PIDs"`
+	BlockIO   string `json:"BlockIO"`
+	CPUPerc   string `json:"CPUPerc"`
+	Container string `json:"Container"`
+	ID        string `json:"ID"`
+	MemPerc   string `json:"MemPerc"`
+	MemUsage  string `json:"MemUsage"`
+	Name      string `json:"Name"`
+	NetIO     string `json:"NetIO"`
+	PIDs      string `json:"PIDs"`
 }
 
 // ContainerStats returns one snapshot of stats for a container.
@@ -48,7 +48,7 @@ func (h *ContainerHandler) ContainerStats(c *gin.Context) {
 	rows := parseDockerJSONLinesAs(resp.Stdout, func() dockerStatsRow { return dockerStatsRow{} })
 	if len(rows) == 0 {
 		c.JSON(200, gin.H{
-			"stats": nil,
+			"stats":   nil,
 			"warning": "no stats output: " + strings.TrimSpace(resp.Stderr),
 		})
 		return

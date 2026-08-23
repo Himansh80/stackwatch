@@ -81,7 +81,7 @@ type APIToken struct {
 	Expire  int    `json:"expire,omitempty"`
 	Privsep int    `json:"privsep,omitempty"`
 	Value   string `json:"value,omitempty"` // ONLY present on create, never on list
-	ID      string `json:"id,omitempty"`     // fallback: keyed-map form uses "id"
+	ID      string `json:"id,omitempty"`    // fallback: keyed-map form uses "id"
 }
 
 // tokenID returns the canonical token identifier regardless of source shape.
@@ -181,6 +181,7 @@ func (c *Client) DeleteUser(ctx context.Context, userid string) (string, error) 
 // Proxmox response shape varies by version:
 //   - newer PVE: `{"data": {"<tokenid>": {...}, ...}}` (map keyed by tokenid)
 //   - older PVE / this .107: `{"data": [{"tokenid": "..."}, ...}` (array)
+//
 // This function normalizes the result to a map keyed by tokenid so the
 // handler always sees a consistent shape.
 func (c *Client) ListAPITokens(ctx context.Context, userid string) (map[string]APIToken, error) {

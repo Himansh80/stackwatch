@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, clearToken, getToken, me } from '../lib/api';
+import { formatClock, formatDayLabel } from '../lib/clock';
 import ProfileMenu from '../components/ProfileMenu';
 import CommandPalette from '../components/CommandPalette';
 
@@ -108,6 +109,8 @@ export default function ProfilePage() {
 
   // Cmd+K palette open state — same pattern as Dashboard.
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => { const id = window.setInterval(() => setNow(new Date()), 30000); return () => window.clearInterval(id); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -249,8 +252,7 @@ export default function ProfilePage() {
               </span>
             </div>
           </div>
-          <div className="dash-top-actions">
-            <button className="dash-topbar-hint" onClick={() => setPaletteOpen(true)} title="Search & navigate (Cmd+K)"><kbd>⌘</kbd><kbd>K</kbd><span>Search</span></button>
+          <div className="dash-topbar-center"><button className="dash-topbar-search" onClick={() => setPaletteOpen(true)} title="Search & navigate (Cmd+K)" aria-label="Open command palette"><span className="dash-topbar-search-icon" aria-hidden="true">⌕</span><span className="dash-topbar-search-placeholder">Search & navigate…</span><kbd className="dash-topbar-search-kbd">⌘</kbd><kbd className="dash-topbar-search-kbd">K</kbd></button></div><div className="dash-top-actions"><span className="dash-topbar-clock" title={formatDayLabel(now)}><span className="dash-topbar-clock-time">{formatClock(now)}</span><span className="dash-topbar-clock-day">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]}</span></span>
             <button className="dash-icon-button" onClick={() => window.location.reload()} aria-label="Refresh page" title="Refresh page">↻</button>
             <ProfileMenu firstName={(profile.full_name || '').split(' ')[0] || 'there'} fullName={profile.full_name} tenantName={profile.tenant_name} initials={initials} />
           </div>

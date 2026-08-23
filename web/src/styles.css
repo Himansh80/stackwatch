@@ -183,7 +183,18 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 .dash-nav-section { margin:0 0 26px; }.dash-nav-heading { display:block; padding:0 12px 9px; color:#61738f; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }
 .dash-nav-item { display:flex; align-items:center; gap:11px; margin:3px 0; padding:10px 12px; border:1px solid transparent; border-radius:8px; color:#8292ac; font-size:13px; font-weight:650; text-decoration:none; transition:150ms ease; }.dash-nav-item span { width:18px; color:#6f87a8; font-size:16px; text-align:center; }.dash-nav-item em { margin-left:auto; color:#596d8a; font-size:11px; font-style:normal; }.dash-nav-item:hover,.dash-nav-active { color:#f2f7ff; background:#14233a; border-color:#243b59; }.dash-nav-active span { color:#67e8f9; }
 .dash-sidebar-bottom { margin-top:auto; }.dash-connection { padding:13px 12px; border:1px solid #1d3650; border-radius:10px; background:linear-gradient(150deg,rgba(34,211,238,.08),rgba(99,102,241,.08)); color:#a9bdd7; font-size:11px; }.dash-connection small { display:block; margin-top:5px; color:#637895; font-size:10px; }.dash-live-dot { width:7px; height:7px; display:inline-block; margin-right:7px; border-radius:50%; background:#34d399; box-shadow:0 0 0 4px rgba(52,211,153,.12); vertical-align:middle; }.dash-sidebar-logout { width:100%; margin:12px 0 0; padding:9px 12px; border:0; background:transparent; color:#7f91ad; text-align:left; font-weight:650; cursor:pointer; }.dash-sidebar-logout:hover { color:#fda4af; }
-.dash-main { min-width:0; flex:1; }.dash-topbar { min-height:82px; display:flex; justify-content:space-between; align-items:center; gap:24px; padding:18px 38px; border-bottom:1px solid #18263b; background:rgba(8,13,24,.9); }.dash-breadcrumb,.dash-eyebrow { color:#6e83a1; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }.dash-topbar h1 { margin:6px 0 0; color:#f3f7fd; font-size:23px; letter-spacing:-.5px; }.dash-top-actions { display:flex; align-items:center; gap:18px; }.dash-icon-button { width:36px; height:36px; margin:0; padding:0; border:1px solid #263b57; border-radius:9px; background:#101b2d; color:#b4c6dd; font-size:19px; cursor:pointer; }.dash-icon-button:hover { color:#67e8f9; border-color:#40749b; }.dash-user { display:flex; align-items:center; gap:9px; }.dash-avatar { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; color:#06121e; font-weight:800; background:linear-gradient(135deg,#67e8f9,#818cf8); }.dash-user strong,.dash-user small { display:block; }.dash-user strong { font-size:12px; }.dash-user small { margin-top:2px; color:#6d809d; font-size:10px; }
+/* ------- Topbar - 3-zone layout (greeting | search | actions) -------
+   The topbar is a single flex row. The greeting and actions are
+   intrinsic-width and sit at the edges via space-between. The
+   center wrapper has flex:1 so it claims all leftover horizontal
+   space. The search button INSIDE the center wrapper is centered
+   via margin:auto so it sits at the geometric center of the
+   topbar regardless of sibling widths.
+
+   This avoids the absolute-positioning trick (which broke the
+   reload button + avatar layout) and avoids the grid 1fr math
+   (which mis-counted because of gap + padding interactions). */
+.dash-main { min-width:0; flex:1; }.dash-topbar { min-height:82px; display:flex; align-items:center; gap:24px; padding:18px 38px; border-bottom:1px solid #18263b; background:rgba(8,13,24,.9); }.dash-breadcrumb,.dash-eyebrow { color:#6e83a1; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }.dash-topbar h1 { margin:6px 0 0; color:#f3f7fd; font-size:23px; letter-spacing:-.5px; }.dash-top-actions { display:flex; align-items:center; gap:18px; }.dash-icon-button { width:36px; height:36px; margin:0; padding:0; border:1px solid #263b57; border-radius:9px; background:#101b2d; color:#b4c6dd; font-size:19px; cursor:pointer; }.dash-icon-button:hover { color:#67e8f9; border-color:#40749b; }.dash-user { display:flex; align-items:center; gap:9px; }.dash-avatar { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; color:#06121e; font-weight:800; background:linear-gradient(135deg,#67e8f9,#818cf8); }.dash-user strong,.dash-user small { display:block; }.dash-user strong { font-size:12px; }.dash-user small { margin-top:2px; color:#6d809d; font-size:10px; }
 .dash-content { max-width:1600px; margin:0 auto; padding:32px 38px 60px; }.dash-welcome { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:26px; }.dash-welcome h2 { margin:7px 0 5px; color:#f6f9ff; font-size:29px; letter-spacing:-.9px; }.dash-welcome p { margin:0; color:#8292aa; font-size:13px; }.dash-welcome-meta { min-width:145px; color:#d7e5f4; font-size:11px; font-weight:700; text-align:right; }.dash-welcome-meta div { margin-top:7px; color:#657a99; font-weight:500; }
 .dash-metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }.dash-metric { min-height:139px; padding:18px; border:1px solid #20314a; border-radius:12px; background:linear-gradient(150deg,#111b2d,#0e1726); box-shadow:0 12px 28px rgba(0,0,0,.1); }.dash-metric-top { display:flex; align-items:center; gap:9px; }.dash-metric-icon { width:29px; height:29px; display:grid; place-items:center; border-radius:8px; color:#67e8f9; background:rgba(34,211,238,.1); font-size:15px; }.dash-metric-label { color:#8294ae; font-size:10px; font-weight:800; letter-spacing:1.1px; text-transform:uppercase; }.dash-metric strong { display:block; margin:14px 0 5px; color:#f3f7fd; font-size:29px; letter-spacing:-.8px; text-transform:capitalize; }.dash-metric-hint { color:#647994; font-size:11px; }.dash-metric-indigo .dash-metric-icon { color:#a5b4fc; background:rgba(129,140,248,.1); }.dash-metric-green .dash-metric-icon { color:#6ee7b7; background:rgba(52,211,153,.1); }.dash-metric-amber .dash-metric-icon { color:#fcd34d; background:rgba(245,158,11,.1); }
 .dash-grid-main { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(340px,1fr); gap:16px; margin-top:16px; }.dash-panel { min-width:0; overflow:hidden; border:1px solid #1e3048; border-radius:13px; background:linear-gradient(150deg,#101a2b,#0c1523); box-shadow:0 14px 34px rgba(0,0,0,.12); }.dash-panel + .dash-panel { margin-top:16px; }.dash-grid-main .dash-panel { margin-top:0; }.dash-panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:19px 20px; border-bottom:1px solid #1a2a40; }.dash-panel-head h3 { margin:5px 0 0; color:#eaf2fc; font-size:16px; letter-spacing:-.2px; }.dash-panel-context { color:#68809e; font-size:11px; }.dash-chart-wrap { padding:17px 20px 13px; }.dash-chart-wrap svg { width:100%; height:240px; overflow:visible; }.dash-grid-line { stroke:#1b2c43; stroke-width:1; stroke-dasharray:3 5; }.dash-chart-axis { display:flex; justify-content:space-between; color:#5e7391; font-size:10px; }.dash-chart-axis span:nth-child(2) { color:#7d91ad; }.dash-chart-empty { min-height:290px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#7389a7; }.dash-chart-empty span { color:#38bdf8; font-size:38px; }.dash-chart-empty strong { margin-top:9px; color:#dce8f6; font-size:14px; }.dash-chart-empty small { margin-top:4px; color:#617693; }
@@ -326,10 +337,12 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 /* Old login-card styles retained for legacy compatibility (no longer used by Login.tsx) */
 .login-shell { display:none; }
 
-.dash-greeting { min-width:0; flex:1 1 auto; display:flex; flex-direction:column; gap:4px; }
+.dash-greeting { min-width:0; flex:0 1 auto; display:flex; flex-direction:column; gap:4px; max-width:340px; }
 .dash-greeting-eyebrow { display:block; color:#67e8f9; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }
-.dash-greeting-row { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.dash-greeting-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.dash-greeting-clock { min-width:0; }
 .dash-greeting-text { color:#f3f7fd; font-size:22px; font-weight:700; letter-spacing:-.5px; }
+.dash-greeting-clock-time { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px; display:inline-block; }
 .dash-greeting-clock { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border:1px solid #20314a; border-radius:999px; background:linear-gradient(150deg,rgba(34,211,238,.06),rgba(99,102,241,.06)); color:#a9bdd7; font-size:11px; font-weight:700; letter-spacing:.4px; }
 .dash-greeting-clock-time { font-variant-numeric:tabular-nums; color:#f3f7fd; font-size:13px; font-weight:800; }
 .dash-greeting-clock-day { color:#8195b3; font-size:11px; font-weight:600; }
@@ -536,7 +549,68 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
   font:600 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace; color:#a9c0e0;
 }
 
-/* ------- Search input (workloads inventory) ------- */
+/* ------- Topbar center: search bar (NOT a hint button) -------
+   The bar pretends to be a real input so the Cmd+K shortcut feels
+   discoverable. Click anywhere on it to open the palette.
+
+   The center column is `flex:1` so it claims all leftover
+   horizontal space. Inside, the search button is centered via
+   `margin:0 auto` so it sits in the middle of that column.
+   Combined with `justify-content:space-between` on the topbar,
+   the search ends up at the geometric center of the topbar. */
+.dash-topbar-center {
+  flex:1 1 0; min-width:0;
+  display:flex; justify-content:center; align-items:center;
+}
+.dash-topbar-search {
+  display:inline-flex; align-items:center; gap:10px;
+  width:480px; max-width:100%;
+  padding:7px 12px;
+  background:rgba(13,21,38,.7); border:1px solid #20314a; border-radius:8px;
+  color:#7387a5; font-size:13px;
+  cursor:pointer;
+  transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.dash-topbar-search:hover {
+  background:rgba(34,52,86,.7); border-color:#2e4a73; color:#cfe6f7;
+}
+.dash-topbar-search:focus-visible {
+  outline:0; border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(34,211,238,.16);
+}
+.dash-topbar-search-icon { color:#7387a5; font-size:15px; flex-shrink:0; }
+.dash-topbar-search-placeholder { flex:1; text-align:left; }
+.dash-topbar-search-kbd {
+  display:inline-block; min-width:18px; text-align:center; padding:2px 5px;
+  background:#0e1a30; border:1px solid #2a3b53; border-radius:4px;
+  font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace; color:#a9c0e0;
+  margin-left:-4px;
+}
+.dash-topbar-search-kbd + .dash-topbar-search-kbd { margin-left:2px; }
+@media (max-width: 900px) {
+  /* On narrow viewports, hide the placeholder text + kbd glyphs
+     so the bar collapses to just the icon. Keeps the topbar from
+     wrapping into multiple rows. */
+  .dash-topbar-search-placeholder, .dash-topbar-search-kbd { display:none; }
+  .dash-topbar-search { width:auto; max-width:48px; padding:7px; justify-content:center; }
+}
+
+/* ------- Topbar clock widget (right-side, before reload button) -------
+   Compact pill that sits in dash-top-actions BEFORE the reload
+   button. Shows HH:MM AM/PM + day name on wide viewports; on
+   narrow viewports only the time shows. The pill has the same
+   dark-blue gradient as the avatar greeting on the dashboard
+   to keep the topbar visually consistent. */
+.dash-topbar-clock {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 12px; border:1px solid #20314a; border-radius:999px;
+  background:linear-gradient(150deg,rgba(34,211,238,.06),rgba(99,102,241,.06));
+  color:#a9bdd7; font-size:11px; font-weight:700; letter-spacing:.4px;
+}
+.dash-topbar-clock-time { font-variant-numeric:tabular-nums; color:#f3f7fd; font-size:12px; font-weight:800; }
+.dash-topbar-clock-day { color:#8195b3; font-size:11px; font-weight:600; }
+@media (max-width: 1100px) { .dash-topbar-clock-day { display:none; } }
+@media (max-width: 780px) { .dash-topbar-clock { display:none; } }
 .dash-panel-controls { display:flex; align-items:center; gap:14px; }
 .dash-search-input { position:relative; display:flex; align-items:center; }
 .dash-search-icon { position:absolute; left:10px; color:#7387a5; font-size:14px; pointer-events:none; }

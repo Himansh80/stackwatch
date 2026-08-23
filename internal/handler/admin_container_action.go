@@ -1,6 +1,6 @@
 // Tier 5 — Container actions (C2).
 //
-//   POST /api/v1/containers/:id/:action?connection_id=X
+//	POST /api/v1/containers/:id/:action?connection_id=X
 //
 // `action` must be in the explicit whitelist below. Anything else
 // returns 400. Audit-logged via the existing audit_log table.
@@ -26,9 +26,9 @@ var allowedContainerActions = map[string]bool{
 
 // ContainerAction handles POST /containers/:id/:action.
 //
-//   id must be a container id (or name).
-//   action must be in allowedContainerActions.
-//   body (optional): JSON with extra params (new_name for rename, command for exec).
+//	id must be a container id (or name).
+//	action must be in allowedContainerActions.
+//	body (optional): JSON with extra params (new_name for rename, command for exec).
 func (h *ContainerHandler) ContainerAction(c *gin.Context) {
 	cid, ok := requireConnectionID(c)
 	if !ok {
@@ -61,11 +61,11 @@ func (h *ContainerHandler) ContainerAction(c *gin.Context) {
 	}
 
 	out := gin.H{
-		"action": action,
-		"id":     id,
-		"exit_code": resp.ExitCode,
-		"stdout": strings.TrimSpace(resp.Stdout),
-		"stderr": strings.TrimSpace(resp.Stderr),
+		"action":      action,
+		"id":          id,
+		"exit_code":   resp.ExitCode,
+		"stdout":      strings.TrimSpace(resp.Stdout),
+		"stderr":      strings.TrimSpace(resp.Stderr),
 		"duration_ms": resp.DurationMs,
 	}
 	if resp.ExitCode != 0 {

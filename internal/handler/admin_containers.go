@@ -16,40 +16,40 @@ import (
 
 // containerFields are the docker inspect fields we surface.
 type containerJSON struct {
-	ID            string   `json:"ID"`
-	Name          string   `json:"Names"` // list endpoint uses "Names", inspect uses "Name"
-	Image         string   `json:"Image"`
-	ImageID       string   `json:"ImageID"`
-	Command       string   `json:"Command"`
-	CreatedAt     string   `json:"CreatedAt"`
-	State         string   `json:"State"`
-	Status        string   `json:"Status"`
-	Ports         string   `json:"Ports"`
-	Labels        string   `json:"Labels"`
-	Networks      string   `json:"Networks"`
-	Mounts        string   `json:"Mounts"`
-	HealthStatus  string   `json:"HealthStatus"`
+	ID           string `json:"ID"`
+	Name         string `json:"Names"` // list endpoint uses "Names", inspect uses "Name"
+	Image        string `json:"Image"`
+	ImageID      string `json:"ImageID"`
+	Command      string `json:"Command"`
+	CreatedAt    string `json:"CreatedAt"`
+	State        string `json:"State"`
+	Status       string `json:"Status"`
+	Ports        string `json:"Ports"`
+	Labels       string `json:"Labels"`
+	Networks     string `json:"Networks"`
+	Mounts       string `json:"Mounts"`
+	HealthStatus string `json:"HealthStatus"`
 	// Inspect fields (extra)
-	Env           []string `json:"Env,omitempty"`
-	Cmd           []string `json:"Cmd,omitempty"`
-	ArgsEscaped   bool     `json:"ArgsEscaped,omitempty"`
-	ImageName     string   `json:"ImageName,omitempty"`
+	Env         []string `json:"Env,omitempty"`
+	Cmd         []string `json:"Cmd,omitempty"`
+	ArgsEscaped bool     `json:"ArgsEscaped,omitempty"`
+	ImageName   string   `json:"ImageName,omitempty"`
 }
 
 // normalizedContainer is the response shape — merged list + inspect fields
 // so the frontend doesn't need two calls per row.
 type normalizedContainer struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Image        string `json:"image"`
-	ImageID      string `json:"image_id"`
-	State        string `json:"state"`
-	Status       string `json:"status"`
-	Health       string `json:"health"`
-	CreatedAt    string `json:"created_at"`
-	Ports        string `json:"ports"`
-	Networks     string `json:"networks"`
-	Labels       string `json:"labels"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Image     string `json:"image"`
+	ImageID   string `json:"image_id"`
+	State     string `json:"state"`
+	Status    string `json:"status"`
+	Health    string `json:"health"`
+	CreatedAt string `json:"created_at"`
+	Ports     string `json:"ports"`
+	Networks  string `json:"networks"`
+	Labels    string `json:"labels"`
 }
 
 // ContainerHandler bundles all Tier 5 container endpoints. It reuses the

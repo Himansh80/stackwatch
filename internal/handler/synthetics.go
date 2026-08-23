@@ -1,12 +1,12 @@
 // Tier 6 v2 — Synthetics CRUD endpoints (M7).
 //
-//   POST   /api/v1/synthetics                — create
-//   GET    /api/v1/synthetics                — list
-//   GET    /api/v1/synthetics/:id            — get
-//   PATCH  /api/v1/synthetics/:id            — update
-//   DELETE /api/v1/synthetics/:id            — delete
-//   POST   /api/v1/synthetics/:id/run        — run now, return latest result
-//   GET    /api/v1/synthetics/:id/results    — result history
+//	POST   /api/v1/synthetics                — create
+//	GET    /api/v1/synthetics                — list
+//	GET    /api/v1/synthetics/:id            — get
+//	PATCH  /api/v1/synthetics/:id            — update
+//	DELETE /api/v1/synthetics/:id            — delete
+//	POST   /api/v1/synthetics/:id/run        — run now, return latest result
+//	GET    /api/v1/synthetics/:id/results    — result history
 package handler
 
 import (
@@ -28,7 +28,7 @@ type createSynthRequest struct {
 	Kind        string `json:"kind" binding:"required,oneof=http tcp icmp"`
 	Target      string `json:"target" binding:"required"`
 	IntervalSec int    `json:"interval_sec"` // default 60
-	TimeoutMs   int    `json:"timeout_ms"`    // default 5000
+	TimeoutMs   int    `json:"timeout_ms"`   // default 5000
 }
 
 // patchSynthRequest is the body for PATCH /synthetics/:id.
@@ -316,12 +316,12 @@ func RunSyntheticsNow(pool *db.Pool) gin.HandlerFunc {
 			 WHERE id = $3`, result.Status, result.ResponseMs, id)
 
 		c.JSON(200, gin.H{
-			"id":           id.String(),
-			"name":         name,
-			"status":       result.Status,
-			"response_ms":  result.ResponseMs,
-			"status_code":  result.StatusCode,
-			"error":        result.Error,
+			"id":          id.String(),
+			"name":        name,
+			"status":      result.Status,
+			"response_ms": result.ResponseMs,
+			"status_code": result.StatusCode,
+			"error":       result.Error,
 		})
 	}
 }

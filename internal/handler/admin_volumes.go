@@ -1,8 +1,8 @@
 // Tier 5 — Volumes (C8).
 //
-//   GET    /api/v1/containers/volumes?connection_id=X
-//   POST   /api/v1/containers/volumes?connection_id=X  body: {"name": "data"}
-//   DELETE /api/v1/containers/volumes/:name?connection_id=X[&force=true]
+//	GET    /api/v1/containers/volumes?connection_id=X
+//	POST   /api/v1/containers/volumes?connection_id=X  body: {"name": "data"}
+//	DELETE /api/v1/containers/volumes/:name?connection_id=X[&force=true]
 package handler
 
 import (
@@ -65,10 +65,10 @@ func (h *ContainerHandler) CreateVolume(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"name": body.Name,
+			"name":      body.Name,
 			"exit_code": resp.ExitCode,
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker volume create exited " + itoa(resp.ExitCode),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker volume create exited " + itoa(resp.ExitCode),
 		})
 		return
 	}
@@ -102,10 +102,10 @@ func (h *ContainerHandler) RemoveVolume(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"name": name,
+			"name":      name,
 			"exit_code": resp.ExitCode,
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker volume rm exited " + itoa(resp.ExitCode),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker volume rm exited " + itoa(resp.ExitCode),
 		})
 		return
 	}

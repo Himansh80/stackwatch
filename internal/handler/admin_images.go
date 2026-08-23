@@ -1,8 +1,8 @@
 // Tier 5 — Images (C7).
 //
-//   GET    /api/v1/containers/images?connection_id=X
-//   POST   /api/v1/containers/images/pull?connection_id=X  body: {"image": "nginx:latest"}
-//   DELETE /api/v1/containers/images/:id?connection_id=X
+//	GET    /api/v1/containers/images?connection_id=X
+//	POST   /api/v1/containers/images/pull?connection_id=X  body: {"image": "nginx:latest"}
+//	DELETE /api/v1/containers/images/:id?connection_id=X
 package handler
 
 import (
@@ -13,15 +13,15 @@ import (
 
 // imageJSON is one row of `docker images --format '{{json .}}'`.
 type imageJSON struct {
-	Containers  string `json:"Containers"`
-	CreatedAt   string `json:"CreatedAt"`
+	Containers   string `json:"Containers"`
+	CreatedAt    string `json:"CreatedAt"`
 	CreatedSince string `json:"CreatedSince"`
-	Digest      string `json:"Digest"`
-	ID          string `json:"ID"`
-	Repository  string `json:"Repository"`
-	SharedSize  string `json:"SharedSize"`
-	Size        string `json:"Size"`
-	Tag         string `json:"Tag"`
+	Digest       string `json:"Digest"`
+	ID           string `json:"ID"`
+	Repository   string `json:"Repository"`
+	SharedSize   string `json:"SharedSize"`
+	Size         string `json:"Size"`
+	Tag          string `json:"Tag"`
 }
 
 // ListImages (C7 list) returns docker images on the target.
@@ -68,11 +68,11 @@ func (h *ContainerHandler) PullImage(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"image": body.Image,
+			"image":     body.Image,
 			"exit_code": resp.ExitCode,
-			"stdout": strings.TrimSpace(resp.Stdout),
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker pull exited " + itoa(resp.ExitCode),
+			"stdout":    strings.TrimSpace(resp.Stdout),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker pull exited " + itoa(resp.ExitCode),
 		})
 		return
 	}
@@ -109,11 +109,11 @@ func (h *ContainerHandler) RemoveImage(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"id": id,
+			"id":        id,
 			"exit_code": resp.ExitCode,
-			"stdout": strings.TrimSpace(resp.Stdout),
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker rmi exited " + itoa(resp.ExitCode),
+			"stdout":    strings.TrimSpace(resp.Stdout),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker rmi exited " + itoa(resp.ExitCode),
 		})
 		return
 	}

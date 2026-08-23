@@ -1,9 +1,9 @@
 // Tier 6 — Prometheus compat (M3) + Loki push (M6).
 //
-//   POST /api/v1/prom/write  (Prometheus remote_write JSON variant)
-//   POST /api/v1/prom/query  (PromQL-lite: metric, agg, label filter)
-//   POST /api/v1/loki/push   (Loki-compatible JSON push)
-//   GET  /api/v1/loki/query  (count logs per host per minute)
+//	POST /api/v1/prom/write  (Prometheus remote_write JSON variant)
+//	POST /api/v1/prom/query  (PromQL-lite: metric, agg, label filter)
+//	POST /api/v1/loki/push   (Loki-compatible JSON push)
+//	GET  /api/v1/loki/query  (count logs per host per minute)
 //
 // Both use the existing metric_points table. Loki entries use
 // metric_name = 'log' with value = 1 and the message stored in the
@@ -34,7 +34,7 @@ type promWriteSample struct {
 // promWriteSeries is one time-series in the write request.
 type promWriteSeries struct {
 	Labels  map[string]string `json:"labels"`
-	Samples []promWriteSample  `json:"samples"`
+	Samples []promWriteSample `json:"samples"`
 }
 
 // promWriteRequest is the body of POST /prom/write.
@@ -125,11 +125,11 @@ func PromWrite(pool *db.Pool) gin.HandlerFunc {
 // Supports PromQL-lite: "metric", "agg(metric)", "metric{label=val}".
 // Returns Prometheus-compatible JSON envelope.
 type promQueryRequest struct {
-	Query    string `json:"query"`
-	From     int64  `json:"from"`        // unix ms
-	To       int64  `json:"to"`          // unix ms
-	Step     int64  `json:"step"`        // bucket size in ms (default 30000)
-	HostID   string `json:"host_id"`     // optional server filter
+	Query  string `json:"query"`
+	From   int64  `json:"from"`    // unix ms
+	To     int64  `json:"to"`      // unix ms
+	Step   int64  `json:"step"`    // bucket size in ms (default 30000)
+	HostID string `json:"host_id"` // optional server filter
 }
 
 // PromQuery runs a PromQL-lite query and returns Prometheus-format result.
@@ -204,7 +204,7 @@ func PromQuery(pool *db.Pool) gin.HandlerFunc {
 		// Prometheus-format result
 		type metric struct {
 			Metric map[string]string `json:"metric"`
-			Values [][2]interface{}   `json:"values"`
+			Values [][2]interface{}  `json:"values"`
 		}
 		var result []metric
 		var single metric
@@ -252,13 +252,13 @@ func PromQuery(pool *db.Pool) gin.HandlerFunc {
 
 // lokiStream is one stream in Loki push format.
 type lokiStream struct {
-	Labels  string           `json:"labels"`  // raw label string e.g. `{job="syslog"}`
-	Entries []lokiEntry      `json:"entries"`
+	Labels  string      `json:"labels"` // raw label string e.g. `{job="syslog"}`
+	Entries []lokiEntry `json:"entries"`
 }
 
 // lokiEntry is one log line.
 type lokiEntry struct {
-	Ts   string `json:"ts"`   // ISO8601 or nanoseconds
+	Ts   string `json:"ts"` // ISO8601 or nanoseconds
 	Line string `json:"line"`
 }
 
@@ -386,10 +386,10 @@ func LokiQuery(pool *db.Pool) gin.HandlerFunc {
 		defer rows.Close()
 
 		type hostCount struct {
-			ServerID   *string `json:"server_id"`
-			Count      int64   `json:"count"`
-			FirstSeen  string  `json:"first_seen"`
-			LastSeen   string  `json:"last_seen"`
+			ServerID  *string `json:"server_id"`
+			Count     int64   `json:"count"`
+			FirstSeen string  `json:"first_seen"`
+			LastSeen  string  `json:"last_seen"`
 		}
 		out := []hostCount{}
 		for rows.Next() {
@@ -408,9 +408,9 @@ func LokiQuery(pool *db.Pool) gin.HandlerFunc {
 			out = append(out, hc)
 		}
 		c.JSON(200, gin.H{
-			"hosts":  out,
-			"total":  len(out),
-			"since":  sinceStr,
+			"hosts": out,
+			"total": len(out),
+			"since": sinceStr,
 		})
 	}
 }

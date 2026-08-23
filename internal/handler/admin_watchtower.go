@@ -1,7 +1,7 @@
 // Tier 5 — Watchtower (auto-updater).
 //
-//   GET  /api/v1/containers/watchtower?connection_id=X
-//   POST /api/v1/containers/watchtower/update?connection_id=X[&interval=300]
+//	GET  /api/v1/containers/watchtower?connection_id=X
+//	POST /api/v1/containers/watchtower/update?connection_id=X[&interval=300]
 //
 // Watchtower is a separate container that watches running containers
 // and updates them when their image has a newer version. We don't
@@ -19,8 +19,9 @@ import (
 // (i.e. containers that Watchtower is monitoring).
 //
 // We detect watchtower-monitored containers with:
-//   docker ps -a --filter label=com.centurylinklabs.watchtower.enable=true
-//   --format '{{json .}}'
+//
+//	docker ps -a --filter label=com.centurylinklabs.watchtower.enable=true
+//	--format '{{json .}}'
 func (h *ContainerHandler) ListWatched(c *gin.Context) {
 	cid, ok := requireConnectionID(c)
 	if !ok {
@@ -35,8 +36,8 @@ func (h *ContainerHandler) ListWatched(c *gin.Context) {
 	// Re-use parseDockerJSONLinesAs via the existing containerJSON shape
 	rows := parseDockerJSONLinesAs(resp.Stdout, func() map[string]interface{} { return map[string]interface{}{} })
 	c.JSON(200, gin.H{
-		"watched":      rows,
-		"total":        len(rows),
+		"watched":            rows,
+		"total":              len(rows),
 		"watchtower_running": strings.Contains(resp.Stdout, "watchtower"),
 	})
 }

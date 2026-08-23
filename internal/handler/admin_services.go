@@ -1,7 +1,7 @@
 // Tier 4 S1: Services (systemd units via systemctl).
 //
-//   GET  /api/v1/admin/services?connection_id=X[&state=active|inactive|failed]
-//   POST /api/v1/admin/services/:connection_id/:action?unit=NAME
+//	GET  /api/v1/admin/services?connection_id=X[&state=active|inactive|failed]
+//	POST /api/v1/admin/services/:connection_id/:action?unit=NAME
 //
 // The list endpoint runs `systemctl list-units --type=service --output=json`
 // on the target host. The action endpoint runs `systemctl <action> NAME`.
@@ -117,11 +117,11 @@ func (h *AdminHandler) ServiceAction(c *gin.Context) {
 
 	// success = exit code 0
 	out := gin.H{
-		"action":     action,
-		"unit":       unit,
-		"exit_code":  resp.ExitCode,
-		"stdout":     strings.TrimSpace(resp.Stdout),
-		"stderr":     strings.TrimSpace(resp.Stderr),
+		"action":      action,
+		"unit":        unit,
+		"exit_code":   resp.ExitCode,
+		"stdout":      strings.TrimSpace(resp.Stdout),
+		"stderr":      strings.TrimSpace(resp.Stderr),
 		"duration_ms": resp.DurationMs,
 	}
 	if resp.ExitCode != 0 {

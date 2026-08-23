@@ -1,7 +1,7 @@
 // Tier 6 — ML anomaly detection endpoints (M2).
 //
-//   GET  /api/v1/anomaly/list?host_id=X&metric=cpu_pct&since=1h
-//   POST /api/v1/anomaly/detect  body: {values: [...], new_value: N, threshold: 3}
+//	GET  /api/v1/anomaly/list?host_id=X&metric=cpu_pct&since=1h
+//	POST /api/v1/anomaly/detect  body: {values: [...], new_value: N, threshold: 3}
 //
 // list reads pre-computed anomaly_events for the given host/metric.
 // detect is a stateless helper: feed it your last N values and a new

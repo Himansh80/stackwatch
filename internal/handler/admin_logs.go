@@ -1,6 +1,6 @@
 // Tier 4 S6: Logs (journald + /var/log fallback).
 //
-//   GET /api/v1/admin/logs?connection_id=X[&unit=NAME][&priority=N][&since=1h][&limit=100]
+//	GET /api/v1/admin/logs?connection_id=X[&unit=NAME][&priority=N][&since=1h][&limit=100]
 //
 // Uses `journalctl --output=json` when available, falls back to
 // `tail -n LIMIT /var/log/syslog` or `/var/log/messages`.
@@ -16,20 +16,20 @@ import (
 
 // JournalEntry is one parsed journald line (JSON from --output=json).
 type JournalEntry struct {
-	Timestamp       string `json:"timestamp"`        // RFC3339Nano
-	Priority        string `json:"priority"`         // emerg/alert/crit/err/warning/notice/info/debug
-	Unit            string `json:"unit"`             // systemd unit name
-	Message         string `json:"message"`          // raw message
-	Hostname        string `json:"hostname,omitempty"`
+	Timestamp string `json:"timestamp"` // RFC3339Nano
+	Priority  string `json:"priority"`  // emerg/alert/crit/err/warning/notice/info/debug
+	Unit      string `json:"unit"`      // systemd unit name
+	Message   string `json:"message"`   // raw message
+	Hostname  string `json:"hostname,omitempty"`
 }
 
 // journalRawEntry is the shape `journalctl --output=json` emits.
 type journalRawEntry struct {
-	Timestamp    string `json:"__REALTIME_TIMESTAMP"` // microseconds since epoch (string)
-	Priority     string `json:"PRIORITY"`             // numeric, e.g. "3"
-	Unit         string `json:"_SYSTEMD_UNIT"`        // unit name
-	Message      string `json:"MESSAGE"`             // raw
-	Hostname     string `json:"_HOSTNAME"`
+	Timestamp string `json:"__REALTIME_TIMESTAMP"` // microseconds since epoch (string)
+	Priority  string `json:"PRIORITY"`             // numeric, e.g. "3"
+	Unit      string `json:"_SYSTEMD_UNIT"`        // unit name
+	Message   string `json:"MESSAGE"`              // raw
+	Hostname  string `json:"_HOSTNAME"`
 }
 
 // ListLogs returns the most recent log entries.

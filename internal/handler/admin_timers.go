@@ -1,6 +1,6 @@
 // Tier 4 S8: Timers (systemd timers + cron jobs).
 //
-//   GET /api/v1/admin/timers?connection_id=X
+//	GET /api/v1/admin/timers?connection_id=X
 //
 // Commands:
 //   - systemctl list-timers --all --no-pager
@@ -17,12 +17,12 @@ import (
 
 // Timer is one row from `systemctl list-timers`.
 type Timer struct {
-	Unit        string `json:"unit"`
-	Next        string `json:"next"`        // human readable, e.g. "Mon 2026-08-18 12:00:00 IST"
-	Left        string `json:"left"`        // human readable, e.g. "5h 23min"
-	Last        string `json:"last"`        // when last fired
-	Activates   string `json:"activates"`   // unit that fires
-	Schedule    string `json:"schedule"`    // cron-style spec, may be empty
+	Unit      string `json:"unit"`
+	Next      string `json:"next"`      // human readable, e.g. "Mon 2026-08-18 12:00:00 IST"
+	Left      string `json:"left"`      // human readable, e.g. "5h 23min"
+	Last      string `json:"last"`      // when last fired
+	Activates string `json:"activates"` // unit that fires
+	Schedule  string `json:"schedule"`  // cron-style spec, may be empty
 }
 
 // CronJob is one entry in /etc/cron.d/ or a per-user crontab.
@@ -104,8 +104,8 @@ func (h *AdminHandler) ListTimers(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"timers":     timers,
-		"cron_jobs":  cronJobs,
+		"timers":    timers,
+		"cron_jobs": cronJobs,
 	})
 }
 

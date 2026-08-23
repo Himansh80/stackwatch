@@ -1,7 +1,7 @@
 // Tier 5 — Stacks (C10).
 //
-//   GET    /api/v1/containers/stacks?connection_id=X
-//   POST   /api/v1/containers/stacks?connection_id=X
+//	GET    /api/v1/containers/stacks?connection_id=X
+//	POST   /api/v1/containers/stacks?connection_id=X
 //
 // `docker stack` requires Swarm mode (docker swarm init). For non-Swarm
 // hosts we fall back to scanning `/opt/stacks/*.yaml` (common convention).
@@ -16,8 +16,8 @@ import (
 
 // stackJSON describes one stack.
 type stackJSON struct {
-	Name      string `json:"name"`
-	Services  int    `json:"services"`
+	Name         string `json:"name"`
+	Services     int    `json:"services"`
 	Orchestrator string `json:"orchestrator"` // "swarm" or "compose-files"
 }
 
@@ -121,10 +121,10 @@ func (h *ContainerHandler) DeployStack(c *gin.Context) {
 	}
 	if resp.ExitCode != 0 {
 		c.JSON(500, gin.H{
-			"name": body.Name,
+			"name":      body.Name,
 			"exit_code": resp.ExitCode,
-			"stderr": strings.TrimSpace(resp.Stderr),
-			"error": "docker stack deploy exited " + itoa(resp.ExitCode),
+			"stderr":    strings.TrimSpace(resp.Stderr),
+			"error":     "docker stack deploy exited " + itoa(resp.ExitCode),
 		})
 		return
 	}

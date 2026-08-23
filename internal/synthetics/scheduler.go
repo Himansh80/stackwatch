@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // PoolExecutor is the slice of the DB pool we need. We accept
@@ -52,10 +52,10 @@ func (a *pgxPoolAdapter) Exec(ctx context.Context, sql string, args ...interface
 
 // Scheduler polls the DB and runs due checks.
 type Scheduler struct {
-	pool            PoolExecutor
-	interval        time.Duration
-	maxConcurrency  int
-	logger          *slog.Logger
+	pool           PoolExecutor
+	interval       time.Duration
+	maxConcurrency int
+	logger         *slog.Logger
 }
 
 // NewScheduler returns a Scheduler. interval=30s and maxConcurrency=10

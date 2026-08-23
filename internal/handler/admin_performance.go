@@ -1,6 +1,6 @@
 // Tier 4 S9: Performance (per-core CPU, memory, disk I/O, per-NIC, OOM).
 //
-//   GET /api/v1/admin/performance?connection_id=X
+//	GET /api/v1/admin/performance?connection_id=X
 //
 // Reads from /proc and /sys on the target host. All commands are
 // non-mutating and cheap.
@@ -16,7 +16,7 @@ import (
 
 // CPUCore is one row from /proc/stat (cpu0, cpu1, ...).
 type CPUCore struct {
-	Core  string  `json:"core"`   // "cpu0", "cpu1", ...
+	Core  string  `json:"core"` // "cpu0", "cpu1", ...
 	User  float64 `json:"user_pct"`
 	Sys   float64 `json:"system_pct"`
 	IO    float64 `json:"iowait_pct"`
@@ -26,40 +26,40 @@ type CPUCore struct {
 
 // DiskIO is one row from /proc/diskstats.
 type DiskIO struct {
-	Device        string `json:"device"`
-	Reads         uint64 `json:"reads_completed"`
-	Writes        uint64 `json:"writes_completed"`
-	ReadSectors   uint64 `json:"read_sectors"`
-	WriteSectors  uint64 `json:"write_sectors"`
-	ReadTimeMs    uint64 `json:"read_time_ms"`
-	WriteTimeMs   uint64 `json:"write_time_ms"`
+	Device       string `json:"device"`
+	Reads        uint64 `json:"reads_completed"`
+	Writes       uint64 `json:"writes_completed"`
+	ReadSectors  uint64 `json:"read_sectors"`
+	WriteSectors uint64 `json:"write_sectors"`
+	ReadTimeMs   uint64 `json:"read_time_ms"`
+	WriteTimeMs  uint64 `json:"write_time_ms"`
 }
 
 // NetIO is one row from /proc/net/dev.
 type NetIO struct {
-	Interface   string `json:"interface"`
-	RxBytes     uint64 `json:"rx_bytes"`
-	TxBytes     uint64 `json:"tx_bytes"`
-	RxPackets   uint64 `json:"rx_packets"`
-	TxPackets   uint64 `json:"tx_packets"`
-	RxErrors    uint64 `json:"rx_errors"`
-	TxErrors    uint64 `json:"tx_errors"`
-	RxDropped   uint64 `json:"rx_dropped"`
-	TxDropped   uint64 `json:"tx_dropped"`
+	Interface string `json:"interface"`
+	RxBytes   uint64 `json:"rx_bytes"`
+	TxBytes   uint64 `json:"tx_bytes"`
+	RxPackets uint64 `json:"rx_packets"`
+	TxPackets uint64 `json:"tx_packets"`
+	RxErrors  uint64 `json:"rx_errors"`
+	TxErrors  uint64 `json:"tx_errors"`
+	RxDropped uint64 `json:"rx_dropped"`
+	TxDropped uint64 `json:"tx_dropped"`
 }
 
 // MemoryInfo is parsed from /proc/meminfo.
 type MemoryInfo struct {
-	Total       uint64 `json:"total_bytes"`
-	Free        uint64 `json:"free_bytes"`
-	Available   uint64 `json:"available_bytes"`
-	Buffers     uint64 `json:"buffers_bytes"`
-	Cached      uint64 `json:"cached_bytes"`
-	Shared      uint64 `json:"shared_bytes"`
-	Dirty       uint64 `json:"dirty_bytes"`
-	Writeback   uint64 `json:"writeback_bytes"`
-	SwapTotal   uint64 `json:"swap_total_bytes"`
-	SwapFree    uint64 `json:"swap_free_bytes"`
+	Total     uint64 `json:"total_bytes"`
+	Free      uint64 `json:"free_bytes"`
+	Available uint64 `json:"available_bytes"`
+	Buffers   uint64 `json:"buffers_bytes"`
+	Cached    uint64 `json:"cached_bytes"`
+	Shared    uint64 `json:"shared_bytes"`
+	Dirty     uint64 `json:"dirty_bytes"`
+	Writeback uint64 `json:"writeback_bytes"`
+	SwapTotal uint64 `json:"swap_total_bytes"`
+	SwapFree  uint64 `json:"swap_free_bytes"`
 }
 
 // ListPerformance returns per-second CPU + memory + disk I/O + per-NIC + OOM events.
@@ -107,10 +107,10 @@ func (h *AdminHandler) ListPerformance(c *gin.Context) {
 	ooms := splitLines(oomRaw.Stdout)
 
 	c.JSON(200, gin.H{
-		"cpu":      cpus,
-		"memory":   mem,
-		"disks":    disks,
-		"net":      nets,
+		"cpu":        cpus,
+		"memory":     mem,
+		"disks":      disks,
+		"net":        nets,
 		"oom_events": ooms,
 	})
 }
@@ -139,13 +139,13 @@ func parseProcStat(s string) map[string]cpuTimes {
 			return v
 		}
 		out[name] = cpuTimes{
-			user: get(1),
-			nice: get(2),
-			sys:  get(3),
-			idle: get(4),
-			iow:  get(5),
-			irq:  get(6),
-			sirq: get(7),
+			user:  get(1),
+			nice:  get(2),
+			sys:   get(3),
+			idle:  get(4),
+			iow:   get(5),
+			irq:   get(6),
+			sirq:  get(7),
 			steal: get(8),
 		}
 	}
@@ -243,8 +243,9 @@ func parseMeminfo(s string) MemoryInfo {
 // parseDiskstats parses /proc/diskstats.
 //
 // Format (whitespace-separated):
-//   major minor name reads_completed reads_merged sectors_read time_reading
-//   writes_completed writes_merged sectors_written time_writing [etc]
+//
+//	major minor name reads_completed reads_merged sectors_read time_reading
+//	writes_completed writes_merged sectors_written time_writing [etc]
 func parseDiskstats(s string) map[string]diskRaw {
 	out := map[string]diskRaw{}
 	for _, line := range splitLines(s) {
@@ -254,12 +255,12 @@ func parseDiskstats(s string) map[string]diskRaw {
 		}
 		name := fields[2]
 		out[name] = diskRaw{
-			reads:      parseU64(fields[3]),
-			readSec:    parseU64(fields[5]),
-			readTime:   parseU64(fields[6]),
-			writes:     parseU64(fields[7]),
-			writeSec:   parseU64(fields[9]),
-			writeTime:  parseU64(fields[10]),
+			reads:     parseU64(fields[3]),
+			readSec:   parseU64(fields[5]),
+			readTime:  parseU64(fields[6]),
+			writes:    parseU64(fields[7]),
+			writeSec:  parseU64(fields[9]),
+			writeTime: parseU64(fields[10]),
 		}
 	}
 	return out

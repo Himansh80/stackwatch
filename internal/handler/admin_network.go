@@ -1,6 +1,6 @@
 // Tier 4 S3: Network (interfaces, routes, DNS).
 //
-//   GET /api/v1/admin/network?connection_id=X
+//	GET /api/v1/admin/network?connection_id=X
 //
 // Commands:
 //   - ip -j addr           → interfaces + IPs
@@ -21,8 +21,8 @@ type ipInterface struct {
 	Flags     []string `json:"flags"`
 	MTU       int      `json:"mtu"`
 	Operstate string   `json:"operstate"`
-	Link      string   `json:"link"`     // MAC
-	Address   string   `json:"address"`  // sometimes populated
+	Link      string   `json:"link"`    // MAC
+	Address   string   `json:"address"` // sometimes populated
 	AddrInfo  []ipAddr `json:"addr_info"`
 }
 type ipAddr struct {

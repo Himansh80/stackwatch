@@ -1,13 +1,15 @@
 // Tier 6 v5 — Distributed Tracing (M5).
 //
-//   POST /api/v1/traces                ingest a single span (or batch)
-//   POST /api/v1/traces/otlp           ingest OTLP-format payload
-//   GET  /api/v1/traces                list recent spans (paged)
-//   GET  /api/v1/traces/:trace_id      get full trace (all spans)
-//   GET  /api/v1/traces/services/summary  per-service aggregate stats
+//	POST /api/v1/traces                ingest a single span (or batch)
+//	POST /api/v1/traces/otlp           ingest OTLP-format payload
+//	GET  /api/v1/traces                list recent spans (paged)
+//	GET  /api/v1/traces/:trace_id      get full trace (all spans)
+//	GET  /api/v1/traces/services/summary  per-service aggregate stats
 //
 // Simplified shape (matches what most agents send):
-//   { trace_id, span_id, parent_id, service, name, kind, duration_ms, status, ts }
+//
+//	{ trace_id, span_id, parent_id, service, name, kind, duration_ms, status, ts }
+//
 // OTLP shape (resource_spans -> scope_spans -> spans) is also accepted as a
 // convenience for off-the-shelf OpenTelemetry SDKs.
 //
@@ -38,9 +40,9 @@ var allowedTraceKinds = map[string]bool{
 
 // allowedTraceStatuses are the standard OTel span statuses.
 var allowedTraceStatuses = map[string]bool{
-	"unset":  true,
-	"ok":     true,
-	"error":  true,
+	"unset": true,
+	"ok":    true,
+	"error": true,
 }
 
 // SpanInput is the JSON shape for ingesting a single span.
@@ -160,9 +162,9 @@ func IngestSpan(pool *db.Pool) gin.HandlerFunc {
 			}
 		}
 		kernel.RespondCreated(c, gin.H{
-			"received":  len(spans),
-			"inserted":  inserted,
-			"rejected":  len(spans) - inserted,
+			"received": len(spans),
+			"inserted": inserted,
+			"rejected": len(spans) - inserted,
 		})
 	}
 }
@@ -170,7 +172,9 @@ func IngestSpan(pool *db.Pool) gin.HandlerFunc {
 // IngestOTLP accepts OTLP-format payloads (the standard OpenTelemetry format).
 //
 // Body shape:
-//   { resourceSpans: [ { resource: {...}, scopeSpans: [ { spans: [...] } ] } ] }
+//
+//	{ resourceSpans: [ { resource: {...}, scopeSpans: [ { spans: [...] } ] } ] }
+//
 // Simplified — we don't extract resource attributes, just pull span fields.
 func IngestOTLP(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -188,18 +192,18 @@ func IngestOTLP(pool *db.Pool) gin.HandlerFunc {
 			ResourceSpans []struct {
 				ScopeSpans []struct {
 					Spans []struct {
-						TraceID    string          `json:"traceId"`
-						SpanID     string          `json:"spanId"`
-						ParentID   string          `json:"parentSpanId"`
-						Name       string          `json:"name"`
-						Kind       int             `json:"kind"` // 1=internal, 2=server, 3=client, 4=producer, 5=consumer
-						StartUnix  int64           `json:"startTimeUnixNano"`
-						EndUnix    int64           `json:"endTimeUnixNano"`
-						Status     struct {
+						TraceID   string `json:"traceId"`
+						SpanID    string `json:"spanId"`
+						ParentID  string `json:"parentSpanId"`
+						Name      string `json:"name"`
+						Kind      int    `json:"kind"` // 1=internal, 2=server, 3=client, 4=producer, 5=consumer
+						StartUnix int64  `json:"startTimeUnixNano"`
+						EndUnix   int64  `json:"endTimeUnixNano"`
+						Status    struct {
 							Code int `json:"code"` // 0=unset, 1=ok, 2=error
 						} `json:"status"`
 						Attributes []struct {
-							Key   string          `json:"key"`
+							Key   string `json:"key"`
 							Value struct {
 								StringVal string `json:"stringValue"`
 							} `json:"value"`
@@ -305,8 +309,8 @@ func ListTraces(pool *db.Pool) gin.HandlerFunc {
 		for rows.Next() {
 			var (
 				traceID, spanID, parentID, service, name, kind, ts, attrs string
-				duration                                                    int
-				status                                                      string
+				duration                                                  int
+				status                                                    string
 			)
 			if err := rows.Scan(&traceID, &spanID, &parentID, &service, &name, &kind, &duration, &status, &ts, &attrs); err != nil {
 				continue
@@ -384,11 +388,11 @@ func GetTraceByID(pool *db.Pool) gin.HandlerFunc {
 			})
 		}
 		kernel.RespondOK(c, gin.H{
-			"trace_id":         traceID,
-			"spans":            out,
-			"total_spans":      len(out),
-			"root_spans":       rootCount,
-			"error_spans":      errCount,
+			"trace_id":          traceID,
+			"spans":             out,
+			"total_spans":       len(out),
+			"root_spans":        rootCount,
+			"error_spans":       errCount,
 			"total_duration_ms": totalDur,
 		})
 	}
@@ -425,22 +429,22 @@ func TraceServiceSummary(pool *db.Pool) gin.HandlerFunc {
 		out := []gin.H{}
 		for rows.Next() {
 			var (
-				svc      string
-				count    int64
-				traceN   int64
-				errN     int64
+				svc       string
+				count     int64
+				traceN    int64
+				errN      int64
 				avg, p100 int
 			)
 			if err := rows.Scan(&svc, &count, &traceN, &errN, &avg, &p100); err != nil {
 				continue
 			}
 			out = append(out, gin.H{
-				"service":      svc,
-				"span_count":   count,
-				"trace_count":  traceN,
-				"error_count":  errN,
-				"avg_ms":       avg,
-				"p100_ms":      p100,
+				"service":     svc,
+				"span_count":  count,
+				"trace_count": traceN,
+				"error_count": errN,
+				"avg_ms":      avg,
+				"p100_ms":     p100,
 			})
 		}
 		// Verify pgx.ErrNoRows is handled correctly (no rows is OK, just empty).

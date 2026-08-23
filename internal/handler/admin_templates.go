@@ -1,6 +1,6 @@
 // Tier 5 — Templates (C11).
 //
-//   GET /api/v1/containers/templates
+//	GET /api/v1/containers/templates
 //
 // Returns a hardcoded list of common compose templates. No auth
 // required — templates are public knowledge.
@@ -12,10 +12,10 @@ import (
 
 // template is one compose template.
 type template struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	ComposeYAML string            `json:"compose_yaml"`
-	Tags        []string          `json:"tags"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	ComposeYAML string   `json:"compose_yaml"`
+	Tags        []string `json:"tags"`
 }
 
 // templates is the built-in template library.

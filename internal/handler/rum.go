@@ -1,8 +1,8 @@
 // Tier 6 v4 — Real User Monitoring (M8).
 //
-//   POST /api/v1/rum/events    ingest (auth via tenant_id query param)
-//   GET  /api/v1/rum/summary   aggregates: counts + avg by kind
-//   GET  /api/v1/rum/events    recent events for debugging
+//	POST /api/v1/rum/events    ingest (auth via tenant_id query param)
+//	GET  /api/v1/rum/summary   aggregates: counts + avg by kind
+//	GET  /api/v1/rum/events    recent events for debugging
 //
 // The ingest endpoint is intentionally unauthenticated (uses tenant_id
 // query param) so browser snippets can post without managing tokens.
@@ -162,9 +162,9 @@ func RUMSummary(pool *db.Pool) gin.HandlerFunc {
 			out = append(out, r)
 		}
 		c.JSON(200, gin.H{
-			"summary":    out,
-			"window":     "24h",
-			"tenant_id":  tenantID.String(),
+			"summary":   out,
+			"window":    "24h",
+			"tenant_id": tenantID.String(),
 		})
 	}
 }
