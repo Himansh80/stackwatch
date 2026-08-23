@@ -339,23 +339,34 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
 
 .dash-greeting { min-width:0; flex:0 1 auto; display:flex; flex-direction:column; gap:4px; max-width:340px; }
 .dash-greeting-eyebrow { display:block; color:#67e8f9; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }
-.dash-greeting-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.dash-greeting-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .dash-greeting-clock { min-width:0; }
-/* ------- Greeting live pill -------
-   Compact green-dot indicator that sits in the greeting row,
-   left of the "Good morning." text. Reuses the existing
-   .dash-live-dot rule (which has the glow animation already).
-   The pill shows "Live" so the user knows the dashboard is
-   fetching fresh data — complements the sidebar's "Control
-   plane online" indicator. */
+/* ------- Greeting live indicator -------
+   Larger green-dot + "Live" text pill that sits to the right of
+   the greeting. The dot is 10px (vs sidebar's 7px) so it reads
+   clearly next to the 22px greeting text. The pill has a subtle
+   green border + soft glow background so it looks like a status
+   badge rather than punctuation. The pill is baseline-aligned
+   with the text via inline-flex so it sits naturally at the
+   bottom of the text line. */
 .dash-greeting-live {
-  display:inline-flex; align-items:center; gap:6px;
-  padding:3px 9px 3px 7px;
-  border:1px solid rgba(52,211,153,.35);
+  display:inline-flex; align-items:center; gap:7px;
+  padding:4px 11px 4px 9px;
+  border:1px solid rgba(52,211,153,.4);
   border-radius:999px;
-  background:rgba(52,211,153,.08);
-  color:#6ee7b7; font-size:10px; font-weight:800;
-  letter-spacing:.6px; text-transform:uppercase;
+  background:rgba(52,211,153,.1);
+  box-shadow:0 0 12px rgba(52,211,153,.18);
+  align-self:center;
+}
+.dash-greeting-live .dash-live-dot {
+  width:10px; height:10px;
+  box-shadow:0 0 0 4px rgba(52,211,153,.22), 0 0 6px rgba(52,211,153,.5);
+}
+.dash-greeting-live-text {
+  color:#6ee7b7;
+  font-size:11px; font-weight:800;
+  letter-spacing:.7px; text-transform:uppercase;
+  line-height:1;
 }
 .dash-greeting-text { color:#f3f7fd; font-size:22px; font-weight:700; letter-spacing:-.5px; }
 .dash-greeting-clock-time { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px; display:inline-block; }
