@@ -398,12 +398,20 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
      - Mini calendar with prev/next month nav and year picker
      - Holidays for India (public + observances) marked
      - Today highlighted
-   Anchored below the trigger pill, right-aligned. */
-.tw-wrapper { position:relative; display:inline-flex; }
+   Anchored below the trigger pill, right-aligned.
+
+   The wrapper uses display:flex (not inline-flex) so it
+   participates as a full flex child of .dash-top-actions and
+   stretches to match the topbar height. align-items:center on
+   the wrapper centers the button vertically, matching the other
+   36px icon-button children. */
+.tw-wrapper { position:relative; display:flex; align-items:center; align-self:stretch; }
 .dash-topbar-clock-clickable {
   cursor:pointer;
   border:1px solid #20314a;
   transition:border-color .15s, background .15s;
+  align-self:center;
+  margin:0; /* override the global button { margin-top:20px } reset */
 }
 .dash-topbar-clock-clickable:hover {
   border-color:rgba(52,211,153,.5);
