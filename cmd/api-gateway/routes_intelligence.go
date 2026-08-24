@@ -19,9 +19,9 @@ import (
 // Phases 1-5 add their routes here in this order:
 //
 //	Phase 1: ML Anomaly Detection (5 routes)        ← added in Phase 1
-//	Phase 2: Predictive Alerting (4 routes)          ← future
-//	Phase 3: Alert Correlation + RCA (5 routes)       ← future
-//	Phase 4: Alert Noise Reduction (5 routes)         ← future
+//	Phase 2: Predictive Alerting (4 routes)          ← added in Phase 2
+//	Phase 3: Alert Correlation + RCA (5 routes)       ← added in Phase 3
+//	Phase 4: Alert Noise Reduction (6 routes)         ← added in Phase 4
 //	Phase 5: Intelligence Dashboard + Export (5)     ← future
 //
 // All handlers honor tenant_id from the JWT — no cross-tenant data
@@ -65,24 +65,43 @@ func mountIntelligenceRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.POST("/predict/ack", handler.AckPredictiveAlert(pool))
 
 	// ---- Tier 8.3: Alert Correlation + RCA (Phase 3) ----
-		// Surfaces correlation groups (auto-detected by the background
-		// correlator or manually created by an operator) and root-cause
-		// analysis hints. The detail handler (GET /group/:id) lives in
-		// handlers_correlations_detail.go; the rest of the 5 routes are
-		// in handlers_correlations.go.
-		//
-		// Routes (5):
-		//   GET  /api/v1/correlations/groups     — list groups
-		//   GET  /api/v1/correlations/group/:id  — group detail
-		//   POST /api/v1/correlations/manual     — create manual group
-		//   GET  /api/v1/correlations/rca/:aid   — RCA hints for an alert
-		//   POST /api/v1/correlations/feedback   — record user feedback
-		protected.GET("/correlations/groups", handler.ListCorrelationGroups(pool))
-		protected.GET("/correlations/group/:id", handler.GetCorrelationGroup(pool))
-		protected.POST("/correlations/manual", handler.CreateManualCorrelation(pool))
-		protected.GET("/correlations/rca/:alert_id", handler.GetRCAHintsForAlert(pool))
-		protected.POST("/correlations/feedback", handler.RecordCorrelationFeedback(pool))
+	// Surfaces correlation groups (auto-detected by the background
+	// correlator or manually created by an operator) and root-cause
+	// analysis hints. The detail handler (GET /group/:id) lives in
+	// handlers_correlations_detail.go; the rest of the 5 routes are
+	// in handlers_correlations.go.
+	//
+	// Routes (5):
+	//   GET  /api/v1/correlations/groups     — list groups
+	//   GET  /api/v1/correlations/group/:id  — group detail
+	//   POST /api/v1/correlations/manual     — create manual group
+	//   GET  /api/v1/correlations/rca/:aid   — RCA hints for an alert
+	//   POST /api/v1/correlations/feedback   — record user feedback
+	protected.GET("/correlations/groups", handler.ListCorrelationGroups(pool))
+	protected.GET("/correlations/group/:id", handler.GetCorrelationGroup(pool))
+	protected.POST("/correlations/manual", handler.CreateManualCorrelation(pool))
+	protected.GET("/correlations/rca/:alert_id", handler.GetRCAHintsForAlert(pool))
+	protected.POST("/correlations/feedback", handler.RecordCorrelationFeedback(pool))
 
-		// Phase 4 — Alert Noise Reduction (5 routes)        ← future
-		// Phase 5 — Intelligence Dashboard (5 routes)       ← future
-	}
+	// ---- Tier 8.4: Alert Noise Reduction (Phase 4) ----
+	// Surfaces operator-authored suppression rules + manual snooze
+	// actions. The noise-rule CRUD endpoints live in handlers_noise.go
+	// (4 routes); the snooze endpoints (2 routes) live in
+	// handlers_snooze.go. All queries honor tenant_id from the JWT.
+	//
+	// Routes (6):
+	//   GET    /api/v1/noise/rules       — list noise rules
+	//   POST   /api/v1/noise/rules       — create noise rule
+	//   DELETE /api/v1/noise/rules/:id   — delete noise rule
+	//   POST   /api/v1/noise/test        — preview suppression count
+	//   POST   /api/v1/noise/snooze      — snooze an alert
+	//   GET    /api/v1/noise/history     — snooze history
+	protected.GET("/noise/rules", handler.ListNoiseRules(pool))
+	protected.POST("/noise/rules", handler.CreateNoiseRule(pool))
+	protected.DELETE("/noise/rules/:id", handler.DeleteNoiseRule(pool))
+	protected.POST("/noise/test", handler.PreviewNoiseRule(pool))
+	protected.POST("/noise/snooze", handler.SnoozeAlert(pool))
+	protected.GET("/noise/history", handler.ListSnoozeHistory(pool))
+
+	// Phase 5 — Intelligence Dashboard + Export (5 routes)   ← future
+}

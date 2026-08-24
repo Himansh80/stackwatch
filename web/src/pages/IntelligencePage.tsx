@@ -10,6 +10,11 @@ import PredictiveAlertsSection, {
 } from '../components/PredictiveAlertsSection';
 import CorrelationsSection from '../components/CorrelationsSection';
 import { CorrelationGroup } from '../components/shared/CorrelationCard';
+import NoiseReductionSection, {
+  NoiseRuleRow,
+} from '../components/NoiseReductionSection';
+import { SnoozeRow } from '../components/shared/SnoozeHistoryPanel';
+import TrainAnomalyModelModal from '../components/shared/TrainAnomalyModelModal';
 import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
 
 /**
@@ -18,10 +23,10 @@ import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '.
  * Phase 1: ML Anomaly Detection (anomaly KPI strip + chart + train modal)
  * Phase 2: Predictive Alerting (PredictiveAlertsSection below)
  * Phase 3: Alert Correlation + RCA (CorrelationsSection below)
- * Phase 4: Alert Noise Reduction (future)
+ * Phase 4: Alert Noise Reduction (NoiseReductionSection below)
  * Phase 5: Unified Intelligence Dashboard (future)
  *
- * Layout (Phase 1+2+3):
+ * Layout (Phase 1+2+3+4):
  *   - Topbar with "Intelligence" title + "Train new model" button
  *   - 3 KpiCards using kpiStagger (anomaly KPIs)
  *   - AnomalyChart (from shared/AnomalyChart) with severity legend
@@ -29,6 +34,7 @@ import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '.
  *   - "Train new model" modal — POST /anomaly/train
  *   - PredictiveAlertsSection — Phase 2 (extracted, owns forecast modal)
  *   - CorrelationsSection — Phase 3 (extracted, owns manual correlate modal)
+ *   - NoiseReductionSection — Phase 4 (extracted, owns noise-rule + snooze modals)
  *
  * Motion: pageEnter on the page; kpiStagger on the KPI strip; the
  * Train CTA uses the shared buttonSpring. Reuses existing tokens.
@@ -56,11 +62,9 @@ export default function IntelligencePage() {
   const [models, setModels] = useState<AnomalyModel[]>([]);
   const [busy, setBusy] = useState(false);
 
-  // Train modal state.
+  // Train modal open flag (form state lives inside the modal
+  // component, extracted in Phase 4 so this page stays under 400 LOC).
   const [training, setTraining] = useState(false);
-  const [trainMetric, setTrainMetric] = useState('');
-  const [trainServer, setTrainServer] = useState('');
-  const [trainModelType, setTrainModelType] = useState<'welford' | 'ewma'>('welford');
 
   // Predictive state (Phase 2). The PredictiveAlertsSection component
   // owns its own modal + runForecast logic; we just feed it the
@@ -71,6 +75,12 @@ export default function IntelligencePage() {
   // modal + manualCorrelate + feedback logic; we feed it the groups
   // list (loaded by loadData) and a setError callback.
   const [correlationGroups, setCorrelationGroups] = useState<CorrelationGroup[]>([]);
+
+  // Noise-reduction state (Phase 4). NoiseReductionSection owns the
+  // rule + snooze modals; we feed it the rules + snoozes lists and
+  // call loadData() when the section reports a change.
+  const [noiseRules, setNoiseRules] = useState<NoiseRuleRow[]>([]);
+  const [snoozes, setSnoozes] = useState<SnoozeRow[]>([]);
 
   const requireAuth = (): boolean => {
     if (!getToken()) {
@@ -83,16 +93,20 @@ export default function IntelligencePage() {
   const loadData = useCallback(async () => {
     if (!requireAuth()) return;
     try {
-      const [ev, md, pa, cg] = await Promise.all([
+      const [ev, md, pa, cg, nr, sz] = await Promise.all([
         api<ListResponse>('GET', '/api/v1/anomaly/events?limit=100'),
         api<ModelsResponse>('GET', '/api/v1/anomaly/models'),
         api<{ alerts?: PredictiveAlert[]; total?: number }>('GET', '/api/v1/predict/alerts?limit=50'),
         api<{ groups?: CorrelationGroup[]; total?: number }>('GET', '/api/v1/correlations/groups?limit=50'),
+        api<{ rules?: NoiseRuleRow[]; total?: number }>('GET', '/api/v1/noise/rules?limit=100'),
+        api<{ snoozes?: SnoozeRow[]; total?: number }>('GET', '/api/v1/noise/history?limit=50'),
       ]);
       setEvents(ev.events || []);
       setModels(md.models || []);
       setPredictiveAlerts(pa.alerts || []);
       setCorrelationGroups(cg.groups || []);
+      setNoiseRules(nr.rules || []);
+      setSnoozes(sz.snoozes || []);
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
@@ -122,32 +136,6 @@ export default function IntelligencePage() {
     return { today, critical, acknowledged };
   }, [events]);
 
-  const train = useCallback(async () => {
-    if (!trainMetric.trim()) {
-      setError('Metric name is required.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      const body: Record<string, string> = {
-        metric_name: trainMetric.trim(),
-        model_type: trainModelType,
-      };
-      if (trainServer.trim()) body.server_id = trainServer.trim();
-      await api('POST', '/api/v1/anomaly/train', body);
-      setTraining(false);
-      setTrainMetric('');
-      setTrainServer('');
-      setTrainModelType('welford');
-      await loadData();
-    } catch (cause) {
-      setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }, [trainMetric, trainServer, trainModelType, loadData]);
-
   const ack = useCallback(async (eventId: string) => {
     setBusy(true);
     setError('');
@@ -159,6 +147,12 @@ export default function IntelligencePage() {
     } finally {
       setBusy(false);
     }
+  }, [loadData]);
+
+  const closeTrainModal = useCallback(() => setTraining(false), []);
+  const onTrainSaved = useCallback(() => {
+    setTraining(false);
+    void loadData();
   }, [loadData]);
 
   return (
@@ -309,77 +303,27 @@ export default function IntelligencePage() {
             onError={setError}
             onCreated={() => void loadData()}
           />
+
+          {/* Alert Noise Reduction section (Phase 4 / Tier 8.4) — extracted
+              component. Owns the rule-editor + snooze modals + rule list +
+              snooze history. Calls onChanged() after a successful mutation
+              so the parent re-fetches. */}
+          <NoiseReductionSection
+            rules={noiseRules}
+            snoozes={snoozes}
+            busy={busy}
+            onError={setError}
+            onChanged={() => void loadData()}
+          />
         </motion.div>
 
         {training ? (
-          <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
-            <div className="slow-query-explain-modal-head">
-              <strong>Train new model</strong>
-              <button
-                type="button"
-                className="slow-query-explain-close"
-                onClick={() => setTraining(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <form
-              className="notebook-create-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void train();
-              }}
-            >
-              <label>
-                <span>Metric name</span>
-                <input
-                  type="text"
-                  required
-                  maxLength={256}
-                  value={trainMetric}
-                  onChange={(e) => setTrainMetric(e.target.value)}
-                  placeholder="cpu.user_pct"
-                />
-              </label>
-              <label>
-                <span>Server ID (optional — leave blank for tenant-wide)</span>
-                <input
-                  type="text"
-                  value={trainServer}
-                  onChange={(e) => setTrainServer(e.target.value)}
-                  placeholder="uuid of the server, or blank for tenant-wide"
-                />
-              </label>
-              <label>
-                <span>Model type</span>
-                <select
-                  value={trainModelType}
-                  onChange={(e) => setTrainModelType(e.target.value as 'welford' | 'ewma')}
-                >
-                  <option value="welford">Welford + EWMA (recommended)</option>
-                  <option value="ewma">EWMA only</option>
-                </select>
-              </label>
-              <div className="incident-create-actions">
-                <button
-                  type="button"
-                  className="dash-icon-button"
-                  onClick={() => setTraining(false)}
-                  disabled={busy}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="empty-state-cta"
-                  disabled={busy || !trainMetric.trim()}
-                >
-                  {busy ? 'Training…' : 'Train'}
-                </button>
-              </div>
-            </form>
-          </div>
+          <TrainAnomalyModelModal
+            busy={busy}
+            onClose={closeTrainModal}
+            onSaved={onTrainSaved}
+            onError={setError}
+          />
         ) : null}
       </main>
     </div>
