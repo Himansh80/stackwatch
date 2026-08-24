@@ -252,8 +252,15 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	protected.POST("/prom/query", handler.PromQuery(pool))
 	protected.POST("/loki/push", handler.LokiPush(pool))
 	protected.GET("/loki/query", handler.LokiQuery(pool))
+	// /anomaly/list — Tier 6 streaming list (read from the legacy
+	// anomaly_events table). Stays here for backward compat with
+	// existing Tier 6 dashboards.
 	protected.GET("/anomaly/list", handler.ListAnomalies(pool))
-	protected.POST("/anomaly/detect", handler.DetectAnomaly(pool))
+	// /anomaly/detect — Tier 8.1 model-backed version is registered
+	// in routes_intelligence.go (mountIntelligenceRoutes). The
+	// Tier 6 stateless detect endpoint has been superseded; the
+	// ml.IsAnomalyValue helper still works for ad-hoc scripts that
+	// import the package directly.
 
 	// ---- Tier 6 v2: Synthetics (M7) + Grafana adapter (M4) ----
 	protected.POST("/synthetics", handler.CreateSynthetics(pool))
@@ -378,4 +385,13 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	// is the final route group for Tier 7. After this phase ships
 	// every Tier 7 subtier has its routes mounted.
 	mountTeamRoutes(protected, pool)
+
+	// ---- Tier 8.1: Intelligence & Alerting (Phase 0 split) ----
+	// Tier 8 will add 24 routes across 5 subtiers (anomaly, predict,
+	// correlation, noise, dashboard). They live in routes_intelligence.go
+	// (mountIntelligenceRoutes) so routes_protected.go stays under the
+	// 400-LOC cap. Phase 1 of the 006 change adds the first 5
+	// (ML Anomaly Detection); the remaining 19 are spread across
+	// Phases 2-5 in subsequent commits.
+	mountIntelligenceRoutes(protected, pool)
 }
