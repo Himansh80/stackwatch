@@ -12,7 +12,7 @@ import { ReactNode } from 'react';
  * handler. The sidebar itself has no internal data fetches.
  */
 interface SidebarProps {
-  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm' | 'logs' | 'rum';
+  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm' | 'logs' | 'rum' | 'synthetics';
   onLogout: () => void;
   apiVersion?: string;
   firingAlerts?: number;
@@ -42,6 +42,7 @@ const ALL_NAV_ITEMS: Array<{
   { key: 'apm', to: '/apm', icon: '◴', label: 'APM', section: 'observability' },
   { key: 'logs', to: '/logs', icon: '≡', label: 'Logs', section: 'observability' },
   { key: 'rum', to: '/rum', icon: '◎', label: 'RUM', section: 'observability' },
+  { key: 'synthetics', to: '/synthetics', icon: '◔', label: 'Synthetics', section: 'observability' },
 ];
 
 export default function AppSidebar({

@@ -13,7 +13,7 @@ import (
 )
 
 // buildRouter constructs the gin engine with all middleware + routes.
-func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer, installMode, webTerminalURL string) *gin.Engine {
+func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer, installMode, webTerminalURL string, synthRunner *handler.SyntheticsRunner) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
@@ -382,5 +382,19 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/rum/sessions/:id/waterfall", handler.GetRUMSessionWaterfall(pool))
 	protected.GET("/rum/error-groups", handler.ListRUMErrorGroups(pool))
 
+	// Tier 7.4 — Synthetics Full (D5). 13 routes. Runner created in main.go.
+	protected.POST("/synthetics/locations", handler.CreateSynthLocation(pool))
+	protected.GET("/synthetics/locations", handler.ListSynthLocations(pool))
+	protected.POST("/synthetics/ci-configs", handler.CreateSynthCIConfig(pool))
+	protected.GET("/synthetics/ci-configs", handler.ListSynthCIConfigs(pool))
+	protected.POST("/synthetics/webhook", handler.IngestSynthWebhook(pool))
+	protected.POST("/synthetics/tests-full", handler.CreateSynthTest(pool, synthRunner))
+	protected.GET("/synthetics/tests-full", handler.ListSynthTests(pool))
+	protected.GET("/synthetics/tests-full/:test_id", handler.GetSynthTest(pool))
+	protected.PUT("/synthetics/tests-full/:test_id", handler.UpdateSynthTest(pool))
+	protected.DELETE("/synthetics/tests-full/:test_id", handler.DeleteSynthTest(pool))
+	protected.POST("/synthetics/tests-full/:test_id/run", handler.RunSynthTestNow(pool, synthRunner))
+	protected.GET("/synthetics/tests-full/:test_id/sla", handler.GetSynthTestSLA(pool))
+	protected.GET("/synthetics/tests-full/:test_id/results", handler.GetSynthTestResults(pool))
 	return r
 }

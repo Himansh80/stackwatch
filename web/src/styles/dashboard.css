@@ -719,3 +719,50 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   *, *::before, *::after { animation-duration:.001ms !important; transition-duration:.001ms !important; }
 }
 
+
+/* Tier 7.4 — Synthetics Full (D5) page styles.
+   SlaBadge + synth-tests-table. Tokens-only; no hex literals. */
+.dash-sla-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border: 1px solid var(--border);
+}
+.dash-sla-badge-uptime { font-variant-numeric: tabular-nums; }
+.dash-sla-badge-ms {
+  font-size: 10px;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+.dash-sla-badge-hint { font-weight: 500; opacity: 0.7; }
+.dash-sla-badge-green {
+  background: var(--green-soft);
+  color: var(--green-text);
+  border-color: var(--green);
+}
+.dash-sla-badge-amber {
+  background: var(--amber-soft);
+  color: var(--amber-text);
+  border-color: var(--amber);
+}
+.dash-sla-badge-red {
+  background: var(--red-soft);
+  color: var(--red-text);
+  border-color: var(--red);
+}
+.synth-tests-table .synth-target {
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+  max-width: 280px;
+  display: inline-block;
+}
+.synth-run-btn {
+  font-size: 11px;
+  padding: 5px 10px;
+}

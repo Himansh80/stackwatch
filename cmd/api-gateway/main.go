@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/stackwatch/platform/internal/handler"
 	"github.com/stackwatch/platform/internal/synthetics"
 )
 
@@ -39,7 +40,13 @@ func main() {
 
 	issuer := newIssuer(cfg.JWTSecret)
 
-	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode, cfg.WebTerminalURL)
+	// Tier 7.4 — Synthetics Full background runner. Created here so its
+	// lifecycle is owned by main.go alongside the HTTP server; passed
+	// into buildRouter so the run-now handler can call ExecuteSync.
+	synthRunner := handler.NewSyntheticsRunner(pool, logger)
+	go synthRunner.Run(rootCtx)
+
+	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode, cfg.WebTerminalURL, synthRunner)
 
 	// Start the synthetics scheduler (M7 background runner).
 	sched := synthetics.NewScheduler(pool.Pgx(), 30*time.Second, logger)
