@@ -993,3 +993,119 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-size: 12px;
   min-width: 120px;
 }
+
+/* dash-status-muted — quiet pill for pending / cancelled / unknown. Reuses --muted
+   tokens so it harmonises with the rest of the dashboard. */
+.dash-status-muted {
+  color: var(--muted-soft);
+  background: var(--surface-2);
+}
+
+/* PipelineCard — Tier 7.7 CI/CD Visibility (D8). Reuses threat-card
+   layout grammar but tighter (mono SHA, provider chip). Tokens only. */
+.pipeline-card-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+.pipeline-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+.pipeline-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pipeline-card-provider {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.pipeline-card-provider[data-provider="github"] {
+  color: var(--green-text);
+  background: var(--green-soft);
+  border-color: var(--green);
+}
+.pipeline-card-provider[data-provider="gitlab"] {
+  color: var(--amber-text);
+  background: var(--amber-soft);
+  border-color: var(--amber);
+}
+.pipeline-card-provider[data-provider="jenkins"] {
+  color: var(--red-text);
+  background: var(--red-soft);
+  border-color: var(--red);
+}
+.pipeline-card-provider[data-provider="circleci"] {
+  color: var(--indigo-text, var(--text));
+  background: var(--indigo-soft);
+  border-color: var(--indigo);
+}
+.pipeline-card-repo {
+  font-size: 13px;
+}
+.pipeline-card-repo code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.pipeline-card-branch code {
+  font-size: 11px;
+  color: var(--muted);
+}
+.pipeline-card-sha {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.pipeline-card-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+.pipeline-card-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.pipeline-card-duration {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pipeline-card-deploy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+.pipeline-card-deploy-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
