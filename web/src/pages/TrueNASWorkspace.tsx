@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createTrueNASHost, deleteTrueNASHost, listTrueNASHosts, testTrueNASHost, truenasCall, TNHost, TNRow } from '../lib/truenas';
 import FilterBar from '../components/FilterBar';
+import EmptyState from '../components/shared/EmptyState';
 import { motion, pageEnter } from '../lib/motion';
 
 type Section = { id: string; label: string; path: string };
@@ -130,7 +131,18 @@ export default function TrueNASWorkspace() {
       <div className="sw-page-head"><div><span className="sw-eyebrow">TIER 2 · TRUENAS SCALE</span><h1>{current.label}</h1><p>{selected ? `${selected.name} · ${selected.base_url}` : 'Register a TrueNAS SCALE host to begin.'}</p></div><div className="sw-page-actions">{hostId && <button className="sw-button" onClick={() => void runTest()} disabled={busy}>Test connection</button>}{hostId && actionPaths[section] && <button className="sw-button sw-button-primary" onClick={() => setShowAction(true)} disabled={busy}>+ Create</button>}</div></div>
       {message && <div className="sw-alert sw-alert-success"><strong>Success</strong><span>{message}</span><button onClick={() => setMessage('')}>×</button></div>}{error && <div className="sw-alert sw-alert-error"><strong>Error</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
       {showHostForm && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Secure registration</span><h2>Connect a TrueNAS SCALE system</h2></div></div><form className="sw-form-grid" onSubmit={submitHost}><label className="sw-field"><span>Name</span><input required value={hostForm.name} onChange={(e) => setHostForm({ ...hostForm, name: e.target.value })} placeholder="e.g. storage-prod" /></label><label className="sw-field"><span>Base URL</span><input required value={hostForm.base_url} onChange={(e) => setHostForm({ ...hostForm, base_url: e.target.value })} placeholder="https://truenas.example.com" /></label><label className="sw-field"><span>Username</span><input value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} /></label><label className="sw-field"><span>Password</span><input type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} /></label><label className="sw-field"><span>API key (optional)</span><input type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} /></label><label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label><div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowHostForm(false)}>Cancel</button><button type="submit" className="sw-button sw-button-primary" disabled={busy}>Test and save</button></div></form></section>}
-      {!hostId && <section className="sw-panel"><div className="sw-empty sw-empty-large"><div className="sw-empty-icon">◇</div><h3>No TrueNAS host registered</h3><p>Add a TrueNAS SCALE host to manage pools, datasets, shares, iSCSI, snapshots, disks, users, services, boot environments, and cloud sync from StackWatch.</p><button className="sw-button sw-button-primary" onClick={() => setShowHostForm(true)}>Register first host</button></div></section>}
+      {!hostId && <section className="sw-panel"><EmptyState
+        illustration={
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <ellipse cx="12" cy="6" rx="9" ry="3" />
+            <path d="M3 6v6c0 1.66 4.03 3 9 3s9-1.34 9-3V6" />
+            <path d="M3 12v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6" />
+          </svg>
+        }
+        headline="No TrueNAS host registered"
+        subhead="Add a TrueNAS SCALE host to manage pools, datasets, shares, iSCSI, snapshots, disks, users, services, boot environments, and cloud sync from StackWatch."
+        cta={{ label: 'Register first host', onClick: () => setShowHostForm(true) }}
+      /></section>}
       {hostId && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Live upstream response</span><h2>{busy ? 'Loading…' : `${rows.length} records`}</h2></div>{selected && <span className={`sw-status ${selected.status === 'online' ? 'status-good' : 'status-neutral'}`}>{selected.status ?? 'unknown'}</span>}</div>
         <FilterBar search={search} onSearchChange={setSearch} placeholder={`Filter ${current.label.toLowerCase()} by name, ID, or any column…`} ariaLabel={`Search ${current.label}`} />
         {(() => {

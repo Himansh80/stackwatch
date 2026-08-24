@@ -337,11 +337,13 @@
 .dash-spark { width:60px; height:24px; display:block; opacity:.85; }
 .dash-spark-empty { width:60px; height:24px; border-bottom:1px dashed #2a3b53; }
 
-/* Skeleton (loading) state for MetricCard. The shimmer uses
-   opacity instead of background-position animation so we don't
-   pay a 16ms layout cost on every render of the dashboard. */
-.dash-skel-line { display:inline-block; background:#1a2540; border-radius:6px; opacity:.55; }
-.dash-metric-skeleton .dash-metric-icon { background:#1a2540; border-radius:6px; opacity:.5; }
+/* Skeleton (loading) state for MetricCard. The shimmer is now driven
+   by the framer-motion `shimmer` variant in SkeletonCard.tsx (background
+   gradient travel). Keep the base color so the resting state is still
+   visible when motion is disabled (the variant is short-circuited via
+   useReducedMotion). */
+.dash-skel-line { display:inline-block; background:linear-gradient(90deg,var(--surface-2) 0%,var(--surface-3) 50%,var(--surface-2) 100%); background-size:200% 100%; background-position:0% 50%; border-radius:6px; opacity:.6; }
+.dash-metric-skeleton .dash-metric-icon { background:linear-gradient(90deg,var(--surface-2) 0%,var(--surface-3) 50%,var(--surface-2) 100%); background-size:200% 100%; background-position:0% 50%; border-radius:6px; opacity:.5; }
 
 /* MetricCard row layout — strong value + sparkline sit on a
    horizontal flex line so they don't fight each other for space. */
@@ -456,9 +458,8 @@
 }
 .dash-empty-illustration svg { width:100%; height:100%; }
 
-/* ------- Skeleton shimmer (subtle) ------- */
-@keyframes dashSkelShimmer { 0%,100% { opacity:.55; } 50% { opacity:.35; } }
-.dash-metric-skeleton .dash-skel-line { animation:dashSkelShimmer 1.6s ease-in-out infinite; }
+/* ------- Skeleton shimmer (legacy keyframe removed — now driven by
+   the framer-motion `shimmer` variant in SkeletonCard.tsx) ------- */
 
 /* =================================================================
    Command palette — modal dialog with input + filtered list.

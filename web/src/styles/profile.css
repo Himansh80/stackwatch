@@ -204,7 +204,47 @@
 .dash-chart-empty svg { color:var(--accent); opacity:.6; margin-bottom:16px; }
 .dash-chart-empty strong { display:block; margin-bottom:6px; color:var(--text-soft); font-size:14px; font-weight:700; }
 .dash-chart-empty small { color:var(--muted-soft); font-size:12px; }
-.dash-host-list { padding:6px 20px 10px; }.dash-host-row { display:flex; align-items:center; gap:10px; padding:14px 0; border-bottom:1px solid #182840; }.dash-host-row:last-child { border-bottom:0; }.dash-host-icon { width:28px; height:28px; display:grid; place-items:center; border-radius:8px; color:#7dd3fc; background:#12283c; }.dash-host-name { min-width:0; flex:1; }.dash-host-name strong,.dash-host-name small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.dash-host-name strong { color:#dce8f6; font-size:12px; }.dash-host-name small { margin-top:3px; color:#5f7492; font-size:10px; }.dash-status { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; font-size:9px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; white-space:nowrap; }.dash-status-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }.dash-status-good { color:#5ee6ad; background:rgba(16,185,129,.1); }.dash-status-warn { color:#f5c95a; background:rgba(245,158,11,.1); }.dash-status-bad { color:#fb7185; background:rgba(239,68,68,.1); }.dash-panel-empty { padding:36px 8px 38px; text-align:center; }.dash-panel-empty strong,.dash-panel-empty span { display:block; }.dash-panel-empty strong { color:#dbe7f4; font-size:13px; }.dash-panel-empty span { margin:6px 0 12px; color:#7186a2; font-size:11px; }.dash-panel-empty a,.dash-text-link { color:#67e8f9; font-size:11px; font-weight:750; text-decoration:none; }.dash-panel-empty a:hover,.dash-text-link:hover { color:#a5f3fc; }
+.dash-host-list { padding:6px 20px 10px; display:flex; flex-direction:column; gap:2px; }
+/* Datadog-style hosts table — 5 columns: Status / Hostname /
+   Address / Last seen / Actions. Grid template lives on each row so
+   the header + data rows always line up regardless of pill width. */
+.dash-host-row { display:grid; grid-template-columns:minmax(96px,.55fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,.85fr) auto; align-items:center; gap:14px; padding:11px 14px; border-radius:8px; border-bottom:0; position:relative; transition:background .12s ease; }
+.dash-host-row-head { padding:8px 14px; color:var(--muted); font-size:9px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; border-bottom:1px solid var(--border-soft); border-radius:0; background:transparent; }
+.dash-host-row-head span { display:block; }
+/* Left-edge accent stripe appears on hover + persists for the
+   status tone of the row. Defaults to accent (cyan) for unknown. */
+.dash-host-row::before { content:""; position:absolute; left:0; top:6px; bottom:6px; width:2px; border-radius:2px; background:transparent; transition:background .12s ease; }
+.dash-host-row:hover { background:var(--surface-2); }
+.dash-host-row-good:hover::before, .dash-host-row-good:focus-within::before { background:var(--green-text); }
+.dash-host-row-warn:hover::before, .dash-host-row-warn:focus-within::before { background:var(--amber-text); }
+.dash-host-row-bad:hover::before, .dash-host-row-bad:focus-within::before { background:var(--red-text); }
+.dash-host-row-good[data-tone="good"]::before,
+.dash-host-row-warn[data-tone="warn"]::before,
+.dash-host-row-bad[data-tone="bad"]::before { background:var(--accent); }
+.dash-host-row-good[data-tone="good"]:hover::before,
+.dash-host-row-warn[data-tone="warn"]:hover::before,
+.dash-host-row-bad[data-tone="bad"]:hover::before { background:var(--green-text); }
+.dash-host-row-warn[data-tone="warn"]:hover::before { background:var(--amber-text); }
+.dash-host-row-bad[data-tone="bad"]:hover::before { background:var(--red-text); }
+.dash-host-name { min-width:0; }
+.dash-host-name strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-soft); font-size:12.5px; font-weight:600; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:-.1px; }
+.dash-host-ip { color:var(--muted); font-size:11.5px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dash-host-seen { color:var(--muted); font-size:11px; white-space:nowrap; }
+.dash-host-actions { display:flex; justify-content:flex-end; }
+.dash-host-kebab { width:28px; height:28px; display:grid; place-items:center; border:1px solid transparent; background:transparent; color:var(--muted); font-size:18px; line-height:1; cursor:pointer; border-radius:6px; transition:border-color .12s ease, color .12s ease, background .12s ease; }
+.dash-host-kebab:hover { color:var(--text); background:var(--surface-3); border-color:var(--border); }
+.dash-host-list-empty { padding:36px 8px 38px; text-align:center; }
+.dash-host-list-empty strong,.dash-host-list-empty span { display:block; }
+.dash-host-list-empty strong { color:#dbe7f4; font-size:13px; }
+.dash-host-list-empty span { margin:6px 0 12px; color:#7186a2; font-size:11px; }
+.dash-host-list-empty a { color:var(--accent); font-size:11px; font-weight:750; text-decoration:none; }
+.dash-host-list-empty a:hover { color:var(--accent-strong); }
+@media (max-width: 760px) {
+  .dash-host-row { grid-template-columns:minmax(0,1fr) auto; }
+  .dash-host-ip, .dash-host-seen { display:none; }
+  .dash-host-row-head span:nth-child(3), .dash-host-row-head span:nth-child(4) { display:none; }
+}
+.dash-status { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; font-size:9px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; white-space:nowrap; }.dash-status-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }.dash-status-good { color:var(--green-text); background:var(--green-soft); }.dash-status-warn { color:var(--amber-text); background:var(--amber-soft); }.dash-status-bad { color:var(--red-text); background:var(--red-soft); }.dash-panel-empty { padding:36px 8px 38px; text-align:center; }.dash-panel-empty strong,.dash-panel-empty span { display:block; }.dash-panel-empty strong { color:#dbe7f4; font-size:13px; }.dash-panel-empty span { margin:6px 0 12px; color:#7186a2; font-size:11px; }.dash-panel-empty a,.dash-text-link { color:#67e8f9; font-size:11px; font-weight:750; text-decoration:none; }.dash-panel-empty a:hover,.dash-text-link:hover { color:#a5f3fc; }
 .dash-resource-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:11px; padding:16px 20px 20px; }.dash-resource-card { padding:13px; border:1px solid #21334b; border-radius:10px; background:#0c1524; transition:border-color .15s ease, background .15s ease, transform .15s ease; }.dash-resource-head { display:flex; justify-content:space-between; align-items:center; gap:6px; }.dash-resource-type { color:#68809e; font-size:9px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }.dash-resource-card > strong { display:block; margin:13px 0; overflow:hidden; color:#e2ebf5; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }.dash-resource-meta { display:flex; gap:14px; color:#657b98; font-size:10px; }.dash-resource-meta b { margin-left:3px; color:#c9d9eb; font-weight:700; }.dash-empty-inline { display:flex; align-items:center; gap:15px; padding:25px 20px; color:#7287a3; }.dash-empty-inline > span { color:#67e8f9; font-size:30px; }.dash-empty-inline strong { display:block; color:#dce7f4; font-size:13px; }.dash-empty-inline p { margin:4px 0 0; font-size:11px; }.dash-error { display:flex; align-items:center; gap:14px; margin-bottom:18px; padding:14px 16px; border:1px solid rgba(251,113,133,.3); border-radius:var(--radius); background:linear-gradient(150deg,rgba(127,29,48,.2),rgba(127,29,48,.12)); color:#fda4af; font-size:13px; }
 .dash-error strong { white-space:nowrap; color:#fecdd3; font-weight:700; }
 .dash-error span { flex:1; color:#fda4af; line-height:1.45; }

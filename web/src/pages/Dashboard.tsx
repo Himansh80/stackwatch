@@ -15,6 +15,7 @@ import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import ErrorBar from '../components/dashboard/ErrorBar';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 import AppSidebar from '../components/AppSidebar';
+import EmptyState from '../components/shared/EmptyState';
 import { HeartIcon, NetworkIcon, PlayIcon, ServerIcon } from '../components/icons';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
 import { greetingFor, formatRelative } from '../lib/clock';
@@ -340,23 +341,28 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : search ? (
-              <div className="dash-empty-inline">
-                <span>⌕</span>
-                <div>
-                  <strong>No workloads match &ldquo;{search}&rdquo;</strong>
-                  <p>
-                    Try a different search term, or clear the search to see all {snapshot.resources.length} workload{snapshot.resources.length === 1 ? '' : 's'}.
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                illustration={
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
+                }
+                headline={`No workloads match “${search}”`}
+                subhead={`Try a different search term, or clear the search to see all ${snapshot.resources.length} workload${snapshot.resources.length === 1 ? '' : 's'}.`}
+                cta={{ label: 'Clear search', onClick: () => setSearch('') }}
+              />
             ) : (
-              <div className="dash-empty-inline">
-                <span>◇</span>
-                <div>
-                  <strong>No workloads reported</strong>
-                  <p>The dashboard will populate as soon as the connected host returns resource inventory.</p>
-                </div>
-              </div>
+              <EmptyState
+                illustration={
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="12" rx="2" />
+                    <path d="M8 21h8M12 17v4" />
+                  </svg>
+                }
+                headline="No workloads reported"
+                subhead="The dashboard will populate as soon as the connected host returns resource inventory."
+              />
             )}
           </section>
         </motion.div>
