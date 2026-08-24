@@ -1,0 +1,622 @@
+/* dashboard.css — topbar, sidebar, panels, KPI cards, command palette, filter bar, time widget. Imported after auth. */
+
+/* ------- Topbar - 3-zone layout (greeting | search | actions) -------
+   The topbar is a single flex row. The greeting and actions are
+   intrinsic-width and sit at the edges via space-between. The
+   center wrapper has flex:1 so it claims all leftover horizontal
+   space. The search button INSIDE the center wrapper is centered
+   via margin:auto so it sits at the geometric center of the
+   topbar regardless of sibling widths.
+
+   This avoids the absolute-positioning trick (which broke the
+   reload button + avatar layout) and avoids the grid 1fr math
+   (which mis-counted because of gap + padding interactions). */
+.dash-main { min-width:0; flex:1; }.dash-topbar { min-height:82px; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:18px 38px; border-bottom:1px solid #18263b; background:rgba(8,13,24,.9); }.dash-breadcrumb,.dash-eyebrow { color:#6e83a1; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }.dash-topbar h1 { margin:6px 0 0; color:#f3f7fd; font-size:23px; letter-spacing:-.5px; }.dash-top-actions { display:flex; align-items:center; gap:18px; }.dash-icon-button { width:36px; height:36px; margin:0; padding:0; border:1px solid #263b57; border-radius:9px; background:#101b2d; color:#b4c6dd; font-size:19px; cursor:pointer; }.dash-icon-button:hover { color:#67e8f9; border-color:#40749b; }.dash-user { display:flex; align-items:center; gap:9px; }.dash-avatar { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; color:#06121e; font-weight:800; background:linear-gradient(135deg,#67e8f9,#818cf8); }.dash-user strong,.dash-user small { display:block; }.dash-user strong { font-size:12px; }.dash-user small { margin-top:2px; color:#6d809d; font-size:10px; }
+/* ------- Greeting live indicator -------
+   Green-dot + "Live" text pill to the right of the greeting.
+   The dot is 8px (between sidebar's 7px and the first attempt's
+   10px) so it reads clearly without dominating the 22px greeting
+   text. The dot has a breathing pulse animation - the green
+   ring expands and fades out on a 1.8s loop, signaling real-time
+   liveness rather than static text. Inline-flex + align-items
+   centers the dot perfectly with the text. */
+.dash-greeting-live {
+  display:inline-flex; align-items:center; gap:7px;
+  padding:4px 11px 4px 9px;
+  border:1px solid rgba(52,211,153,.4);
+  border-radius:999px;
+  background:rgba(52,211,153,.1);
+  box-shadow:0 0 12px rgba(52,211,153,.18);
+  align-self:center;
+}
+.dash-greeting-live .dash-live-dot {
+  width:8px; height:8px;
+  position:relative;
+  box-shadow:0 0 0 3px rgba(52,211,153,.22);
+}
+.dash-greeting-live .dash-live-dot::after {
+  content:"";
+  position:absolute; inset:0;
+  border-radius:50%;
+  background:#34d399;
+  animation:sw-live-breath 1.8s ease-out infinite;
+}
+.dash-greeting-live .dash-live-dot::before {
+  content:"";
+  position:absolute; left:50%; top:50%;
+  width:8px; height:8px;
+  margin:-4px 0 0 -4px;
+  border-radius:50%;
+  background:#34d399;
+  z-index:1;
+}
+@keyframes sw-live-breath {
+  0%   { transform:scale(1);   opacity:.7; }
+  70%  { transform:scale(2.6); opacity:0; }
+  100% { transform:scale(2.6); opacity:0; }
+}
+.dash-greeting-live-text {
+  color:#6ee7b7;
+  font-size:11px; font-weight:800;
+  letter-spacing:.7px; text-transform:uppercase;
+  line-height:1;
+}
+/* ------- TimeWidget popover (calendar + live time) -------
+   Clicking the clock pill in the topbar opens this dropdown
+   with:
+     - Big live HH:MM:SS AM/PM clock (updates every second)
+     - Full date with weekday + day + month + year
+     - Mini calendar with prev/next month nav and year picker
+     - Holidays for India (public + observances) marked
+     - Today highlighted
+   Anchored below the trigger pill, right-aligned.
+
+   The wrapper uses display:flex (not inline-flex) so it
+   participates as a full flex child of .dash-top-actions and
+   stretches to match the topbar height. align-items:center on
+   the wrapper centers the button vertically, matching the other
+   36px icon-button children. */
+.tw-wrapper { position:relative; display:flex; align-items:center; align-self:stretch; }
+.dash-topbar-clock-clickable {
+  cursor:pointer;
+  border:1px solid #20314a;
+  transition:border-color .15s, background .15s;
+  align-self:center;
+  margin:0; /* override the global button { margin-top:20px } reset */
+}
+.dash-topbar-clock-clickable:hover {
+  border-color:rgba(52,211,153,.5);
+  background:linear-gradient(150deg,rgba(52,211,153,.12),rgba(99,102,241,.12));
+}
+.dash-topbar-clock-clickable[aria-expanded="true"] {
+  border-color:#34d399;
+  background:linear-gradient(150deg,rgba(52,211,153,.18),rgba(99,102,241,.18));
+}
+.tw-popover {
+  position:absolute; top:calc(100% + 10px); right:0;
+  width:340px;
+  padding:18px;
+  background:linear-gradient(160deg,#0e1626 0%,#0a0f1c 100%);
+  border:1px solid #20314a;
+  border-radius:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(52,211,153,.08);
+  z-index:120;
+  animation:tw-pop-in .18s ease-out;
+}
+@keyframes tw-pop-in {
+  from { opacity:0; transform:translateY(-6px) scale(.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.tw-header {
+  text-align:center;
+  padding-bottom:14px;
+  border-bottom:1px solid #1a273d;
+  margin-bottom:14px;
+}
+.tw-clock-big {
+  font-size:34px; font-weight:700;
+  color:#f3f7fd;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:1px;
+  line-height:1.1;
+}
+.tw-date-full {
+  margin-top:6px;
+  color:#a9bdd7;
+  font-size:13px; font-weight:600;
+}
+.tw-tz {
+  margin-top:6px;
+  color:#5b6c87;
+  font-size:11px;
+  letter-spacing:.3px;
+}
+.tw-tz strong { color:#67e8f9; font-weight:700; }
+
+.tw-cal-header {
+  display:grid;
+  grid-template-columns:32px 1fr 32px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.tw-cal-title {
+  text-align:center;
+  color:#f3f7fd;
+  font-size:15px; font-weight:700;
+  letter-spacing:.3px;
+}
+.tw-cal-nav {
+  background:transparent;
+  border:1px solid #20314a;
+  color:#a9bdd7;
+  font-size:18px; line-height:1;
+  width:28px; height:28px;
+  border-radius:8px;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.tw-cal-nav:hover { background:#16243b; border-color:#34d399; color:#f3f7fd; }
+
+.tw-cal-years {
+  display:flex; gap:4px;
+  justify-content:center;
+  margin-bottom:10px;
+}
+.tw-cal-year {
+  flex:1;
+  background:transparent;
+  border:1px solid #18263b;
+  color:#5b6c87;
+  font-size:10px; font-weight:700;
+  letter-spacing:.4px;
+  padding:4px 0;
+  border-radius:6px;
+  cursor:pointer;
+  transition:all .15s;
+}
+.tw-cal-year:hover { background:#16243b; color:#a9bdd7; }
+.tw-cal-year.is-active {
+  background:linear-gradient(150deg,#34d399,#22d3ee);
+  border-color:transparent;
+  color:#0a0f1c;
+}
+
+.tw-cal-grid {
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:2px;
+}
+.tw-cal-dow {
+  text-align:center;
+  color:#5b6c87;
+  font-size:10px; font-weight:800;
+  letter-spacing:.5px;
+  padding:6px 0;
+}
+.tw-cal-cell {
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  aspect-ratio:1;
+  color:#a9bdd7;
+  font-size:12px; font-weight:600;
+  border-radius:6px;
+  font-variant-numeric:tabular-nums;
+}
+.tw-cal-cell:hover {
+  background:#16243b;
+  color:#f3f7fd;
+  cursor:default;
+}
+.tw-cal-cell-pad { background:transparent; }
+.tw-cal-cell-public {
+  background:rgba(52,211,153,.08);
+  color:#6ee7b7;
+  font-weight:700;
+}
+.tw-cal-cell-public:hover {
+  background:rgba(52,211,153,.18);
+  color:#a7f3d0;
+}
+.tw-cal-cell-observance {
+  background:rgba(99,102,241,.07);
+  color:#a5b4fc;
+}
+.tw-cal-cell-today {
+  outline:2px solid #22d3ee;
+  outline-offset:-2px;
+  color:#fff !important;
+  font-weight:800 !important;
+  background:rgba(34,211,238,.12) !important;
+}
+.tw-cal-day { line-height:1; }
+.tw-cal-marker {
+  position:absolute;
+  bottom:3px;
+  width:4px; height:4px;
+  border-radius:50%;
+}
+.tw-cal-marker-public { background:#34d399; box-shadow:0 0 4px #34d399; }
+.tw-cal-marker-observance { background:#818cf8; }
+
+.tw-legend {
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid #1a273d;
+  display:flex; flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  color:#5b6c87;
+  font-size:10px; font-weight:600;
+  letter-spacing:.3px;
+}
+.tw-legend-item { display:inline-flex; align-items:center; gap:5px; }
+.tw-dot {
+  display:inline-block;
+  width:7px; height:7px;
+  border-radius:50%;
+}
+.tw-dot-public { background:#34d399; }
+.tw-dot-observance { background:#818cf8; }
+.tw-dot-today {
+  background:transparent;
+  outline:2px solid #22d3ee;
+  outline-offset:-2px;
+}
+
+.dash-greeting-text { color:#f3f7fd; font-size:22px; font-weight:700; letter-spacing:-.5px; }
+.dash-greeting-clock-time { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px; display:inline-block; }
+.dash-greeting-clock { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border:1px solid #20314a; border-radius:999px; background:linear-gradient(150deg,rgba(34,211,238,.06),rgba(99,102,241,.06)); color:#a9bdd7; font-size:11px; font-weight:700; letter-spacing:.4px; }
+.dash-greeting-clock-time { font-variant-numeric:tabular-nums; color:#f3f7fd; font-size:13px; font-weight:800; }
+.dash-greeting-clock-day { color:#8195b3; font-size:11px; font-weight:600; }
+.dash-greeting-clock-dot { width:5px; height:5px; border-radius:50%; background:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.16); }
+@media (max-width: 780px) { .dash-greeting-row { gap:10px; } .dash-greeting-text { font-size:18px; } .dash-greeting-clock { padding:5px 10px; font-size:10px; } }
+
+.dash-user-link { display:flex; align-items:center; gap:9px; padding:4px 10px 4px 4px; margin:0; border:1px solid transparent; border-radius:10px; color:#b4c6dd; text-decoration:none; transition:120ms ease; cursor:pointer; background:transparent; font:inherit; text-align:left; }
+.dash-user-link:hover { background:#14233a; border-color:#243b59; color:#f3f7fd; }
+.dash-user-link:focus-visible { outline:2px solid rgba(34,211,238,.4); outline-offset:2px; }
+.dash-foot-note { margin:18px 0 0; color:#667a99; font-size:11px; }
+
+/* Profile dropdown menu (avatar click) */
+.dash-menu-wrap { position:relative; display:inline-flex; }
+.dash-user-text { display:inline-flex; flex-direction:column; }
+.dash-menu-caret { color:#8195b3; font-size:9px; transition:transform 120ms ease; margin-left:4px; align-self:center; }
+.dash-menu-caret.open { transform:rotate(180deg); color:#67e8f9; }
+.dash-menu { position:absolute; top:calc(100% + 10px); right:0; min-width:300px; padding:8px; border:1px solid #243b59; border-radius:14px; background:linear-gradient(160deg,#101b2d,#0b1525); box-shadow:0 28px 60px rgba(0,0,0,.5),0 0 0 1px rgba(34,211,238,.08); z-index:50; animation:dash-menu-in 140ms ease; }
+@keyframes dash-menu-in { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+.dash-menu-header { display:flex; align-items:center; gap:11px; padding:10px 10px 12px; border-bottom:1px solid #1d324a; margin-bottom:6px; }
+.dash-menu-header strong { display:block; color:#eaf2fc; font-size:13px; }
+.dash-menu-header small { display:block; margin-top:3px; color:#7387a5; font-size:11px; }
+.dash-avatar-lg { width:38px; height:38px; font-size:15px; }
+.dash-menu-group { padding:4px 0; }
+.dash-menu-heading { display:block; padding:6px 10px 4px; color:#5e7391; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }
+.dash-menu-items { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.dash-menu-item { display:flex; align-items:center; gap:11px; padding:10px 11px; border:1px solid transparent; border-radius:10px; color:#cad5e6; text-decoration:none; background:transparent; cursor:pointer; font:inherit; width:100%; text-align:left; }
+.dash-menu-item:hover { background:#14233a; border-color:#243b59; color:#f3f7fd; }
+.dash-menu-item-danger:hover { background:rgba(127,29,48,.35); border-color:rgba(244,63,94,.4); color:#fecdd3; }
+.dash-menu-icon { width:26px; height:26px; display:grid; place-items:center; border-radius:8px; color:#67e8f9; background:rgba(34,211,238,.1); font-size:13px; flex-shrink:0; }
+.dash-menu-item-danger .dash-menu-icon { color:#fb7185; background:rgba(239,68,68,.12); }
+.dash-menu-text { display:flex; flex-direction:column; min-width:0; flex:1; }
+.dash-menu-text strong { display:block; color:#eaf2fc; font-size:13px; }
+.dash-menu-text small { display:block; margin-top:2px; color:#7387a5; font-size:11px; }
+.dash-menu-item-danger .dash-menu-text strong { color:#fecdd3; }
+
+/* Section heading on /billing, /settings, /profile */
+.dash-section { max-width:1280px; margin:32px auto 0; padding:0; }
+.dash-section-title { margin:8px 0 10px; color:#f6f9ff; font-size:26px; letter-spacing:-.6px; }
+.dash-section-lede { margin:0 0 24px; max-width:680px; color:#9eacce; font-size:13px; line-height:1.55; }
+.dash-banner-ok { padding:9px 12px; border:1px solid rgba(52,211,153,.32); border-radius:9px; background:rgba(16,185,129,.12); color:#86efac; font-size:12px; }
+
+/* Pricing cards on /billing */
+.dash-pricing { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.dash-plan { position:relative; padding:22px; border:1px solid #20314a; border-radius:13px; background:linear-gradient(150deg,#0f1a2e,#0a1322); display:flex; flex-direction:column; gap:14px; }
+.dash-plan-current { border-color:#67e8f9; background:linear-gradient(150deg,#112033,#0a1322); box-shadow:0 14px 40px rgba(56,189,248,.18); }
+.dash-plan-badge { position:absolute; top:-10px; left:18px; padding:4px 10px; border-radius:999px; background:linear-gradient(135deg,#67e8f9,#818cf8); color:#04111d; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.dash-plan-head { display:flex; flex-direction:column; gap:4px; }
+.dash-plan-head strong { color:#eaf2fc; font-size:14px; }
+.dash-plan-price { color:#f6f9ff; font-size:28px; font-weight:800; letter-spacing:-1px; }
+.dash-plan-head small { color:#7387a5; font-size:11px; }
+.dash-plan-tag { margin:0; color:#9eacce; font-size:12px; }
+.dash-plan-perks { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; flex:1; }
+.dash-plan-perks li { position:relative; padding-left:18px; color:#b6c3da; font-size:12px; line-height:1.45; }
+.dash-plan-perks li::before { content:''; position:absolute; left:0; top:7px; width:7px; height:7px; border-radius:2px; background:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.12); }
+
+@media (max-width: 1100px) { .dash-pricing { grid-template-columns:1fr; } .dash-menu { min-width:280px; right:-12px; } }
+@media (max-width: 780px) { .dash-menu { right:0; } .dash-pricing { grid-template-columns:1fr; } }
+
+.auth-forgot { margin:10px 0 0; color:#8294ae; font-size:12px; text-align:center; }
+.auth-forgot a { color:#67e8f9; text-decoration:none; font-weight:700; }
+.auth-forgot a:hover { color:#a5f3fc; }
+.auth-success { display:flex; flex-direction:column; gap:14px; }
+.auth-success strong { color:#eaf2fc; font-size:14px; }
+.auth-success-note { margin:0; color:#7387a5; font-size:12px; line-height:1.5; }
+.auth-success-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.auth-success-pre { margin:0; padding:11px 13px; border:1px solid #26344a; border-radius:9px; background:#0a1322; color:#a9c0e0; font-size:11px; overflow-x:auto; word-break:break-all; }
+
+/* ------- Sparkline (mini trend line inside KPI cards) ------- */
+.dash-spark { width:60px; height:24px; display:block; opacity:.85; }
+.dash-spark-empty { width:60px; height:24px; border-bottom:1px dashed #2a3b53; }
+
+/* Skeleton (loading) state for MetricCard. The shimmer uses
+   opacity instead of background-position animation so we don't
+   pay a 16ms layout cost on every render of the dashboard. */
+.dash-skel-line { display:inline-block; background:#1a2540; border-radius:6px; opacity:.55; }
+.dash-metric-skeleton .dash-metric-icon { background:#1a2540; border-radius:6px; opacity:.5; }
+
+/* MetricCard row layout — strong value + sparkline sit on a
+   horizontal flex line so they don't fight each other for space. */
+.dash-metric-row { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+
+/* ------- Sidebar nav polish ------- */
+.dash-nav-item { display:flex; align-items:center; gap:10px; }
+.dash-nav-icon { width:18px; text-align:center; opacity:.85; flex-shrink:0; }
+.dash-nav-label { flex:1; }
+.dash-nav-item:hover .dash-nav-icon { opacity:1; color:var(--accent); }
+.dash-nav-item:hover { background:#16243d; color:#e7edf7; }
+.dash-nav-active { background:linear-gradient(90deg,rgba(34,211,238,.14),transparent); border-left:2px solid var(--accent); padding-left:10px; }
+
+/* Alert pill under the nav — at-a-glance "things are on fire". */
+.dash-nav-alert-pill {
+  display:flex; align-items:center; gap:8px; padding:8px 12px; margin:6px 4px;
+  background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); border-radius:8px;
+  font-size:11px; font-weight:600; color:#fca5a5;
+}
+
+/* ------- Topbar Cmd+K hint button ------- */
+.dash-topbar-hint {
+  display:inline-flex; align-items:center; gap:6px; padding:5px 11px;
+  background:transparent; border:1px solid #2a3b53; border-radius:7px;
+  color:#7387a5; font-size:11px; font-weight:500; cursor:pointer;
+  transition:all .15s ease;
+}
+.dash-topbar-hint:hover { background:#16243d; border-color:var(--accent); color:#cfe6f7; }
+.dash-topbar-hint kbd {
+  display:inline-block; min-width:18px; text-align:center; padding:1px 4px;
+  background:#0e1a30; border:1px solid #2a3b53; border-radius:4px;
+  font:600 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace; color:#a9c0e0;
+}
+
+/* ------- Topbar center: search bar (NOT a hint button) -------
+   The bar pretends to be a real input so the Cmd+K shortcut feels
+   discoverable. Click anywhere on it to open the palette.
+
+   The center column is `flex:1` so it claims all leftover
+   horizontal space. Inside, the search button is centered via
+   `margin:0 auto` so it sits in the middle of that column.
+   Combined with `justify-content:space-between` on the topbar,
+   the search ends up at the geometric center of the topbar. */
+.dash-topbar-center {
+  flex:1 1 0; min-width:0;
+  display:flex; justify-content:center; align-items:center;
+}
+.dash-topbar-search {
+  display:inline-flex; align-items:center; gap:10px;
+  width:480px; max-width:100%;
+  padding:7px 12px;
+  background:rgba(13,21,38,.7); border:1px solid #20314a; border-radius:8px;
+  color:#7387a5; font-size:13px;
+  cursor:pointer;
+  transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.dash-topbar-search:hover {
+  background:rgba(34,52,86,.7); border-color:#2e4a73; color:#cfe6f7;
+}
+.dash-topbar-search:focus-visible {
+  outline:0; border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(34,211,238,.16);
+}
+.dash-topbar-search-icon { color:#7387a5; font-size:15px; flex-shrink:0; }
+.dash-topbar-search-placeholder { flex:1; text-align:left; }
+.dash-topbar-search-kbd {
+  display:inline-block; min-width:18px; text-align:center; padding:2px 5px;
+  background:#0e1a30; border:1px solid #2a3b53; border-radius:4px;
+  font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace; color:#a9c0e0;
+  margin-left:-4px;
+}
+.dash-topbar-search-kbd + .dash-topbar-search-kbd { margin-left:2px; }
+@media (max-width: 900px) {
+  /* On narrow viewports, hide the placeholder text + kbd glyphs
+     so the bar collapses to just the icon. Keeps the topbar from
+     wrapping into multiple rows. */
+  .dash-topbar-search-placeholder, .dash-topbar-search-kbd { display:none; }
+  .dash-topbar-search { width:auto; max-width:48px; padding:7px; justify-content:center; }
+}
+
+/* ------- Topbar clock widget (right-side, before reload button) -------
+   Compact pill that sits in dash-top-actions BEFORE the reload
+   button. Shows HH:MM AM/PM + day name on wide viewports; on
+   narrow viewports only the time shows. The pill has the same
+   dark-blue gradient as the avatar greeting on the dashboard
+   to keep the topbar visually consistent. */
+.dash-topbar-clock {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 12px; border:1px solid #20314a; border-radius:999px;
+  background:linear-gradient(150deg,rgba(34,211,238,.06),rgba(99,102,241,.06));
+  color:#a9bdd7; font-size:11px; font-weight:700; letter-spacing:.4px;
+}
+.dash-topbar-clock-time { font-variant-numeric:tabular-nums; color:#f3f7fd; font-size:12px; font-weight:800; }
+.dash-topbar-clock-day { color:#8195b3; font-size:11px; font-weight:600; }
+@media (max-width: 1100px) { .dash-topbar-clock-day { display:none; } }
+@media (max-width: 780px) { .dash-topbar-clock { display:none; } }
+.dash-panel-controls { display:flex; align-items:center; gap:14px; }
+.dash-search-input { position:relative; display:flex; align-items:center; }
+.dash-search-icon { position:absolute; left:10px; color:#7387a5; font-size:14px; pointer-events:none; }
+.dash-search-input input {
+  width:220px; padding:7px 10px 7px 30px;
+  background:#0a1322; border:1px solid #26344a; border-radius:7px;
+  color:#e7edf7; font-size:12px;
+}
+.dash-search-input input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(34,211,238,.18); }
+.dash-search-input input::placeholder { color:#677790; }
+
+/* ------- Empty-state illustrations (inline SVG, line-art only) ------- */
+.dash-empty-illustration {
+  width:80px; height:54px; margin:0 auto 12px;
+  color:#38bdf8; opacity:.6;
+}
+.dash-empty-illustration svg { width:100%; height:100%; }
+
+/* ------- Skeleton shimmer (subtle) ------- */
+@keyframes dashSkelShimmer { 0%,100% { opacity:.55; } 50% { opacity:.35; } }
+.dash-metric-skeleton .dash-skel-line { animation:dashSkelShimmer 1.6s ease-in-out infinite; }
+
+/* =================================================================
+   Command palette — modal dialog with input + filtered list.
+   Uses CSS variables + the existing dark theme; no new color tokens.
+   ================================================================= */
+.cmd-palette-backdrop {
+  position:fixed; inset:0; z-index:100;
+  background:rgba(2,6,23,.74); backdrop-filter:blur(6px);
+  display:grid; place-items:flex-start center; padding-top:14vh;
+  animation:cmdFadeIn .12s ease-out;
+}
+@keyframes cmdFadeIn { from { opacity:0; } to { opacity:1; } }
+.cmd-palette {
+  width:min(640px,94vw); max-height:60vh; display:flex; flex-direction:column;
+  background:linear-gradient(160deg,#101a2e,#0a1322);
+  border:1px solid #26344a; border-radius:14px;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+  overflow:hidden; animation:cmdPopIn .14s ease-out;
+}
+@keyframes cmdPopIn { from { opacity:0; transform:translateY(-6px) scale(.99); } to { opacity:1; transform:none; } }
+.cmd-palette-input-wrap {
+  display:flex; align-items:center; gap:10px; padding:14px 16px;
+  border-bottom:1px solid #20304a;
+}
+.cmd-palette-icon { color:#7387a5; font-size:16px; }
+.cmd-palette-input {
+  flex:1; background:transparent; border:0; outline:0; color:#f6f9ff;
+  font-size:15px; font-weight:500;
+}
+.cmd-palette-input::placeholder { color:#5d6e8c; }
+.cmd-palette-kbd {
+  display:inline-block; padding:2px 7px; background:#0e1a30; border:1px solid #2a3b53;
+  border-radius:5px; font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#a9c0e0; text-transform:uppercase;
+}
+.cmd-palette-list { flex:1; overflow-y:auto; padding:6px; }
+.cmd-palette-item {
+  display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px;
+  background:transparent; border:0; border-radius:8px;
+  color:#dae8f7; font-size:13px; cursor:pointer; text-align:left;
+  transition:background .12s ease;
+}
+.cmd-palette-item:hover, .cmd-palette-item-active { background:#16243d; }
+.cmd-palette-item-group {
+  flex-shrink:0; padding:2px 7px; background:#0e1a30; border:1px solid #2a3b53;
+  border-radius:5px; font:600 9.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#7387a5; text-transform:uppercase; letter-spacing:.5px;
+}
+.cmd-palette-item-body { flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.cmd-palette-item-body strong { font-weight:600; color:#f6f9ff; }
+.cmd-palette-item-body small { font-size:11px; color:#7387a5; }
+.cmd-palette-empty {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:32px 20px; color:#7387a5; text-align:center;
+}
+.cmd-palette-empty span { font-size:28px; opacity:.4; }
+.cmd-palette-empty strong { font-weight:600; color:#cfe6f7; }
+
+/* =================================================================
+   FilterBar — search + status chips + actions row.
+   Used on Proxmox workspace, TrueNAS workspace, and any future
+   list-page. Mirrors the Datadog / Linear "Filter" affordance.
+   ================================================================= */
+.sw-filter-bar {
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:10px 0; border-bottom:1px solid #20304a; margin-bottom:12px;
+}
+.sw-filter-search {
+  position:relative; display:flex; align-items:center; flex:0 1 280px; min-width:200px;
+}
+.sw-filter-search input {
+  width:100%; padding:7px 28px 7px 30px;
+  background:#0a1322; border:1px solid #26344a; border-radius:7px;
+  color:#e7edf7; font-size:12.5px; transition:border-color .15s ease, box-shadow .15s ease;
+}
+.sw-filter-search input:focus { outline:0; }
+.sw-filter-search-focus input { border-color:var(--accent); box-shadow:0 0 0 3px rgba(34,211,238,.16); }
+.sw-filter-search input::placeholder { color:#677790; }
+.sw-filter-search-icon { position:absolute; left:10px; color:#7387a5; font-size:14px; pointer-events:none; }
+.sw-filter-search-clear {
+  position:absolute; right:4px; top:50%; transform:translateY(-50%);
+  width:22px; height:22px; padding:0; background:transparent; border:0;
+  border-radius:4px; color:#7387a5; font-size:16px; line-height:1;
+  cursor:pointer;
+}
+.sw-filter-search-clear:hover { background:#16243d; color:#e7edf7; }
+.sw-filter-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.sw-filter-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 11px; background:transparent; border:1px solid #2a3b53;
+  border-radius:99px; color:#a9c0e0; font-size:11.5px; font-weight:600;
+  cursor:pointer; transition:all .12s ease;
+}
+.sw-filter-chip:hover { background:#16243d; color:#e7edf7; }
+.sw-filter-chip-active {
+  background:rgba(34,211,238,.12); border-color:rgba(34,211,238,.5);
+  color:#67e8f9;
+}
+.sw-filter-chip-count {
+  display:inline-block; min-width:18px; padding:1px 6px;
+  background:#0e1a30; border:1px solid #2a3b53; border-radius:99px;
+  font:600 10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; color:#a9c0e0;
+}
+.sw-filter-chip-active .sw-filter-chip-count { background:rgba(34,211,238,.18); border-color:rgba(34,211,238,.4); color:#67e8f9; }
+.sw-filter-actions { margin-left:auto; display:flex; gap:8px; }
+.sw-filter-reset {
+  padding:5px 11px; background:transparent; border:0; border-radius:6px;
+  color:#7387a5; font-size:11.5px; cursor:pointer;
+}
+.sw-filter-reset:hover { color:#e7edf7; }
+
+/* Resource table hover lift — Datadog pattern. */
+.sw-row-clickable { transition:background .12s ease; }
+.sw-row-clickable:hover { background:#0f1c33; cursor:pointer; }
+.sw-row-actions { opacity:0; transition:opacity .12s ease; }
+.sw-row-clickable:hover .sw-row-actions { opacity:1; }
+
+/* Status badges that aren't tied to the existing pill component.
+   Reuses the existing .dash-status-* tones. */
+.sw-status-good { color:#10b981; background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.35); }
+.sw-status-bad { color:#ef4444; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); }
+.sw-status-warn { color:#f59e0b; background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); }
+.sw-status-neutral { color:#94a3b8; background:#0e1a30; border:1px solid #2a3b53; }
+
+/* =================================================================
+   Polish batch — hover lifts on resource + host cards,
+   animated empty-state entrance, focus-visible polish.
+   ================================================================= */
+
+/* Resource cards lift on hover (Datadog card pattern). The subtle
+   background shift + border tint signals interactivity. */
+.dash-resource-card:hover { border-color:#2e4a73; background:#11203b; transform:translateY(-1px); }
+
+/* Host rows lift + show actions on hover. */
+.dash-host-row { padding:10px 12px; border-radius:8px; transition:background .12s ease; }
+.dash-host-row:hover { background:#11203b; }
+
+/* Metric card hover — small lift, accent border. */
+.dash-metric { transition:border-color .15s ease, transform .15s ease; }
+.dash-metric:hover { border-color:#2e4a73; }
+
+/* Panel subtle hover — emphasize the panel boundary on hover.
+   Skipped on chart panel (cursor shouldn't lie about interactivity). */
+.dash-panel:not(.dash-chart-panel):hover { border-color:#2e4a73; }
+
+/* Animated entrance for empty-state illustrations. */
+@keyframes dashFadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.dash-empty-illustration, .dash-panel-empty > strong, .dash-empty-inline > span {
+  animation:dashFadeUp .35s ease-out;
+}
+
+/* Focus-visible polish — better outline on all interactive elements. */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+
+/* Reduce motion preference — disable animations for users who want them off. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.001ms !important; transition-duration:.001ms !important; }
+}
+
