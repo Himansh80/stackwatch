@@ -8,23 +8,27 @@ import KpiCard from '../components/shared/KpiCard';
 import PredictiveAlertsSection, {
   PredictiveAlert,
 } from '../components/PredictiveAlertsSection';
+import CorrelationsSection from '../components/CorrelationsSection';
+import { CorrelationGroup } from '../components/shared/CorrelationCard';
 import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
 
 /**
- * IntelligencePage — Tier 8.1 (D9) ML Anomaly Detection surface at /intelligence.
+ * IntelligencePage — Tier 8 (D9) Intelligence & Alerting surface at /intelligence.
  *
- * Phase 1 ships only the TOP section: an Anomalies overview with a
- * 3-card KPI strip (today / critical / acknowledged), the AnomalyChart
- * of recent detections, and a "Train new model" button + form modal.
- * Phases 2-5 will add their own sections below this one; Phase 5
- * unifies everything under a tabbed layout.
+ * Phase 1: ML Anomaly Detection (anomaly KPI strip + chart + train modal)
+ * Phase 2: Predictive Alerting (PredictiveAlertsSection below)
+ * Phase 3: Alert Correlation + RCA (CorrelationsSection below)
+ * Phase 4: Alert Noise Reduction (future)
+ * Phase 5: Unified Intelligence Dashboard (future)
  *
- * Layout (Phase 1):
+ * Layout (Phase 1+2+3):
  *   - Topbar with "Intelligence" title + "Train new model" button
- *   - 3 KpiCards using kpiStagger
+ *   - 3 KpiCards using kpiStagger (anomaly KPIs)
  *   - AnomalyChart (from shared/AnomalyChart) with severity legend
  *   - Recent events list (last 10) — same data the chart uses
  *   - "Train new model" modal — POST /anomaly/train
+ *   - PredictiveAlertsSection — Phase 2 (extracted, owns forecast modal)
+ *   - CorrelationsSection — Phase 3 (extracted, owns manual correlate modal)
  *
  * Motion: pageEnter on the page; kpiStagger on the KPI strip; the
  * Train CTA uses the shared buttonSpring. Reuses existing tokens.
@@ -63,6 +67,11 @@ export default function IntelligencePage() {
   // alerts list (loaded by loadData) and a setError callback.
   const [predictiveAlerts, setPredictiveAlerts] = useState<PredictiveAlert[]>([]);
 
+  // Correlation state (Phase 3). CorrelationsSection owns its own
+  // modal + manualCorrelate + feedback logic; we feed it the groups
+  // list (loaded by loadData) and a setError callback.
+  const [correlationGroups, setCorrelationGroups] = useState<CorrelationGroup[]>([]);
+
   const requireAuth = (): boolean => {
     if (!getToken()) {
       setError('Sign in to view Intelligence.');
@@ -74,26 +83,20 @@ export default function IntelligencePage() {
   const loadData = useCallback(async () => {
     if (!requireAuth()) return;
     try {
-      const [ev, md, pa] = await Promise.all([
+      const [ev, md, pa, cg] = await Promise.all([
         api<ListResponse>('GET', '/api/v1/anomaly/events?limit=100'),
         api<ModelsResponse>('GET', '/api/v1/anomaly/models'),
         api<{ alerts?: PredictiveAlert[]; total?: number }>('GET', '/api/v1/predict/alerts?limit=50'),
+        api<{ groups?: CorrelationGroup[]; total?: number }>('GET', '/api/v1/correlations/groups?limit=50'),
       ]);
       setEvents(ev.events || []);
       setModels(md.models || []);
       setPredictiveAlerts(pa.alerts || []);
+      setCorrelationGroups(cg.groups || []);
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
   }, []);
-
-  // Note: predictive alerting is delegated to PredictiveAlertsSection.
-  // The section owns its own runForecast + ackAlert logic; the page
-  // just feeds it the alerts list (loaded by loadData) and a setError
-  // callback. After the section acks an alert, loadData is the source
-  // of truth for refreshing the list — there is no separate handler
-  // needed here because the page reloads predictive alerts whenever
-  // it remounts (Phase 2 deferral: keep the page dumb).
 
   useEffect(() => {
     setError('');
@@ -163,11 +166,6 @@ export default function IntelligencePage() {
       <AppSidebar
         active="intelligence"
         onLogout={logout}
-        // Sidebar nav includes every Tier 7+ page so the user can
-        // jump between observability surfaces without bouncing to
-        // the dashboard. The "intelligence" item will be added in
-        // AppSidebar as part of Phase 5; for Phase 1 the route still
-        // exists at /intelligence via direct URL.
         show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'incidents', 'notebooks', 'intelligence']}
       />
       <main className="dash-main">
@@ -293,17 +291,23 @@ export default function IntelligencePage() {
             </section>
           ) : null}
 
-          {/* ---- Predictive Alerts section (Phase 2 / Tier 8.2) ---- */}
-          {/* Extracted to PredictiveAlertsSection component so this
-              page stays under the 400-LOC cap. The section owns its
-              own KPI strip + forecast grid + event log; the page
-              owns the modelAccuracy state + the Generate Forecast
-              modal that lives in the topbar. */}
+          {/* Predictive Alerts section (Phase 2 / Tier 8.2) — extracted
+              component so this page stays under the 400-LOC cap. */}
           <PredictiveAlertsSection
             alerts={predictiveAlerts}
             horizonDefault={24}
             busy={busy}
             onError={setError}
+          />
+
+          {/* Alert Correlation + RCA section (Phase 3 / Tier 8.3) — extracted
+              component. Owns the manual correlate modal + per-card feedback
+              + expand-to-fetch-group-detail logic. */}
+          <CorrelationsSection
+            groups={correlationGroups}
+            busy={busy}
+            onError={setError}
+            onCreated={() => void loadData()}
           />
         </motion.div>
 

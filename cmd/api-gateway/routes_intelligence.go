@@ -64,7 +64,25 @@ func mountIntelligenceRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.GET("/predict/accuracy", handler.PredictAccuracy(pool))
 	protected.POST("/predict/ack", handler.AckPredictiveAlert(pool))
 
-	// Phase 3 — Alert Correlation + RCA (5 routes)      ← future
-	// Phase 4 — Alert Noise Reduction (5 routes)        ← future
-	// Phase 5 — Intelligence Dashboard (5 routes)       ← future
-}
+	// ---- Tier 8.3: Alert Correlation + RCA (Phase 3) ----
+		// Surfaces correlation groups (auto-detected by the background
+		// correlator or manually created by an operator) and root-cause
+		// analysis hints. The detail handler (GET /group/:id) lives in
+		// handlers_correlations_detail.go; the rest of the 5 routes are
+		// in handlers_correlations.go.
+		//
+		// Routes (5):
+		//   GET  /api/v1/correlations/groups     — list groups
+		//   GET  /api/v1/correlations/group/:id  — group detail
+		//   POST /api/v1/correlations/manual     — create manual group
+		//   GET  /api/v1/correlations/rca/:aid   — RCA hints for an alert
+		//   POST /api/v1/correlations/feedback   — record user feedback
+		protected.GET("/correlations/groups", handler.ListCorrelationGroups(pool))
+		protected.GET("/correlations/group/:id", handler.GetCorrelationGroup(pool))
+		protected.POST("/correlations/manual", handler.CreateManualCorrelation(pool))
+		protected.GET("/correlations/rca/:alert_id", handler.GetRCAHintsForAlert(pool))
+		protected.POST("/correlations/feedback", handler.RecordCorrelationFeedback(pool))
+
+		// Phase 4 — Alert Noise Reduction (5 routes)        ← future
+		// Phase 5 — Intelligence Dashboard (5 routes)       ← future
+	}
