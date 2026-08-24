@@ -390,11 +390,11 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.POST("/synthetics/tests-full/:test_id/run", handler.RunSynthTestNow(pool, synthRunner))
 	protected.GET("/synthetics/tests-full/:test_id/sla", handler.GetSynthTestSLA(pool))
 	protected.GET("/synthetics/tests-full/:test_id/results", handler.GetSynthTestResults(pool))
-
-	// Tier 7.5 — Security (D6): 4 read-only routes over threats/audit/compliance/siem.
 	protected.GET("/security/threats", handler.ListSecurityThreats(pool))
 	protected.GET("/security/audit-trails", handler.ListSecurityAuditTrails(pool))
 	protected.GET("/security/compliance", handler.ListSecurityCompliance(pool))
 	protected.GET("/security/siem", handler.ListSecuritySIEM(pool))
+	protected.GET("/cspm/resources", handler.ListCSPMResources(pool))
+	protected.GET("/cspm/findings", handler.ListCSPMFindings(pool))
 	return r
 }

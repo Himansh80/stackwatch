@@ -16,6 +16,7 @@ import RumFullPage from './pages/RumFullPage';
 import RumSessionPage from './pages/RumSessionPage';
 import SyntheticsPage from './pages/SyntheticsPage';
 import SecurityPage from './pages/SecurityPage';
+import CspmPage from './pages/CspmPage';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
 import { useAuthState } from './lib/useAuthState';
 
@@ -47,6 +48,7 @@ export default function App() {
       <Route path="/rum/session" element={isLoggedIn ? <RumSessionPage /> : <Navigate to="/login" replace />} />
       <Route path="/synthetics" element={isLoggedIn ? <SyntheticsPage /> : <Navigate to="/login" replace />} />
       <Route path="/security" element={isLoggedIn ? <SecurityPage /> : <Navigate to="/login" replace />} />
+      <Route path="/cspm" element={isLoggedIn ? <CspmPage /> : <Navigate to="/login" replace />} />
       <Route path="/tier0" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

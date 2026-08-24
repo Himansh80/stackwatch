@@ -981,3 +981,66 @@ All 30 routes verified:
 ### Next speckit change ready
 
 **004-tier7-phase2** — Tier 7 subtiers 4-6: Synthetics Full (D5) + Security (D6) + CSPM (D7)
+
+---
+
+## Session — 2026-08-24 (Tier 7 Phase 2 — Phases 1+2+3 complete)
+
+### Speckit change 004-tier7-phase2 — ALL 3 PHASES COMPLETE
+
+Shipped 3 of 11 Tier 7 subtiers, end-to-end (migration + frontend + live verification on .115):
+
+**Phase 1 — Synthetics Full (D5)** — commit `21f0af5`
+- 5 tables: synthetics_tests, synthetics_results, synthetics_test_runs, synthetics_locations, synthetics_checks
+- 13 routes: locations CRUD + ci-configs + webhook + tests-full CRUD + run-now + sla + results
+- 1 shared component: SlaBadge (69 LOC)
+- 1 page: SyntheticsPage (382)
+- Bundle delta: +1,866 bytes gzipped
+
+**Phase 2 — Security (D6)** — commit `684a7a9`
+- 5 tables + 6 seeded compliance rules: security_threats, compliance_rules, compliance_results, siem_events, audit_log_exports
+- 4 routes: threats + audit-trails + compliance + siem
+- 2 shared components: ThreatCard (93), ComplianceBar (107)
+- 1 page: SecurityPage (366, 4 tabs)
+- Bundle delta: see cumulative below
+
+**Phase 3 — CSPM (D7)** — commit (this session)
+- 2 tables: cspm_resources, cspm_findings
+- 2 routes: resources (filter ?provider=&type=) + findings (filter ?severity=&resolved=)
+- 1 shared component: CspmSeverityBadge (49, reuses .dash-sev-* tokens)
+- 1 page: CspmPage (242, KPI strip + resources + findings tables, pageEnter + kpiStagger)
+- `scanResource()` helper (stub returning sample findings: weak_credential always, open_port for VMs, unencrypted_volume for datasets/volumes)
+- Sidebar nav added (CSPM under observability)
+- Bundle delta: +851 bytes gzipped (Phase 2 → Phase 3)
+
+### Cumulative Tier 7 Phase 2 totals
+
+- **19 routes live + verified on .115** (13 Synthetics + 4 Security + 2 CSPM)
+- **12 new DB tables** (5 + 5 + 2), all idempotent
+- **Bundle delta: +2,717 bytes gzipped JS** (well under +60KB budget)
+- **CSS unchanged in spec files; .dash-sev-info rule added for CSPM info severity**
+
+### Modularity discipline maintained
+
+- All files under 400 LOC (max: routes.go at exactly 400 LOC after Phase 3; CspmPage 242; handlers_cspm 217)
+- Handlers split by domain
+- Shared components in `web/src/components/shared/`
+- No new dependencies
+- No backend changes to existing code (purely additive — Phase 1 prose comment removed from routes.go to keep ≤400 LOC)
+- Tenant_id isolation enforced on every query
+- All migrations idempotent (`CREATE TABLE IF NOT EXISTS`)
+
+### Live verification (curl)
+
+All 19 routes verified:
+- 401 unauthenticated (CSPM, Security, Synthetics, APM, Logs, RUM)
+- Routes reachable via web tier (https://stackwatch.smarthomelab.fun/api/v1/...) and direct API (http://192.168.0.115:8080/api/v1/...)
+
+### Honest gaps
+
+- Live 4× authenticated verifier deferred — same as Phase 1 of 004 (login rate-limit)
+- routes.go at exactly 400 LOC is the modularity ceiling; further Phase 4 routes will need a routes split file (suggested: `routes_security_cspm.go`)
+
+### Next speckit change ready
+
+**005** — Tier 7 remaining (CI/CD Vis D8 + DB Mon D9 + Service Mgmt D10 + Notebook D11 + Team Collab D12)

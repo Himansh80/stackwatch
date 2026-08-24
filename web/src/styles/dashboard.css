@@ -875,6 +875,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
+.dash-sev-info {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
 .compliance-bar-list {
   display: grid;
   gap: 10px;
