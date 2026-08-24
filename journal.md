@@ -1109,3 +1109,21 @@ All 19 new routes verified:
 ### Next speckit change ready
 
 **005-tier7-phase3** — remaining 5 Tier 7 subtiers: CI/CD Vis (D8) + DB Mon (D9) + Service Mgmt (D10) + Notebook (D11) + Team Collab (D12)
+
+### Session — 2026-08-24 (Phase 2 — DB Monitoring / D9)
+
+**Done**
+- ✅ Phase 0 (routes.go split): `427769f`
+- ✅ Phase 1 (CI/CD Visibility / D8): `bafc4db` — 56 Tier 7 routes live
+- ✅ Phase 2 (DB Monitoring / D9): this change — 2 tables + 1 materialized view + 5 routes + 1 shared component + 1 page
+  - `migrations/036_dbmon.sql` — database_queries, database_connection_pools, database_slow_queries (materialized view, refreshed CONCURRENTLY)
+  - Handlers split: handlers_dbmon_types.go (62) + handlers_dbmon.go (173) + handlers_dbmon_extras.go (182)
+  - 5 protected routes: slow-queries, queries/top, query-explain, connection-pool (GET+POST), query-stats
+  - Shared `SlowQueryTable.tsx` (147 LOC) + Page `DatabasePage.tsx` (329 LOC, 3 tabs + KPI strip + explain modal)
+  - Sidebar: "Database" added under observability (138 LOC after dedent fix)
+  - routes_protected.go: 356 → 364 LOC (+5 routes + 2-line comment)
+  - Migration applied to .116; 2 tables + 1 materialized view present
+  - All 5 routes return 401; health=200; Phase 1 cicd/pipelines still returns 401 (Phase 1 unchanged)
+  - 4× live verifier PASS
+  - Bundle delta: +1,879 bytes gzipped (well under +10KB budget)
+- All files <400 LOC; type-check / lint (no new errors) / build / vet all exit 0

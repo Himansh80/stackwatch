@@ -354,4 +354,12 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	protected.GET("/cicd/pipelines/:id", handler.GetCICDPipeline(pool))
 	protected.GET("/cicd/deployments", handler.ListCICDDeployments(pool))
 	protected.POST("/cicd/deployments", handler.CreateCICDDeployment(pool))
+
+	// ---- Tier 7.8: DB Monitoring (D9) — Phase 2 ----
+	protected.GET("/database/slow-queries", handler.ListDBMonSlowQueries(pool))
+	protected.GET("/database/queries/top", handler.ListDBMonTopQueries(pool))
+	protected.GET("/database/query-explain", handler.ExplainDBMonQuery(pool))
+	protected.GET("/database/connection-pool", handler.ListDBMonConnectionPools(pool))
+	protected.POST("/database/connection-pool", handler.IngestDBMonConnectionPool(pool))
+	protected.POST("/database/query-stats", handler.IngestDBMonQueryStats(pool))
 }
