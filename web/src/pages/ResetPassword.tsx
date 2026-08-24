@@ -4,6 +4,15 @@ import { ApiError, api, setToken } from '../lib/api';
 import PasswordInput from '../components/PasswordInput';
 import PasswordField from '../components/PasswordField';
 import { friendlyPasswordMessage } from '../lib/password';
+import {
+  motion,
+  cardEntrance,
+  staggerFormRows,
+  formRow,
+  buttonSpring,
+  EASE_OUT,
+  useReducedMotion,
+} from '../lib/motion';
 
 interface ResetResponse {
   ok: boolean;
@@ -29,6 +38,9 @@ export default function ResetPassword() {
         'This reset link is missing its token. Use the link from your email or from the forgot-password page.',
       );
   }, [token]);
+
+  // Reduced-motion: snap into show state, no framer variants.
+  const reduce = useReducedMotion();
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -92,14 +104,25 @@ export default function ResetPassword() {
           <small>Self-hosted infrastructure platform</small>
         </span>
       </Link>
-      <div className="auth-card">
-        <header>
+      <motion.div
+        className="auth-card"
+        initial={reduce ? false : "hidden"}
+        animate="show"
+        variants={cardEntrance}
+      >
+        <motion.header variants={formRow}>
           <span className="auth-eyebrow">Account recovery</span>
           <h1>Set a new password</h1>
           <p>Choose a new password for your workspace account. The link expires in 1 hour.</p>
-        </header>
-        <form onSubmit={onSubmit} noValidate>
-          <label className="auth-pwd-label">
+        </motion.header>
+        <motion.form
+          onSubmit={onSubmit}
+          noValidate
+          initial={reduce ? false : "hidden"}
+          animate="show"
+          variants={staggerFormRows}
+        >
+          <motion.label className="auth-pwd-label" variants={formRow}>
             <span>New password</span>
             <PasswordInput
               value={password}
@@ -113,8 +136,8 @@ export default function ResetPassword() {
               required
             />
             <small>Minimum 10 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
-          </label>
-          <label>
+          </motion.label>
+          <motion.label variants={formRow}>
             <span>Confirm new password</span>
             <PasswordField
               value={password2}
@@ -124,16 +147,39 @@ export default function ResetPassword() {
               required
               minLength={10}
             />
-          </label>
-          {error && <div className="auth-error">{error}</div>}
-          <button type="submit" className="auth-button-primary" disabled={loading || !token}>
+          </motion.label>
+          {error && (
+            <motion.div
+              className="auth-error"
+              variants={formRow}
+              initial={reduce ? false : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, ease: EASE_OUT }}
+              role="alert"
+            >
+              {error}
+            </motion.div>
+          )}
+          <motion.button
+            type="submit"
+            className="auth-button-primary"
+            disabled={loading || !token}
+            whileHover={loading || !token ? undefined : buttonSpring.whileHover}
+            whileTap={loading || !token ? undefined : buttonSpring.whileTap}
+            transition={buttonSpring.transition}
+          >
             {loading ? 'Saving…' : 'Set new password'}
-          </button>
-          <p className="auth-switch">
+          </motion.button>
+          <motion.p
+            className="auth-switch"
+            variants={formRow}
+            initial={reduce ? false : "hidden"}
+            animate="show"
+          >
             <Link to="/login">← Back to sign in</Link>
-          </p>
-        </form>
-      </div>
+          </motion.p>
+        </motion.form>
+      </motion.div>
       <p className="auth-foot">
         Reset tokens are single-use and expire in 1 hour. If yours has expired, request a new one.
       </p>

@@ -12,6 +12,7 @@
 // Pair with the CSS block in styles.css that zeroes out hover transitions
 // when reduced-motion is requested.
 import {
+  AnimatePresence,
   motion as _motionBase,
   useReducedMotion as _useReducedMotionBase,
   type Variants,
@@ -22,6 +23,7 @@ import { useEffect, useRef, useState } from 'react';
 // to import framer-motion directly. Keeps the noise to one import. ----
 export const motion = _motionBase;
 export const useReducedMotion = _useReducedMotionBase;
+export { AnimatePresence };
 export type { Variants };
 
 // ---------- Tokens -----------------------------------------------------
