@@ -1283,3 +1283,112 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   color: var(--muted);
   font-size: 11px;
 }
+
+/* ----- Notebook editor (Tier 7.10 D11) ----- */
+/* Reuses the slow-query-explain-modal frame as the editor backdrop. */
+.notebook-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.notebook-editor-title-label,
+.notebook-editor-content-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.notebook-editor-title-label > span,
+.notebook-editor-content-label > span,
+.notebook-editor-collab-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+.notebook-editor-title-label input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.notebook-editor-title-label input:focus {
+  border-color: var(--accent, var(--cyan, #58c4d9));
+}
+.notebook-editor-collab-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.notebook-editor-collab-row .threat-card-meta-pill {
+  /* Tiny chips for collaborators — same pill as IncidentCard. */
+  font-size: 11px;
+  padding: 3px 8px;
+}
+.notebook-collab-editor {
+  border-color: var(--amber);
+}
+.notebook-collab-owner {
+  border-color: var(--cyan, var(--accent));
+}
+.notebook-collab-viewer {
+  border-color: var(--border);
+}
+.notebook-editor-textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  min-height: 400px;
+  width: 100%;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.notebook-editor-textarea:focus {
+  border-color: var(--accent, var(--cyan, #58c4d9));
+}
+.notebook-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.notebook-editor-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.notebook-editor-meta code {
+  font-family: var(--mono, ui-monospace, monospace);
+  color: var(--text);
+}
+.notebook-editor-actions-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Inline create-new form on the page (reuses slow-query-explain frame). */
+.notebook-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.notebook-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

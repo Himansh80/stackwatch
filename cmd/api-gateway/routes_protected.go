@@ -367,4 +367,9 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	// 10 routes extracted to routes_incidents.go (mountIncidentRoutes)
 	// so routes_protected.go stays under the 400-LOC cap.
 	mountIncidentRoutes(protected, pool)
+
+	// ---- Tier 7.10: Notebook (D11) — Phase 4 ----
+	// 6 routes extracted to routes_notebook.go (mountNotebookRoutes)
+	// so routes_protected.go stays under the 400-LOC cap.
+	mountNotebookRoutes(protected, pool)
 }

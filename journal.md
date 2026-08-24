@@ -1127,3 +1127,41 @@ All 19 new routes verified:
   - 4× live verifier PASS
   - Bundle delta: +1,879 bytes gzipped (well under +10KB budget)
 - All files <400 LOC; type-check / lint (no new errors) / build / vet all exit 0
+
+### Session — 2026-08-24 (Phase 3 — Service Management / D10)
+
+**Done**
+- ✅ Phase 3 (Service Management / D10): this change — 4 tables + 10 routes + 1 shared component + 1 page
+  - `migrations/037_servicemgmt.sql` — incidents, war_rooms, postmortems, tasks (all tenant-scoped, FKs cascade)
+  - Pre-work: split routes_protected.go (364 → 369 LOC; +6 lines for `mountIncidentRoutes` call) + new `cmd/api-gateway/routes_incidents.go` (49 LOC) with `mountIncidentRoutes(protected, pool)` registering the 10 routes
+  - Handlers split: handlers_incidents_types.go (107) + handlers_incidents.go (259) + handlers_incidents_extras.go (147) + handlers_tasks.go (247)
+  - 10 protected routes: incidents (list/create/detail/acknowledge/resolve), war-room, postmortem, tasks (list/create/update)
+  - Shared `IncidentCard.tsx` (141 LOC) — severity badge (sev1=critical pulse, sev2=high red, sev3=medium amber, sev4=low muted), title, status pill, commander pill, duration pill, "View details" CTA
+  - Page `IncidentsPage.tsx` (330 LOC) — 3 KpiCards (open count, sev1 count, MTTR) + 4 tabs (Open/Acknowledged/Resolved/All) + severity filter + Declare incident modal (form: title/description/severity)
+  - Sidebar: "Incidents" added under new "Operations" section (155 LOC; +17 vs Phase 2; new section type added)
+  - App.tsx: `/incidents` route added
+  - Migration applied to .116; 4 tables present (incidents, war_rooms, postmortems, tasks)
+  - All 10 routes return 401; health=200; Phase 1 cicd/pipelines + Phase 2 database/slow-queries still return 401 (regression clean)
+  - 4× live verifier PASS
+  - Bundle delta: +1,765 bytes gzipped (155,200 − 153,196 baseline; well under +15KB budget)
+- All files <400 LOC; type-check / lint (no new errors in new files) / build / vet all exit 0
+
+### Session — 2026-08-24 (Phase 4 — Notebook / D11)
+
+**Done**
+- ✅ Phase 4 (Notebook / D11): this change — 2 tables + 6 routes + 1 shared component + 1 page
+  - `migrations/038_notebook.sql` — notebooks, notebook_collaborators (PRIMARY KEY on (notebook_id, user_id); FK CASCADE on delete notebook; indexes on tenant+edited and on user_id)
+  - Routes split: `cmd/api-gateway/routes_notebook.go` (39 LOC) with `mountNotebookRoutes(protected, pool)` registering the 6 routes; `routes_protected.go` (374 LOC, +5) just calls it after `mountIncidentRoutes`
+  - Handlers split into 3 files for the 400-LOC cap:
+    - `handlers_notebook_types.go` (72 LOC) — request/response shapes + role/filter whitelists
+    - `handlers_notebook.go` (298 LOC) — List / Create / Get / UpdateNotebook (4 endpoints)
+    - `handlers_notebook_collaborators.go` (159 LOC) — AddCollaborator / RemoveCollaborator (2 endpoints)
+  - 6 protected routes: notebooks list/create/get/put + collaborators add/delete
+  - Shared `NotebookEditor.tsx` (174 LOC) — plain textarea + simple markdown content (no rich editor per spec), title input, collaborators chip row (owner=cyan, editor=amber, viewer=muted), Last-edited + Save + Close action row
+  - Page `NotebookPage.tsx` (377 LOC) — 3 KpiCards (total notebooks / mine / shared with me) + 3 tabs (My Notebooks / Shared with me / All) + +New notebook modal + click-to-edit modal that fetches GET /notebooks/:id for collaborators
+  - Sidebar: "Notebooks" added under "Operations" section (alongside Incidents)
+  - App.tsx: `/notebooks` route added
+  - Migration applied to .116; 2 tables present (notebooks, notebook_collaborators)
+  - All 6 notebook routes return 401; health=200; Phase 1 cicd/pipelines + Phase 2 database/slow-queries + Phase 3 incidents still return 401 (regression clean)
+  - Bundle delta: +3,424 bytes gzipped (156,620 − 153,196 baseline; well under +12KB budget)
+- All files <400 LOC; type-check / lint (no new errors in new files) / build / vet all exit 0
