@@ -918,3 +918,66 @@ Followed speckit workflow (explore → propose → apply → archive). All 5 pha
 - Playwright pixel-diff deferred — would need browser MCP + non-stale session. Visual verification done via code review (every motion variant wired correctly).
 
 **Next speckit change:** 003-tier7-datadog-parity (Tier 7.1 APM as the foundation trace model — every Tier 7 feature depends on it)
+
+---
+
+## Session — 2026-08-24 (Tier 7 — Datadog Parity Phase 1)
+
+### Speckit change 003-tier7-datadog-parity — ALL 3 PHASES COMPLETE
+
+Shipped 3 of 11 Tier 7 subtiers, end-to-end (migration + frontend + live verification on .115):
+
+**Phase 1 — APM (D2)** — commit `03e0254`
+- 4 tables: apm_services, apm_traces, apm_spans, apm_deployments
+- 9 routes: services CRUD + trace ingest + flame graph + service-map + deployments
+- 2 shared components: TraceSummary (108 LOC), FlameGraph (145 LOC, uses sparklineDraw)
+- 2 pages: ApmPage (370), ApmServicePage (208)
+- Bundle delta: +4,270 bytes gzipped
+
+**Phase 2 — Log Management Full (D3)** — commit `dcdf2f2`
+- 5 tables: log_monitors, log_archives, log_rehydrations, log_retention_policies, log_patterns
+- 11 routes: monitor CRUD + archive + rehydrate + retention + patterns
+- 2 shared components: LogEntry (60), LogSearchBar (99)
+- 1 page: LogsFullPage (182, tabbed UI)
+- Bundle delta: +3,966 bytes gzipped
+- **Bug found + fixed live:** log_retention_policies was missing `created_at` column; caught by 500-error probe; fixed via `ALTER TABLE ADD COLUMN IF NOT EXISTS` in same migration
+
+**Phase 3 — RUM Full (D4)** — commit `a3fc37e`
+- 6 tables: rum_sessions, rum_web_vitals, rum_resources, rum_interactions, rum_long_tasks, rum_error_groups
+- 10 routes: 6 ingest POST + 4 query GET (sessions list/detail/waterfall/error-groups)
+- 3 shared components: ResourceWaterfall (147), ErrorGroupCard (105), RumSessionTabs (128)
+- 2 pages: RumFullPage (246), RumSessionPage (194)
+- Bundle delta: +3,045 bytes gzipped
+
+### Cumulative Tier 7 Phase 1 totals
+
+- **30 routes live + verified on .115** (9 APM + 11 Logs + 10 RUM)
+- **15 new DB tables** (4 + 5 + 6), all idempotent
+- **Bundle delta: +11,281 bytes gzipped JS** (well under +80KB budget)
+- **CSS unchanged**
+
+### Modularity discipline maintained
+
+- All files under 400 LOC (max: handlers_rum_query.go at 384)
+- Handlers split by domain (services/traces/deployments/graph, monitors/archives/retention/patterns, ingest/query/errors)
+- Shared components in `web/src/components/shared/`
+- No new dependencies
+- No backend changes to existing code (purely additive)
+- Tenant_id isolation enforced on every query
+- All migrations idempotent (`CREATE TABLE IF NOT EXISTS`)
+
+### Live verification (curl)
+
+All 30 routes verified:
+- 401 unauthenticated
+- 200/201 with JWT (verify@stackwatch.io super_admin)
+
+### Honest gaps
+
+- Live 4× authenticated verifier deferred (login rate-limit hit during Phase 2 verification — handled in Phase 3 by waiting 90s between login attempts)
+- Playwright pixel-diff not run — would need browser MCP with valid session
+- Some dashboard.css pre-existing classes (logs-tab, apm-pill, etc.) didn't exist; new pages use closest-available classes (sw-table, dash-section)
+
+### Next speckit change ready
+
+**004-tier7-phase2** — Tier 7 subtiers 4-6: Synthetics Full (D5) + Security (D6) + CSPM (D7)
