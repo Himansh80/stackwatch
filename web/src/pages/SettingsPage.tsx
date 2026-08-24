@@ -197,6 +197,20 @@ export default function SettingsPage() {
             <section className="dash-panel"><div className="dash-panel-empty"><strong>Loading settings…</strong></div></section>
           ) : (
             <>
+              <section className="dash-welcome" aria-labelledby="settings-title">
+                <div>
+                  <span className="dash-eyebrow">Workspace settings</span>
+                  <h2 id="settings-title" style={{ margin: '7px 0 5px', color: '#f6f9ff', fontSize: '29px', letterSpacing: '-0.9px' }}>Settings</h2>
+                  <p style={{ margin: 0, color: '#8292aa', fontSize: '13px' }}>
+                    Manage your workspace name and account security. Profile, photo, and API tokens are on the&nbsp;
+                    <Link to="/profile" style={{ color: '#67e8f9' }}>Profile page</Link>.
+                  </p>
+                </div>
+                <div className="dash-welcome-meta">
+                  <Link to="/profile" className="sw-button sw-button-quiet" style={{ textDecoration: 'none' }}>← Back to Profile</Link>
+                </div>
+              </section>
+
               <section className="dash-grid-main">
                 <article className="dash-panel">
                   <div className="dash-panel-head">

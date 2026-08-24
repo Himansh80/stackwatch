@@ -1,0 +1,13 @@
+-- Adds avatar_url to users for the Profile page photo upload feature.
+--
+-- The frontend (web/src/pages/ProfilePage.tsx) lets users upload
+-- a profile photo; the browser resizes it to <=256px JPEG and sends
+-- it as a data URL (base64). We store it inline in users.avatar_url
+-- instead of in a separate object store so there's no extra
+-- infrastructure to run for a feature this small.
+--
+-- The 500KB-cap on avatar_url (see internal/handler/auth_recovery.go)
+-- means an average resized JPEG (256x256, quality 0.7) is ~10-25KB,
+-- so a 500KB ceiling leaves headroom for slightly larger images
+-- while still keeping the JSON body bounded.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;

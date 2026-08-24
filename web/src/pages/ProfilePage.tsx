@@ -8,6 +8,7 @@ import TimeWidget from '../components/TimeWidget';
 type Profile = {
   email: string;
   full_name: string;
+  avatar_url: string;
   role: string;
   status: string;
   user_id: string;
@@ -22,6 +23,7 @@ type Profile = {
 const emptyProfile: Profile = {
   email: '',
   full_name: '',
+  avatar_url: '',
   role: '',
   status: '',
   user_id: '',
@@ -94,6 +96,48 @@ async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+/**
+ * Read a File from the browser File API, render it into a
+ * hidden canvas, resize it to fit within maxSide x maxSide
+ * preserving aspect ratio, and re-export as JPEG.
+ *
+ * Why the resize: storing full-resolution selfies as data
+ * URLs would blow past the 500KB backend cap quickly. A
+ * 256x256 JPEG at quality 0.7 is typically 10-25KB - small
+ * enough to send in a single PATCH, sharp enough for an
+ * avatar in any UI context.
+ */
+async function fileToResizedDataUrl(file: File, maxSide = 256, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const ratio = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('canvas 2d unavailable');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        URL.revokeObjectURL(url);
+        resolve(dataUrl);
+      } catch (err) {
+        URL.revokeObjectURL(url);
+        reject(err);
+      }
+    };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+}
+
 export default function ProfilePage() {
   const nav = useNavigate();
   const [profile, setProfile] = useState<Profile>(emptyProfile);
@@ -106,6 +150,19 @@ export default function ProfilePage() {
   const [nameSaving, setNameSaving] = useState(false);
   const [nameMessage, setNameMessage] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
+
+  // Avatar upload state
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  // Inline panels (so "API tokens" + "2FA" expand on the page
+  // instead of bouncing to /settings where they don't exist yet).
+  const [showTokens, setShowTokens] = useState(false);
+  const [apiKeys, setApiKeys] = useState<Array<{ id: string; name: string; prefix: string; created_at?: string; revoked_at?: string | null }>>([]);
+  const [tokensLoading, setTokensLoading] = useState(false);
+  const [creatingToken, setCreatingToken] = useState(false);
+  const [newTokenName, setNewTokenName] = useState('');
+  const [revealedToken, setRevealedToken] = useState<string | null>(null);
 
   // Cmd+K palette open state — same pattern as Dashboard.
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -124,6 +181,7 @@ export default function ProfilePage() {
         setProfile({
           email: data?.user?.email ?? '',
           full_name: data?.user?.full_name ?? '',
+          avatar_url: data?.user?.avatar_url ?? '',
           role: data?.user?.role ?? '',
           status: data?.user?.status ?? '',
           user_id: data?.user?.id ?? '',
@@ -200,6 +258,116 @@ export default function ProfilePage() {
     }
   }
 
+  async function onPickAvatar(event: FormEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = ''; // reset so picking the same file twice fires onChange again
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file (PNG, JPG, GIF, WebP).');
+      return;
+    }
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 256, 0.7);
+      await api('PATCH', '/api/v1/auth/profile', { avatar_url: dataUrl });
+      setProfile((p) => ({ ...p, avatar_url: dataUrl }));
+    } catch (cause) {
+      if (cause instanceof ApiError) {
+        setAvatarError(cause.friendlyMessage);
+      } else {
+        setAvatarError(cause instanceof Error ? cause.message : 'Could not upload your photo.');
+      }
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
+  async function onRemoveAvatar() {
+    if (!profile.avatar_url) return;
+    // Backend treats empty string as "no change" so we use a sentinel
+    // data URL to clear the field - the avatar_url column is plain
+    // text and accepts an empty string as a valid value.
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      await api('PATCH', '/api/v1/auth/profile', { avatar_url: '' });
+      setProfile((p) => ({ ...p, avatar_url: '' }));
+    } catch (cause) {
+      if (cause instanceof ApiError) {
+        setAvatarError(cause.friendlyMessage);
+      } else {
+        setAvatarError(cause instanceof Error ? cause.message : 'Could not remove your photo.');
+      }
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
+  async function loadApiKeys() {
+    setTokensLoading(true);
+    try {
+      const data = await api<{ api_keys?: Array<{ id: string; name: string; prefix: string; created_at?: string; revoked_at?: string | null }> }>('GET', '/api/v1/api-keys');
+      setApiKeys(Array.isArray(data?.api_keys) ? data.api_keys : []);
+    } catch (cause) {
+      if (cause instanceof ApiError) {
+        setAvatarError(cause.friendlyMessage);
+      }
+      setApiKeys([]);
+    } finally {
+      setTokensLoading(false);
+    }
+  }
+
+  async function onCreateToken() {
+    const name = newTokenName.trim() || 'Unnamed token';
+    setCreatingToken(true);
+    setAvatarError(null);
+    try {
+      const res = await api<{ token?: string; api_key?: { id: string; name: string; prefix: string } }>(
+        'POST', '/api/v1/api-keys', { name },
+      );
+      // The token is only returned on creation - copy to clipboard
+      // and reveal it inline so the user can paste it into their tool.
+      if (res?.token) {
+        setRevealedToken(res.token);
+        try { await navigator.clipboard?.writeText(res.token); } catch { /* clipboard optional */ }
+      }
+      setNewTokenName('');
+      await loadApiKeys();
+    } catch (cause) {
+      if (cause instanceof ApiError) {
+        setAvatarError(cause.friendlyMessage);
+      } else {
+        setAvatarError(cause instanceof Error ? cause.message : 'Could not create token.');
+      }
+    } finally {
+      setCreatingToken(false);
+    }
+  }
+
+  async function onRevokeToken(id: string) {
+    setAvatarError(null);
+    try {
+      await api('POST', `/api/v1/api-keys/${id}/revoke`);
+      await loadApiKeys();
+    } catch (cause) {
+      if (cause instanceof ApiError) {
+        setAvatarError(cause.friendlyMessage);
+      } else {
+        setAvatarError(cause instanceof Error ? cause.message : 'Could not revoke token.');
+      }
+    }
+  }
+
+  function onToggleTokens() {
+    const next = !showTokens;
+    setShowTokens(next);
+    if (next && apiKeys.length === 0 && !tokensLoading) {
+      void loadApiKeys();
+    }
+  }
+
   async function onCopy(value: string, field: string) {
     const ok = await copyToClipboard(value);
     if (ok) {
@@ -252,7 +420,7 @@ export default function ProfilePage() {
           </div>
           <div className="dash-topbar-center"><button className="dash-topbar-search" onClick={() => setPaletteOpen(true)} title="Search & navigate (Cmd+K)" aria-label="Open command palette"><span className="dash-topbar-search-icon" aria-hidden="true">⌕</span><span className="dash-topbar-search-placeholder">Search & navigate…</span><kbd className="dash-topbar-search-kbd">⌘</kbd><kbd className="dash-topbar-search-kbd">K</kbd></button></div><div className="dash-top-actions"><TimeWidget />
             <button className="dash-icon-button" onClick={() => window.location.reload()} aria-label="Refresh page" title="Refresh page">↻</button>
-            <ProfileMenu firstName={(profile.full_name || '').split(' ')[0] || 'there'} fullName={profile.full_name} tenantName={profile.tenant_name} initials={initials} />
+            <ProfileMenu firstName={(profile.full_name || '').split(' ')[0] || 'there'} fullName={profile.full_name} tenantName={profile.tenant_name} initials={initials} avatarUrl={profile.avatar_url} />
           </div>
         </header>
         <div className="dash-content">
@@ -274,15 +442,41 @@ export default function ProfilePage() {
           ) : (
             <>
               {/* HERO CARD — avatar + name + status pills + copy-id action.
-                  Replaces the old "4-card grid" which had the wrong
-                  metaphor (these are identity details, not workloads). */}
+                  Avatar is now a real upload control: click the camera
+                  icon or the avatar itself to pick a file. Stored as
+                  a 256x256 JPEG data URL on the backend. */}
               <section className="prof-hero" aria-labelledby="prof-hero-name">
-                <div
-                  className="prof-hero-avatar"
-                  style={{ background: avatarColor(profile.email || profile.user_id) }}
-                  aria-hidden="true"
-                >
-                  {initials}
+                <div className="prof-hero-avatar-wrap">
+                  <label
+                    className={`prof-hero-avatar ${profile.avatar_url ? 'has-image' : ''}`}
+                    style={profile.avatar_url ? undefined : { background: avatarColor(profile.email || profile.user_id) }}
+                    aria-hidden="true"
+                  >
+                    {profile.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                    <span className="prof-hero-avatar-overlay" aria-hidden="true">📷</span>
+                    {avatarUploading && <span className="prof-hero-avatar-spinner" aria-hidden="true" />}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="prof-hero-avatar-input"
+                    onChange={(e) => void onPickAvatar(e)}
+                    disabled={avatarUploading}
+                    aria-label="Upload profile photo"
+                  />
+                  {profile.avatar_url && !avatarUploading && (
+                    <button
+                      type="button"
+                      className="prof-hero-avatar-remove"
+                      onClick={() => void onRemoveAvatar()}
+                      aria-label="Remove profile photo"
+                      title="Remove photo"
+                    >×</button>
+                  )}
                 </div>
                 <div className="prof-hero-body">
                   <span className="dash-eyebrow">Account</span>
@@ -296,9 +490,9 @@ export default function ProfilePage() {
                     <span className="prof-hero-plan">{profile.tenant_plan || 'free'} plan</span>
                   </div>
                   <div className="prof-hero-email">{profile.email || 'no email'}</div>
+                  {avatarError && <div className="prof-hero-avatar-error">{avatarError}</div>}
                 </div>
                 <div className="prof-hero-actions">
-                  <a className="sw-button" href="/settings">Account settings</a>
                   <a className="sw-button sw-button-quiet" href="/billing">Manage plan</a>
                 </div>
               </section>
@@ -409,13 +603,17 @@ export default function ProfilePage() {
                     <SecurityRow
                       label="Password"
                       value="Last changed at signup"
-                      action={<a className="sw-button sw-button-quiet" href="/settings">Change password</a>}
+                      action={<Link className="sw-button sw-button-quiet" to="/settings">Change password</Link>}
                     />
                     <SecurityRow
                       label="Two-factor authentication"
                       value="Not enabled"
                       badge={<span className="prof-badge-warn">Recommended</span>}
-                      action={<a className="sw-button sw-button-quiet" href="/settings">Configure</a>}
+                      action={
+                        <button type="button" className="sw-button sw-button-quiet" disabled title="Coming soon — 2FA rolls out in a future release">
+                          Configure
+                        </button>
+                      }
                     />
                     <SecurityRow
                       label="Active sessions"
@@ -424,10 +622,84 @@ export default function ProfilePage() {
                     />
                     <SecurityRow
                       label="API tokens"
-                      value="Manage in Settings → API keys"
-                      action={<a className="sw-button sw-button-quiet" href="/settings">Manage</a>}
+                      value={showTokens ? `${apiKeys.length} token${apiKeys.length === 1 ? '' : 's'}` : 'Manage personal access tokens'}
+                      action={
+                        <button type="button" className="sw-button sw-button-quiet" onClick={onToggleTokens}>
+                          {showTokens ? 'Hide' : 'Manage'}
+                        </button>
+                      }
                     />
                   </div>
+                  {showTokens && (
+                    <div className="prof-tokens-panel">
+                      <div className="prof-tokens-header">
+                        <p className="prof-tokens-help">
+                          Personal access tokens let CLI tools talk to the API without sharing your password.
+                          Each token is shown <strong>once</strong> when created - copy it then.
+                        </p>
+                      </div>
+                      {revealedToken && (
+                        <div className="prof-token-revealed">
+                          <span className="dash-eyebrow">New token (copy now)</span>
+                          <code className="prof-token-revealed-value">{revealedToken}</code>
+                          <div className="prof-token-revealed-actions">
+                            <button
+                              type="button"
+                              className="sw-button sw-button-quiet"
+                              onClick={async () => { try { await navigator.clipboard?.writeText(revealedToken); } catch { /* ignore */ } }}
+                            >Copy</button>
+                            <button type="button" className="sw-button" onClick={() => setRevealedToken(null)}>I've saved it</button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="prof-tokens-create">
+                        <input
+                          type="text"
+                          className="sw-input"
+                          placeholder="Token name (e.g. laptop-cli)"
+                          value={newTokenName}
+                          onChange={(e) => setNewTokenName(e.target.value)}
+                          disabled={creatingToken}
+                        />
+                        <button
+                          type="button"
+                          className="sw-button sw-button-primary"
+                          onClick={() => void onCreateToken()}
+                          disabled={creatingToken}
+                        >
+                          {creatingToken ? 'Creating…' : 'Create token'}
+                        </button>
+                      </div>
+                      {tokensLoading ? (
+                        <div className="prof-tokens-empty">Loading tokens…</div>
+                      ) : apiKeys.length === 0 ? (
+                        <div className="prof-tokens-empty">No tokens yet. Create one above.</div>
+                      ) : (
+                        <ul className="prof-tokens-list">
+                          {apiKeys.map((k) => (
+                            <li key={k.id} className={`prof-token-row ${k.revoked_at ? 'is-revoked' : ''}`}>
+                              <div className="prof-token-row-text">
+                                <strong>{k.name || 'Unnamed'}</strong>
+                                <code>{k.prefix}…</code>
+                                <small>Created {k.created_at ? new Date(k.created_at).toLocaleDateString() : '—'}</small>
+                              </div>
+                              <div className="prof-token-row-actions">
+                                {k.revoked_at ? (
+                                  <span className="prof-badge-bad">Revoked</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="sw-button sw-button-quiet sw-button-danger"
+                                    onClick={() => void onRevokeToken(k.id)}
+                                  >Revoke</button>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </article>
               </section>
 

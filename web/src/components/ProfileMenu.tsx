@@ -21,9 +21,10 @@ type MenuProps = {
   fullName: string;
   tenantName: string;
   initials: string;
+  avatarUrl?: string;
 };
 
-export default function ProfileMenu({ firstName, fullName, tenantName, initials }: MenuProps) {
+export default function ProfileMenu({ firstName, fullName, tenantName, initials, avatarUrl }: MenuProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -89,13 +90,17 @@ export default function ProfileMenu({ firstName, fullName, tenantName, initials 
         aria-label="Open profile menu"
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="dash-avatar">{initials}</span>
+        <span className="dash-avatar">
+          {avatarUrl ? <img src={avatarUrl} alt="" /> : initials}
+        </span>
         <span className={`dash-menu-caret ${open ? 'open' : ''}`} aria-hidden>▾</span>
       </button>
       {open && (
         <div className="dash-menu" role="menu" aria-label="Profile">
           <div className="dash-menu-header">
-            <span className="dash-avatar dash-avatar-lg">{initials}</span>
+            <span className="dash-avatar dash-avatar-lg">
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : initials}
+            </span>
             <div>
               <strong>{fullName || '—'}</strong>
               <small>{tenantName || 'Workspace'}</small>

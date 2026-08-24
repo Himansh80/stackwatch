@@ -195,6 +195,154 @@ pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radi
    reload button + avatar layout) and avoids the grid 1fr math
    (which mis-counted because of gap + padding interactions). */
 .dash-main { min-width:0; flex:1; }.dash-topbar { min-height:82px; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:18px 38px; border-bottom:1px solid #18263b; background:rgba(8,13,24,.9); }.dash-breadcrumb,.dash-eyebrow { color:#6e83a1; font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; }.dash-topbar h1 { margin:6px 0 0; color:#f3f7fd; font-size:23px; letter-spacing:-.5px; }.dash-top-actions { display:flex; align-items:center; gap:18px; }.dash-icon-button { width:36px; height:36px; margin:0; padding:0; border:1px solid #263b57; border-radius:9px; background:#101b2d; color:#b4c6dd; font-size:19px; cursor:pointer; }.dash-icon-button:hover { color:#67e8f9; border-color:#40749b; }.dash-user { display:flex; align-items:center; gap:9px; }.dash-avatar { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; color:#06121e; font-weight:800; background:linear-gradient(135deg,#67e8f9,#818cf8); }.dash-user strong,.dash-user small { display:block; }.dash-user strong { font-size:12px; }.dash-user small { margin-top:2px; color:#6d809d; font-size:10px; }
+/* ------- Profile hero avatar (clickable for upload) -------
+   The avatar was a static div with initials; now it's a
+   label-wrapped button-styled element that opens the file
+   picker when clicked. The input is visually hidden but
+   keyboard-accessible. The hover overlay + remove (×)
+   button appear on hover; the spinner shows during upload. */
+.prof-hero-avatar-wrap {
+  position:relative;
+  width:96px; height:96px;
+  flex-shrink:0;
+}
+.prof-hero-avatar {
+  display:grid; place-items:center;
+  width:96px; height:96px;
+  border-radius:50%;
+  color:#06121e;
+  font-weight:800; font-size:38px;
+  letter-spacing:-.5px;
+  cursor:pointer;
+  overflow:hidden;
+  position:relative;
+  border:1px solid rgba(255,255,255,.08);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.prof-hero-avatar:hover { transform:scale(1.03); box-shadow:0 0 0 4px rgba(34,211,238,.15); }
+.prof-hero-avatar.has-image { background:#0a0f1c; }
+.prof-hero-avatar img { width:100%; height:100%; object-fit:cover; }
+.prof-hero-avatar-overlay {
+  position:absolute; inset:auto 0 0 0;
+  display:flex; align-items:center; justify-content:center;
+  height:32%;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.65));
+  font-size:18px;
+  opacity:0;
+  transition:opacity .15s ease;
+  pointer-events:none;
+}
+.prof-hero-avatar:hover .prof-hero-avatar-overlay,
+.prof-hero-avatar:focus-within .prof-hero-avatar-overlay { opacity:1; }
+.prof-hero-avatar-spinner {
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  background:rgba(10,15,28,.55);
+  font-size:11px; font-weight:800;
+  color:#67e8f9; letter-spacing:1.4px;
+  pointer-events:none;
+  animation:sw-avatar-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sw-avatar-pulse { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+.prof-hero-avatar-input {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  opacity:0;
+  cursor:pointer;
+  z-index:2;
+}
+.prof-hero-avatar-remove {
+  position:absolute;
+  top:-6px; right:-6px;
+  width:26px; height:26px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  background:#1c2235;
+  color:#f3f7fd;
+  font-size:18px; line-height:1;
+  cursor:pointer;
+  padding:0;
+  display:grid; place-items:center;
+  z-index:3;
+}
+.prof-hero-avatar-remove:hover { background:#ef4444; border-color:#ef4444; }
+.prof-hero-avatar-error {
+  margin-top:8px;
+  color:#fca5a5;
+  font-size:11px;
+}
+.dash-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+/* ------- Inline API tokens panel -------
+   When the user clicks "Manage" on the API tokens row, this
+   panel expands below the security list. It lists existing
+   tokens, lets the user create a new one (and reveals it
+   once), and shows a revoke button per active token. */
+.prof-tokens-panel {
+  margin-top:18px;
+  padding:18px;
+  border:1px solid #1e3048;
+  border-radius:12px;
+  background:linear-gradient(150deg,#0e1726,#0a101b);
+}
+.prof-tokens-header { margin-bottom:14px; }
+.prof-tokens-help { margin:0; color:#8294ae; font-size:12px; line-height:1.5; }
+.prof-tokens-help strong { color:#fcd34d; }
+.prof-tokens-create {
+  display:flex; gap:8px; margin-bottom:14px;
+}
+.prof-tokens-create .sw-input { flex:1; }
+.prof-tokens-empty {
+  padding:22px; text-align:center;
+  color:#647994; font-size:12px;
+  border:1px dashed #20314a; border-radius:8px;
+}
+.prof-tokens-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.prof-token-row {
+  display:flex; align-items:center; gap:14px;
+  padding:12px 14px;
+  border:1px solid #20314a; border-radius:8px;
+  background:#0e1726;
+}
+.prof-token-row.is-revoked { opacity:.55; }
+.prof-token-row-text { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.prof-token-row-text strong { color:#f3f7fd; font-size:13px; }
+.prof-token-row-text code { color:#67e8f9; font-size:11px; font-family:JetBrains Mono,monospace; }
+.prof-token-row-text small { color:#5b6c87; font-size:10px; text-transform:uppercase; letter-spacing:.6px; }
+.prof-token-row-actions { flex-shrink:0; }
+.prof-token-revealed {
+  margin-bottom:14px;
+  padding:14px;
+  border:1px solid rgba(245,158,11,.4);
+  border-radius:8px;
+  background:rgba(245,158,11,.06);
+  display:flex; flex-direction:column; gap:8px;
+}
+.prof-token-revealed-value {
+  display:block;
+  padding:8px 10px;
+  background:#0a101b;
+  border:1px solid #1e3048;
+  border-radius:6px;
+  color:#fcd34d;
+  font-family:JetBrains Mono,monospace;
+  font-size:12px;
+  word-break:break-all;
+}
+.prof-token-revealed-actions { display:flex; gap:8px; justify-content:flex-end; }
+.sw-button-danger { color:#fca5a5; border-color:rgba(239,68,68,.35); }
+.sw-button-danger:hover { background:rgba(239,68,68,.12); border-color:#ef4444; color:#fff; }
+.sw-input {
+  padding:7px 10px;
+  background:#0a101b;
+  border:1px solid #20314a;
+  border-radius:6px;
+  color:#f3f7fd;
+  font-size:13px;
+  font-family:inherit;
+}
+.sw-input:focus { outline:none; border-color:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.18); }
+
 .dash-content { max-width:1600px; margin:0 auto; padding:32px 38px 60px; }.dash-welcome { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:26px; }.dash-welcome h2 { margin:7px 0 5px; color:#f6f9ff; font-size:29px; letter-spacing:-.9px; }.dash-welcome p { margin:0; color:#8292aa; font-size:13px; }.dash-welcome-meta { min-width:145px; color:#d7e5f4; font-size:11px; font-weight:700; text-align:right; }.dash-welcome-meta div { margin-top:7px; color:#657a99; font-weight:500; }
 .dash-metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }.dash-metric { min-height:139px; padding:18px; border:1px solid #20314a; border-radius:12px; background:linear-gradient(150deg,#111b2d,#0e1726); box-shadow:0 12px 28px rgba(0,0,0,.1); }.dash-metric-top { display:flex; align-items:center; gap:9px; }.dash-metric-icon { width:29px; height:29px; display:grid; place-items:center; border-radius:8px; color:#67e8f9; background:rgba(34,211,238,.1); font-size:15px; }.dash-metric-label { color:#8294ae; font-size:10px; font-weight:800; letter-spacing:1.1px; text-transform:uppercase; }.dash-metric strong { display:block; margin:14px 0 5px; color:#f3f7fd; font-size:29px; letter-spacing:-.8px; text-transform:capitalize; }.dash-metric-hint { color:#647994; font-size:11px; }.dash-metric-indigo .dash-metric-icon { color:#a5b4fc; background:rgba(129,140,248,.1); }.dash-metric-green .dash-metric-icon { color:#6ee7b7; background:rgba(52,211,153,.1); }.dash-metric-amber .dash-metric-icon { color:#fcd34d; background:rgba(245,158,11,.1); }
 .dash-grid-main { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(340px,1fr); gap:16px; margin-top:16px; }.dash-panel { min-width:0; overflow:hidden; border:1px solid #1e3048; border-radius:13px; background:linear-gradient(150deg,#101a2b,#0c1523); box-shadow:0 14px 34px rgba(0,0,0,.12); }.dash-panel + .dash-panel { margin-top:16px; }.dash-grid-main .dash-panel { margin-top:0; }.dash-panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:19px 20px; border-bottom:1px solid #1a2a40; }.dash-panel-head h3 { margin:5px 0 0; color:#eaf2fc; font-size:16px; letter-spacing:-.2px; }.dash-panel-context { color:#68809e; font-size:11px; }.dash-chart-wrap { padding:17px 20px 13px; }.dash-chart-wrap svg { width:100%; height:240px; overflow:visible; }.dash-grid-line { stroke:#1b2c43; stroke-width:1; stroke-dasharray:3 5; }.dash-chart-axis { display:flex; justify-content:space-between; color:#5e7391; font-size:10px; }.dash-chart-axis span:nth-child(2) { color:#7d91ad; }.dash-chart-empty { min-height:290px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#7389a7; }.dash-chart-empty span { color:#38bdf8; font-size:38px; }.dash-chart-empty strong { margin-top:9px; color:#dce8f6; font-size:14px; }.dash-chart-empty small { margin-top:4px; color:#617693; }
