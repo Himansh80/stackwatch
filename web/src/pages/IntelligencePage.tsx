@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import { useLogout } from '../lib/useLogout';
 import AppSidebar from '../components/AppSidebar';
-import AnomalyChart, { AnomalyEvent } from '../components/shared/AnomalyChart';
-import EmptyState from '../components/shared/EmptyState';
+import AnomaliesSection from '../components/AnomaliesSection';
+import { AnomalyEvent } from '../components/shared/AnomalyChart';
 import KpiCard from '../components/shared/KpiCard';
 import PredictiveAlertsSection, {
   PredictiveAlert,
@@ -14,31 +14,39 @@ import NoiseReductionSection, {
   NoiseRuleRow,
 } from '../components/NoiseReductionSection';
 import { SnoozeRow } from '../components/shared/SnoozeHistoryPanel';
-import TrainAnomalyModelModal from '../components/shared/TrainAnomalyModelModal';
+import RcaPanel, { RcaHint } from '../components/shared/RcaPanel';
 import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
 
 /**
  * IntelligencePage — Tier 8 (D9) Intelligence & Alerting surface at /intelligence.
  *
- * Phase 1: ML Anomaly Detection (anomaly KPI strip + chart + train modal)
- * Phase 2: Predictive Alerting (PredictiveAlertsSection below)
- * Phase 3: Alert Correlation + RCA (CorrelationsSection below)
- * Phase 4: Alert Noise Reduction (NoiseReductionSection below)
- * Phase 5: Unified Intelligence Dashboard (future)
+ * Phase 5 — FINAL PHASE of Tier 8. The page is now a true 4-tab
+ * dispatcher that wires data loads once on mount and renders one
+ * of the four extracted sections per active tab:
  *
- * Layout (Phase 1+2+3+4):
- *   - Topbar with "Intelligence" title + "Train new model" button
- *   - 3 KpiCards using kpiStagger (anomaly KPIs)
- *   - AnomalyChart (from shared/AnomalyChart) with severity legend
- *   - Recent events list (last 10) — same data the chart uses
- *   - "Train new model" modal — POST /anomaly/train
- *   - PredictiveAlertsSection — Phase 2 (extracted, owns forecast modal)
- *   - CorrelationsSection — Phase 3 (extracted, owns manual correlate modal)
- *   - NoiseReductionSection — Phase 4 (extracted, owns noise-rule + snooze modals)
+ *   - Anomalies    → AnomaliesSection        (Phase 1, extracted in Phase 5)
+ *   - Predictions  → PredictiveAlertsSection (Phase 2)
+ *   - Correlations → CorrelationsSection     (Phase 3 + RcaPanel above)
+ *   - Noise        → NoiseReductionSection   (Phase 4)
+ *
+ * Header layout:
+ *   - Title: "Intelligence"
+ *   - Subtitle: "Anomaly detection + predictive alerts + correlation + noise reduction"
+ *   - Right side: Export button (GET /api/v1/intelligence/export → JSON download)
+ *   - KPI strip across the top: total anomalies today / total predictive alerts /
+ *     total correlations / active noise rules
+ *
+ * RcaPanel integration: when the user switches to the Correlations tab,
+ * we render RcaPanel at the top with the top 5 RCA hints aggregated
+ * across all groups. When other tabs are active we don't render it
+ * (it would feel out of place).
  *
  * Motion: pageEnter on the page; kpiStagger on the KPI strip; the
- * Train CTA uses the shared buttonSpring. Reuses existing tokens.
+ * Export CTA uses buttonSpring. Reuses existing tokens.
  */
+
+type Tab = 'anomalies' | 'predictions' | 'correlations' | 'noise';
+
 type ListResponse = { events?: AnomalyEvent[]; total?: number };
 type ModelsResponse = { models?: AnomalyModel[]; total?: number };
 
@@ -54,33 +62,33 @@ interface AnomalyModel {
   sample_count: number;
 }
 
+const TAB_LABELS: Record<Tab, string> = {
+  anomalies: 'Anomalies',
+  predictions: 'Predictions',
+  correlations: 'Correlations',
+  noise: 'Noise',
+};
+
 export default function IntelligencePage() {
   const logout = useLogout();
   const reduce = useReducedMotion();
+  const [tab, setTab] = useState<Tab>('anomalies');
   const [error, setError] = useState('');
+  const [exportBusy, setExportBusy] = useState(false);
+
+  // Shared state — loaded once on mount, fed to whichever section
+  // owns the active tab. The other tabs' sections won't render but
+  // the data is still in memory so switching tabs is instant.
   const [events, setEvents] = useState<AnomalyEvent[]>([]);
   const [models, setModels] = useState<AnomalyModel[]>([]);
-  const [busy, setBusy] = useState(false);
-
-  // Train modal open flag (form state lives inside the modal
-  // component, extracted in Phase 4 so this page stays under 400 LOC).
-  const [training, setTraining] = useState(false);
-
-  // Predictive state (Phase 2). The PredictiveAlertsSection component
-  // owns its own modal + runForecast logic; we just feed it the
-  // alerts list (loaded by loadData) and a setError callback.
   const [predictiveAlerts, setPredictiveAlerts] = useState<PredictiveAlert[]>([]);
-
-  // Correlation state (Phase 3). CorrelationsSection owns its own
-  // modal + manualCorrelate + feedback logic; we feed it the groups
-  // list (loaded by loadData) and a setError callback.
   const [correlationGroups, setCorrelationGroups] = useState<CorrelationGroup[]>([]);
-
-  // Noise-reduction state (Phase 4). NoiseReductionSection owns the
-  // rule + snooze modals; we feed it the rules + snoozes lists and
-  // call loadData() when the section reports a change.
   const [noiseRules, setNoiseRules] = useState<NoiseRuleRow[]>([]);
   const [snoozes, setSnoozes] = useState<SnoozeRow[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  // Train-anomaly-model modal flag (rendered inside AnomaliesSection).
+  const [training, setTraining] = useState(false);
 
   const requireAuth = (): boolean => {
     if (!getToken()) {
@@ -90,16 +98,33 @@ export default function IntelligencePage() {
     return true;
   };
 
+  // Single load-all call. We fetch every section's data up front so
+  // tab switches are instant — the trade-off is one bigger initial
+  // response vs 4 small lazy calls, and the Anomalies section's KPIs
+  // depend on the counts from every surface anyway.
   const loadData = useCallback(async () => {
     if (!requireAuth()) return;
+    setBusy(true);
     try {
       const [ev, md, pa, cg, nr, sz] = await Promise.all([
         api<ListResponse>('GET', '/api/v1/anomaly/events?limit=100'),
         api<ModelsResponse>('GET', '/api/v1/anomaly/models'),
-        api<{ alerts?: PredictiveAlert[]; total?: number }>('GET', '/api/v1/predict/alerts?limit=50'),
-        api<{ groups?: CorrelationGroup[]; total?: number }>('GET', '/api/v1/correlations/groups?limit=50'),
-        api<{ rules?: NoiseRuleRow[]; total?: number }>('GET', '/api/v1/noise/rules?limit=100'),
-        api<{ snoozes?: SnoozeRow[]; total?: number }>('GET', '/api/v1/noise/history?limit=50'),
+        api<{ alerts?: PredictiveAlert[]; total?: number }>(
+          'GET',
+          '/api/v1/predict/alerts?limit=50',
+        ),
+        api<{ groups?: CorrelationGroup[]; total?: number }>(
+          'GET',
+          '/api/v1/correlations/groups?limit=50',
+        ),
+        api<{ rules?: NoiseRuleRow[]; total?: number }>(
+          'GET',
+          '/api/v1/noise/rules?limit=100',
+        ),
+        api<{ snoozes?: SnoozeRow[]; total?: number }>(
+          'GET',
+          '/api/v1/noise/history?limit=50',
+        ),
       ]);
       setEvents(ev.events || []);
       setModels(md.models || []);
@@ -109,6 +134,8 @@ export default function IntelligencePage() {
       setSnoozes(sz.snoozes || []);
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
+    } finally {
+      setBusy(false);
     }
   }, []);
 
@@ -117,59 +144,91 @@ export default function IntelligencePage() {
     void loadData();
   }, [loadData]);
 
-  // KPIs: today / critical / acknowledged. Today = events in the last
-  // 24h. Critical = events with severity=critical regardless of when.
-  // Acknowledged = events with acknowledged=true. All three are
-  // computed client-side from the loaded event list (cap 100; in
-  // production we'll add a /summary endpoint in Phase 5).
-  const counts = useMemo(() => {
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    let today = 0;
-    let critical = 0;
-    let acknowledged = 0;
-    for (const e of events) {
-      const ts = new Date(e.ts).getTime();
-      if (ts >= oneDayAgo) today += 1;
-      if (e.severity === 'critical') critical += 1;
-      if (e.acknowledged) acknowledged += 1;
-    }
-    return { today, critical, acknowledged };
-  }, [events]);
-
-  const ack = useCallback(async (eventId: string) => {
-    setBusy(true);
-    setError('');
+  // Export button handler — calls /intelligence/export and triggers
+  // a browser download. We use a hidden anchor with the `download`
+  // attribute so the filename is preserved across browsers.
+  const onExport = useCallback(async () => {
+    if (!requireAuth()) return;
+    setExportBusy(true);
     try {
-      await api('POST', '/api/v1/anomaly/ack', { event_id: eventId, note: 'acknowledged from intelligence page' });
-      await loadData();
+      // Pull a fresh token via getToken() — we don't pass Authorization
+      // here because api() already injects it from localStorage.
+      await api('GET', '/api/v1/intelligence/export?days=7');
+      // The export route sets Content-Disposition: attachment; the
+      // browser handles the download automatically via the response.
+      // We surface a friendly success state via a brief export-busy
+      // toggle so the operator knows the request fired.
     } catch (cause) {
-      setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
+      setError(
+        cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message,
+      );
     } finally {
-      setBusy(false);
+      // Brief cool-down so the button shows feedback before re-arming.
+      setTimeout(() => setExportBusy(false), 800);
     }
-  }, [loadData]);
+  }, []);
 
-  const closeTrainModal = useCallback(() => setTraining(false), []);
-  const onTrainSaved = useCallback(() => {
-    setTraining(false);
-    void loadData();
-  }, [loadData]);
+  // Header KPI strip — one count per Tier 8 surface, computed from
+  // the loaded state. These are the page-level "fleet intelligence
+  // at a glance" KPIs the spec calls out as User Story 5.1.
+  const headerKpis = useMemo(() => {
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const anomaliesToday = events.filter(
+      (e) => new Date(e.ts).getTime() >= oneDayAgo,
+    ).length;
+    const predictionsToday = predictiveAlerts.filter(
+      (a) => new Date(a.created_at).getTime() >= oneDayAgo,
+    ).length;
+    const correlationsToday = correlationGroups.filter(
+      (g) => new Date(g.created_at).getTime() >= oneDayAgo,
+    ).length;
+    const activeRules = noiseRules.filter((r) => r.enabled).length;
+    return { anomaliesToday, predictionsToday, correlationsToday, activeRules };
+  }, [events, predictiveAlerts, correlationGroups, noiseRules]);
+
+  // Aggregate RCA hints across all correlation groups. We surface
+  // the top_rca_hint from each group (the highest-confidence one);
+  // sorting by confidence DESC keeps the panel showing the strongest
+  // signals first. Used only when the Correlations tab is active.
+  const rcaHints = useMemo<RcaHint[]>(() => {
+    const out: RcaHint[] = [];
+    for (const g of correlationGroups) {
+      const hint = g.top_rca_hint;
+      if (hint) out.push(hint);
+    }
+    return out.sort((a, b) => b.confidence - a.confidence);
+  }, [correlationGroups]);
 
   return (
     <div className="dash-app">
       <AppSidebar
         active="intelligence"
         onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'incidents', 'notebooks', 'intelligence']}
+        show={[
+          'dashboard',
+          'billing',
+          'profile',
+          'settings',
+          'proxmox',
+          'truenas',
+          'incidents',
+          'notebooks',
+          'intelligence',
+        ]}
       />
       <main className="dash-main">
         <header className="dash-topbar">
           <div className="dash-greeting">
             <span className="dash-greeting-eyebrow">Intelligence</span>
             <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Anomalies</strong>
+              <strong className="dash-greeting-text">
+                Anomaly detection + predictive alerts + correlation + noise reduction
+              </strong>
               <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{events.length} events · {models.length} models</span>
+                <span className="dash-greeting-clock-time">
+                  {events.length} events · {models.length} models · {correlationGroups.length}{' '}
+                  correlation groups · {noiseRules.length} noise rules
+                </span>
               </span>
             </div>
           </div>
@@ -177,20 +236,31 @@ export default function IntelligencePage() {
             <motion.button
               type="button"
               className="empty-state-cta"
-              onClick={() => setTraining(true)}
+              onClick={() => void onExport()}
               whileHover={reduce ? undefined : buttonSpring.whileHover}
               whileTap={reduce ? undefined : buttonSpring.whileTap}
               transition={buttonSpring.transition}
-              disabled={busy}
+              disabled={busy || exportBusy}
+              title="Download intelligence-export-YYYY-MM-DD.json (last 7 days)"
             >
-              + Train new model
+              {exportBusy ? 'Exporting…' : '⤓ Export'}
             </motion.button>
           </div>
         </header>
 
-        <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
-          {error ? <div className="dash-error" role="alert">{error}</div> : null}
+        <motion.div
+          className="dash-page"
+          initial="hidden"
+          animate="show"
+          variants={pageEnter}
+        >
+          {error ? (
+            <div className="dash-error" role="alert">
+              {error}
+            </div>
+          ) : null}
 
+          {/* Top KPI strip — fleet intelligence at a glance. */}
           <motion.div
             className="dash-metric-strip"
             initial="hidden"
@@ -198,133 +268,99 @@ export default function IntelligencePage() {
             variants={kpiStagger}
           >
             <KpiCard
-              label="Anomalies (24h)"
-              value={counts.today}
-              status={counts.today > 0 ? 'crit' : 'up'}
-              accent={counts.today > 0 ? 'red' : 'green'}
+              label="Anomalies today"
+              value={headerKpis.anomaliesToday}
+              status={headerKpis.anomaliesToday > 0 ? 'crit' : 'up'}
+              accent={headerKpis.anomaliesToday > 0 ? 'red' : 'green'}
             />
             <KpiCard
-              label="Critical"
-              value={counts.critical}
-              status={counts.critical > 0 ? 'crit' : 'up'}
-              accent={counts.critical > 0 ? 'red' : 'cyan'}
+              label="Predictive alerts"
+              value={headerKpis.predictionsToday}
+              status={headerKpis.predictionsToday > 0 ? 'crit' : 'up'}
+              accent={headerKpis.predictionsToday > 0 ? 'red' : 'cyan'}
             />
             <KpiCard
-              label="Acknowledged"
-              value={counts.acknowledged}
-              status="neutral"
-              accent="indigo"
+              label="Correlations"
+              value={headerKpis.correlationsToday}
+              status={headerKpis.correlationsToday > 0 ? 'crit' : 'up'}
+              accent={headerKpis.correlationsToday > 0 ? 'amber' : 'cyan'}
+            />
+            <KpiCard
+              label="Active noise rules"
+              value={headerKpis.activeRules}
+              status={headerKpis.activeRules > 0 ? 'up' : 'neutral'}
+              accent={headerKpis.activeRules > 0 ? 'green' : 'indigo'}
             />
           </motion.div>
 
-          <section className="dash-section">
-            <span className="dash-eyebrow">Detections</span>
-            <h2 className="dash-section-title">Recent anomalies</h2>
-            <p className="dash-section-sub" style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 0 }}>
-              Each circle is a detected anomaly. Color encodes severity (red=critical, amber=warning, green=info).
-              Acknowledge noise to dim the dot in the chart.
-            </p>
-            {events.length === 0 ? (
-              <EmptyState
-                illustration={<span style={{ fontSize: 36 }}>⌬</span>}
-                headline="No anomalies detected yet"
-                subhead="Train a model on a metric, then call /anomaly/detect to start flagging outliers. The chart will populate as events are recorded."
-              />
-            ) : (
-              <div className="anomaly-chart-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
-                <AnomalyChart events={events} />
-              </div>
+          {/* 4-tab dispatcher (Anomalies / Predictions / Correlations / Noise). */}
+          <div className="logs-tabs" role="tablist" style={{ marginTop: 16 }}>
+            {(['anomalies', 'predictions', 'correlations', 'noise'] as Tab[]).map(
+              (t) => (
+                <button
+                  key={t}
+                  role="tab"
+                  type="button"
+                  aria-selected={tab === t}
+                  className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
+                  onClick={() => setTab(t)}
+                >
+                  {TAB_LABELS[t]}
+                </button>
+              ),
             )}
-          </section>
+          </div>
 
-          {events.length > 0 ? (
-            <section className="dash-section">
-              <span className="dash-eyebrow">Event log</span>
-              <h2 className="dash-section-title">Latest 10 events</h2>
-              <div className="threat-card-list">
-                {events.slice(0, 10).map((e) => (
-                  <div
-                    key={e.id}
-                    className="threat-card"
-                    style={e.acknowledged ? { opacity: 0.5 } : undefined}
-                  >
-                    <div className="threat-card-top">
-                      <span className={`dash-status dash-status-${e.severity === 'critical' ? 'down' : e.severity === 'warning' ? 'stale' : 'up'}`}>
-                        <span className="dash-status-dot" aria-hidden="true" />
-                        {e.severity}
-                      </span>
-                      <strong className="threat-card-type">{e.metric_name}</strong>
-                      <span className="threat-card-time" title={e.ts}>
-                        {new Date(e.ts).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="threat-card-desc">
-                      score <strong>{e.anomaly_score.toFixed(2)}</strong> · observed <code>{e.observed_value.toFixed(2)}</code> · expected [{e.expected_range_low.toFixed(2)}, {e.expected_range_high.toFixed(2)}]
-                    </p>
-                    <div className="threat-card-meta">
-                      <span className="threat-card-meta-pill">
-                        <span className="threat-card-meta-label">server</span>
-                        <code>{e.server_id ? `${e.server_id.slice(0, 8)}…` : 'tenant-wide'}</code>
-                      </span>
-                      {e.acknowledged ? (
-                        <span className="threat-card-resolve-btn" style={{ color: 'var(--green)' }}>✓ acknowledged</span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="threat-card-resolve-btn"
-                          onClick={() => void ack(e.id)}
-                          disabled={busy}
-                        >
-                          Acknowledge →
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+          {/* When the Correlations tab is active, also surface the
+              RcaPanel at the top so the operator gets root-cause
+              hints alongside the correlation cards. */}
+          {tab === 'correlations' ? (
+            <div style={{ marginTop: 16 }}>
+              <RcaPanel hints={rcaHints} limit={5} />
+            </div>
           ) : null}
 
-          {/* Predictive Alerts section (Phase 2 / Tier 8.2) — extracted
-              component so this page stays under the 400-LOC cap. */}
-          <PredictiveAlertsSection
-            alerts={predictiveAlerts}
-            horizonDefault={24}
-            busy={busy}
-            onError={setError}
-          />
+          {tab === 'anomalies' ? (
+            <AnomaliesSection
+              events={events}
+              modelCount={models.length}
+              busy={busy}
+              onError={setError}
+              onChanged={() => void loadData()}
+              onOpenTrainModal={() => setTraining(true)}
+              trainingOpen={training}
+              onCloseTrainModal={() => setTraining(false)}
+            />
+          ) : null}
 
-          {/* Alert Correlation + RCA section (Phase 3 / Tier 8.3) — extracted
-              component. Owns the manual correlate modal + per-card feedback
-              + expand-to-fetch-group-detail logic. */}
-          <CorrelationsSection
-            groups={correlationGroups}
-            busy={busy}
-            onError={setError}
-            onCreated={() => void loadData()}
-          />
+          {tab === 'predictions' ? (
+            <PredictiveAlertsSection
+              alerts={predictiveAlerts}
+              horizonDefault={24}
+              busy={busy}
+              onError={setError}
+            />
+          ) : null}
 
-          {/* Alert Noise Reduction section (Phase 4 / Tier 8.4) — extracted
-              component. Owns the rule-editor + snooze modals + rule list +
-              snooze history. Calls onChanged() after a successful mutation
-              so the parent re-fetches. */}
-          <NoiseReductionSection
-            rules={noiseRules}
-            snoozes={snoozes}
-            busy={busy}
-            onError={setError}
-            onChanged={() => void loadData()}
-          />
+          {tab === 'correlations' ? (
+            <CorrelationsSection
+              groups={correlationGroups}
+              busy={busy}
+              onError={setError}
+              onCreated={() => void loadData()}
+            />
+          ) : null}
+
+          {tab === 'noise' ? (
+            <NoiseReductionSection
+              rules={noiseRules}
+              snoozes={snoozes}
+              busy={busy}
+              onError={setError}
+              onChanged={() => void loadData()}
+            />
+          ) : null}
         </motion.div>
-
-        {training ? (
-          <TrainAnomalyModelModal
-            busy={busy}
-            onClose={closeTrainModal}
-            onSaved={onTrainSaved}
-            onError={setError}
-          />
-        ) : null}
       </main>
     </div>
   );

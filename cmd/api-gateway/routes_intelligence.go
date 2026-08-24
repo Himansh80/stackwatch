@@ -22,7 +22,7 @@ import (
 //	Phase 2: Predictive Alerting (4 routes)          ← added in Phase 2
 //	Phase 3: Alert Correlation + RCA (5 routes)       ← added in Phase 3
 //	Phase 4: Alert Noise Reduction (6 routes)         ← added in Phase 4
-//	Phase 5: Intelligence Dashboard + Export (5)     ← future
+//	Phase 5: Intelligence Dashboard + Export (1)     ← added in Phase 5
 //
 // All handlers honor tenant_id from the JWT — no cross-tenant data
 // ever crosses the wire. Idempotent migrations in
@@ -103,5 +103,19 @@ func mountIntelligenceRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.POST("/noise/snooze", handler.SnoozeAlert(pool))
 	protected.GET("/noise/history", handler.ListSnoozeHistory(pool))
 
-	// Phase 5 — Intelligence Dashboard + Export (5 routes)   ← future
-}
+	// ---- Tier 8.5: Intelligence Dashboard + Export (Phase 5) ----
+		// The export endpoint bundles the last `?days=N` of every
+		// Tier 8 surface (anomalies + predictions + correlations +
+		// noise rules + snooze log) into a single JSON document for
+		// offline analysis. It honors tenant_id from the JWT and sets
+		// Content-Disposition: attachment so the browser downloads the
+		// file as `intelligence-export-YYYY-MM-DD.json`.
+		//
+		// The other dashboard surfaces (KPI strip, RcaPanel, summary
+		// counts) are computed client-side from the existing Phase 1-4
+		// endpoints — no new routes needed beyond the export.
+		//
+		// Routes (1):
+		//   GET /api/v1/intelligence/export?days=N — unified JSON export
+		protected.GET("/intelligence/export", handler.ExportIntelligenceReport(pool))
+	}
