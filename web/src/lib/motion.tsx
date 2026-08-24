@@ -112,3 +112,55 @@ export const formRow: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: EASE_OUT } },
 };
 export const staggerFormRows: Variants = stagger(0.1, 0.05);
+
+// ---------- Datadog-grade motion library (Phase 1 of 002-polish) -------
+// kpiEnter / kpiStagger: KPI strip entrance with a 50ms inter-card gap.
+// Pair as <motion.div variants={kpiStagger}> wrapping N cards that each
+// use <motion.div variants={kpiEnter}>. The 50ms stagger keeps the eye
+// moving without making the strip feel slow.
+export const kpiEnter: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE_OUT } },
+};
+export const kpiStagger: Variants = stagger(0.05, 0.06);
+
+// statusPulse: a plain animate prop (not Variants) used directly on the
+// StatusPill dot when the host is DOWN / CRIT. Opacity dips to 0.55 and
+// returns, looping forever — Datadog's "the room is on fire" signal.
+export const statusPulse = {
+  animate: { opacity: [1, 0.55, 1] },
+  transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' as const },
+};
+
+// sparklineDraw: stroke-dashoffset draw-in for SVG <path>. Apply via
+// <motion.path variants={sparklineDraw} /> on the chart line; the
+// initial pathLength:0 means "fully hidden", show:"1" paints it in.
+export const sparklineDraw: Variants = {
+  hidden: { pathLength: 0, opacity: 0 },
+  show: { pathLength: 1, opacity: 1, transition: { duration: 0.6, ease: EASE_OUT } },
+};
+
+// pageEnter: every route wraps its top-level container with
+// <motion.div initial="hidden" animate="show" variants={pageEnter}>.
+// 240ms matches the --motion-page CSS token so JS + CSS feel identical.
+export const pageEnter: Variants = {
+  hidden: { opacity: 0, y: 4 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.24, ease: EASE_OUT } },
+};
+
+// paletteEnter: CommandPalette entrance — fade + a subtle 0.98 → 1 scale
+// pop. Exit reverses the scale for a Linear ⌘K feel.
+export const paletteEnter: Variants = {
+  hidden: { opacity: 0, scale: 0.98 },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.18, ease: EASE_OUT } },
+  exit: { opacity: 0, scale: 0.98, transition: { duration: 0.12 } },
+};
+
+// shimmer: skeleton-row shimmer. backgroundPosition keyframes drive the
+// traveling highlight; uses CSS variables for the actual gradient stops.
+export const shimmer: Variants = {
+  animate: {
+    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+    transition: { duration: 1.4, repeat: Infinity, ease: 'linear' as const },
+  },
+};
