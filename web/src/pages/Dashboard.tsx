@@ -6,13 +6,14 @@ import ProfileMenu from '../components/ProfileMenu';
 import CommandPalette from '../components/CommandPalette';
 import FilterBar from '../components/FilterBar';
 import TimeWidget from '../components/TimeWidget';
-import MetricCard from '../components/dashboard/MetricCard';
 import SkeletonCard from '../components/dashboard/SkeletonCard';
 import TrendChart from '../components/dashboard/TrendChart';
 import HostList from '../components/dashboard/HostList';
-import StatusPill from '../components/dashboard/StatusPill';
+import KpiCard from '../components/shared/KpiCard';
+import StatusPill from '../components/shared/StatusPill';
 import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import ErrorBar from '../components/dashboard/ErrorBar';
+import { motion, kpiStagger } from '../lib/motion';
 import AppSidebar from '../components/AppSidebar';
 import { HeartIcon, NetworkIcon, PlayIcon, ServerIcon } from '../components/icons';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
@@ -178,7 +179,6 @@ export default function Dashboard() {
   const firstName = (userName || '').split(' ')[0] || 'Operator';
   const firingAlerts = snapshot.alerts.filter((a) => a.state === 'open' || a.state === 'firing').length;
   const apiHealthStatus = String(value(snapshot.health, 'status') || '');
-  const apiHealthTone = apiHealthStatus === 'ok' ? 'green' : apiHealthStatus ? 'amber' : 'amber';
 
   // Filter resources by the search query — matches name, type, vmid, status.
   const filteredResources = useMemo(() => {
@@ -243,7 +243,12 @@ export default function Dashboard() {
         <div className="dash-content">
           {error && <ErrorBar error={error} onRetry={() => void loadDashboard()} />}
           <WelcomeHeader userName={userName} lastUpdated={lastUpdated} formatRelative={formatRelative} now={now} />
-          <section className="dash-metric-grid">
+          <motion.section
+            className="dash-metric-grid"
+            variants={kpiStagger}
+            initial="hidden"
+            animate="show"
+          >
             {loading && !snapshot.hosts.length ? (
               <>
                 <SkeletonCard />
@@ -253,13 +258,20 @@ export default function Dashboard() {
               </>
             ) : (
               <>
-                <MetricCard label="Connected hosts" value={String(snapshot.hosts.length)} hint="Registered control planes" tone="cyan" icon={<ServerIcon />} sparkline={history.hosts} />
-                <MetricCard label="Compute nodes" value={String(snapshot.nodes.length)} hint="Across your Proxmox fabric" tone="indigo" icon={<NetworkIcon />} sparkline={history.nodes} />
-                <MetricCard label="Running workloads" value={String(running)} hint={`${stopped} stopped`} tone="green" icon={<PlayIcon />} sparkline={history.running} />
-                <MetricCard label="API health" value={apiHealthStatus || '—'} hint={text(value(snapshot.health, 'version'), 'StackWatch API')} tone={apiHealthTone} icon={<HeartIcon />} sparkline={history.cpu.map((c) => Math.min(100, c))} />
+                <KpiCard label="Connected hosts" value={snapshot.hosts.length} delta="Registered control planes" accent="cyan" icon={<ServerIcon />} sparkline={history.hosts} />
+                <KpiCard label="Compute nodes" value={snapshot.nodes.length} delta="Across your Proxmox fabric" accent="indigo" icon={<NetworkIcon />} sparkline={history.nodes} />
+                <KpiCard label="Running workloads" value={running} delta={`${stopped} stopped`} accent="green" icon={<PlayIcon />} sparkline={history.running} />
+                <KpiCard
+                  label="API health"
+                  value={apiHealthStatus || '—'}
+                  delta={text(value(snapshot.health, 'version'), 'StackWatch API')}
+                  status={apiHealthStatus === 'ok' ? 'up' : 'down'}
+                  icon={<HeartIcon />}
+                  sparkline={history.cpu.map((c) => Math.min(100, c))}
+                />
               </>
             )}
-          </section>
+          </motion.section>
           <section className="dash-grid-main">
             <article className="dash-panel dash-chart-panel">
               <div className="dash-panel-head">

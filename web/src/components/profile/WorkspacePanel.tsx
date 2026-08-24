@@ -5,6 +5,11 @@ interface StatCardProps {
   tone: 'cyan' | 'indigo' | 'green' | 'amber' | 'red';
 }
 
+// TODO(polish/002): migrate these stat cards to shared/KpiCard once the
+// WorkspacePanel grid layout moves to the 4-up Datadog KPI strip pattern.
+// Right now they're denser / smaller (2x2 inside a panel) than the
+// dashboard KPI strip, so forcing KpiCard here would inflate the panel
+// and break the profile page proportions. Tracked separately.
 function StatCard({ label, value, hint, tone }: StatCardProps) {
   return (
     <div className={`prof-stat prof-stat-${tone}`}>

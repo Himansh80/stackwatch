@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ProxmoxHost } from '../../lib/proxmox';
-import StatusPill from './StatusPill';
+import StatusPill from '../shared/StatusPill';
 
 /**
  * HostList — the Operations panel's body. Renders one row per
