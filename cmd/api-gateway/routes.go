@@ -369,5 +369,18 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/logs/retention", handler.ListLogRetention(pool))
 	protected.GET("/logs/patterns", handler.ListLogPatterns(pool))
 
+	// Tier 7.3 — RUM Full (D4): Datadog-grade Real User Monitoring.
+	// Ingest (6 POST) + Query (4 GET). All tenant-scoped.
+	protected.POST("/rum/web-vitals", handler.IngestRUMWebVital(pool))
+	protected.POST("/rum/resource-timings", handler.IngestRUMResource(pool))
+	protected.POST("/rum/interactions", handler.IngestRUMInteraction(pool))
+	protected.POST("/rum/long-tasks", handler.IngestRUMLongTask(pool))
+	protected.POST("/rum/errors", handler.IngestRUMError(pool))
+	protected.POST("/rum/heatmap", handler.IngestRUMHeatmap(pool))
+	protected.GET("/rum/sessions", handler.ListRUMSessions(pool))
+	protected.GET("/rum/sessions/:id", handler.GetRUMSession(pool))
+	protected.GET("/rum/sessions/:id/waterfall", handler.GetRUMSessionWaterfall(pool))
+	protected.GET("/rum/error-groups", handler.ListRUMErrorGroups(pool))
+
 	return r
 }
