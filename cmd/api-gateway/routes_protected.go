@@ -372,4 +372,10 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	// 6 routes extracted to routes_notebook.go (mountNotebookRoutes)
 	// so routes_protected.go stays under the 400-LOC cap.
 	mountNotebookRoutes(protected, pool)
+
+	// ---- Tier 7.11: Team/Collab (D12) — Phase 5 (FINAL) ----
+	// 5 routes extracted to routes_team.go (mountTeamRoutes) — this
+	// is the final route group for Tier 7. After this phase ships
+	// every Tier 7 subtier has its routes mounted.
+	mountTeamRoutes(protected, pool)
 }

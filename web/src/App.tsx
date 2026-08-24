@@ -21,6 +21,7 @@ import CicdPage from './pages/CicdPage';
 import DatabasePage from './pages/DatabasePage';
 import IncidentsPage from './pages/IncidentsPage';
 import NotebookPage from './pages/NotebookPage';
+import SharedDashboardsPage from './pages/SharedDashboardsPage';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
 import { useAuthState } from './lib/useAuthState';
 
@@ -57,7 +58,8 @@ export default function App() {
       <Route path="/database" element={isLoggedIn ? <DatabasePage /> : <Navigate to="/login" replace />} />
       <Route path="/incidents" element={isLoggedIn ? <IncidentsPage /> : <Navigate to="/login" replace />} />
       <Route path="/notebooks" element={isLoggedIn ? <NotebookPage /> : <Navigate to="/login" replace />} />
-      <Route path="/tier0" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
+            <Route path="/shared" element={isLoggedIn ? <SharedDashboardsPage /> : <Navigate to="/login" replace />} />
+            <Route path="/tier0" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
