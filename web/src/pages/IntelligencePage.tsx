@@ -5,6 +5,9 @@ import AppSidebar from '../components/AppSidebar';
 import AnomalyChart, { AnomalyEvent } from '../components/shared/AnomalyChart';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
+import PredictiveAlertsSection, {
+  PredictiveAlert,
+} from '../components/PredictiveAlertsSection';
 import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
 
 /**
@@ -55,6 +58,11 @@ export default function IntelligencePage() {
   const [trainServer, setTrainServer] = useState('');
   const [trainModelType, setTrainModelType] = useState<'welford' | 'ewma'>('welford');
 
+  // Predictive state (Phase 2). The PredictiveAlertsSection component
+  // owns its own modal + runForecast logic; we just feed it the
+  // alerts list (loaded by loadData) and a setError callback.
+  const [predictiveAlerts, setPredictiveAlerts] = useState<PredictiveAlert[]>([]);
+
   const requireAuth = (): boolean => {
     if (!getToken()) {
       setError('Sign in to view Intelligence.');
@@ -66,16 +74,26 @@ export default function IntelligencePage() {
   const loadData = useCallback(async () => {
     if (!requireAuth()) return;
     try {
-      const [ev, md] = await Promise.all([
+      const [ev, md, pa] = await Promise.all([
         api<ListResponse>('GET', '/api/v1/anomaly/events?limit=100'),
         api<ModelsResponse>('GET', '/api/v1/anomaly/models'),
+        api<{ alerts?: PredictiveAlert[]; total?: number }>('GET', '/api/v1/predict/alerts?limit=50'),
       ]);
       setEvents(ev.events || []);
       setModels(md.models || []);
+      setPredictiveAlerts(pa.alerts || []);
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
   }, []);
+
+  // Note: predictive alerting is delegated to PredictiveAlertsSection.
+  // The section owns its own runForecast + ackAlert logic; the page
+  // just feeds it the alerts list (loaded by loadData) and a setError
+  // callback. After the section acks an alert, loadData is the source
+  // of truth for refreshing the list — there is no separate handler
+  // needed here because the page reloads predictive alerts whenever
+  // it remounts (Phase 2 deferral: keep the page dumb).
 
   useEffect(() => {
     setError('');
@@ -274,6 +292,19 @@ export default function IntelligencePage() {
               </div>
             </section>
           ) : null}
+
+          {/* ---- Predictive Alerts section (Phase 2 / Tier 8.2) ---- */}
+          {/* Extracted to PredictiveAlertsSection component so this
+              page stays under the 400-LOC cap. The section owns its
+              own KPI strip + forecast grid + event log; the page
+              owns the modelAccuracy state + the Generate Forecast
+              modal that lives in the topbar. */}
+          <PredictiveAlertsSection
+            alerts={predictiveAlerts}
+            horizonDefault={24}
+            busy={busy}
+            onError={setError}
+          />
         </motion.div>
 
         {training ? (

@@ -46,7 +46,24 @@ func mountIntelligenceRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.GET("/anomaly/events", handler.ListAnomalyEvents(pool))
 	protected.POST("/anomaly/ack", handler.AckAnomalyEvent(pool))
 
-	// Phase 2 — Predictive Alerting (4 routes)         ← future
+	// ---- Tier 8.2: Predictive Alerting (Phase 2) ----
+	// Backed by an OLS linear regression fit to the last 7 days of
+	// metric_points (hourly bucketed median). The math lives in
+	// handlers_predict.go (olsFit); these handlers are thin HTTP
+	// shells that fetch historical samples, run the fit, persist
+	// the forecast result, and (when p90 crosses breach_threshold)
+	// INSERT a predictive_alerts row.
+	//
+	// Routes (4):
+	//   POST /api/v1/predict/forecast   — generate forecast + optional alert
+	//   GET  /api/v1/predict/alerts     — list predictive alerts
+	//   GET  /api/v1/predict/accuracy   — MAPE / RMSE for a metric
+	//   POST /api/v1/predict/ack        — acknowledge a predictive alert
+	protected.POST("/predict/forecast", handler.ForecastPredict(pool))
+	protected.GET("/predict/alerts", handler.ListPredictiveAlerts(pool))
+	protected.GET("/predict/accuracy", handler.PredictAccuracy(pool))
+	protected.POST("/predict/ack", handler.AckPredictiveAlert(pool))
+
 	// Phase 3 — Alert Correlation + RCA (5 routes)      ← future
 	// Phase 4 — Alert Noise Reduction (5 routes)        ← future
 	// Phase 5 — Intelligence Dashboard (5 routes)       ← future
