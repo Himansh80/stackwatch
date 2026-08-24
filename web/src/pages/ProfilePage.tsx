@@ -479,7 +479,7 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="prof-hero-body">
-                  <span className="dash-eyebrow">Account</span>
+                  <span className="prof-hero-eyebrow">Your account</span>
                   <h2 id="prof-hero-name" className="prof-hero-name">{profile.full_name || '—'}</h2>
                   <div className="prof-hero-meta">
                     <span className={`prof-role prof-role-${tone}`}>{profile.role || 'no role'}</span>
@@ -489,7 +489,10 @@ export default function ProfilePage() {
                     </span>
                     <span className="prof-hero-plan">{profile.tenant_plan || 'free'} plan</span>
                   </div>
-                  <div className="prof-hero-email">{profile.email || 'no email'}</div>
+                  <div className="prof-hero-email" title={profile.email}>
+                    <span className="prof-hero-email-icon" aria-hidden="true">@</span>
+                    {profile.email || 'no email'}
+                  </div>
                   {avatarError && <div className="prof-hero-avatar-error">{avatarError}</div>}
                 </div>
                 <div className="prof-hero-actions">
