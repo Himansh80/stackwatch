@@ -881,3 +881,40 @@ Fresh audit result: Tier 2 is NOT complete, NOT deployed, and cannot be claimed 
 - Implement real route pages for Servers, Alerts, Metrics, Terminal, Proxmox, and TrueNAS instead of navigation placeholders.
 - Add charts from historical metrics once the corresponding API contracts are exposed.
 - Add authenticated browser E2E coverage with a dedicated test account.
+
+---
+
+## Session — 2026-08-24 (Polish: Motion + Datadog-grade UI)
+
+### Speckit change 002-polish-motion-datadog-ui — COMPLETE
+
+Followed speckit workflow (explore → propose → apply → archive). All 5 phases shipped via fresh subagent per task + 2-stage review (self-reviewed after spec-compliance subagents kept wandering).
+
+**Commits (4 total, clean):**
+- `2445d96` — `chore(polish): add motion + elevation tokens (foundation)` (+62 lines: 3 CSS tokens + 7 motion exports)
+- `f6df096` — `feat(polish): shared components (KpiCard, EmptyState, SkeletonRow, StatusPill)` (+200 lines)
+- `9180b04` — `feat(polish): wire motion variants (pageEnter, paletteEnter, statusPulse, sparklineDraw)` (8 files, +148/-61)
+- `4892a04` — `feat(polish): Datadog visual parity - HostList columns + empty states + shimmer` (6 files, +180/-43)
+
+**Bundle deltas (gzipped):**
+- JS: 133,073 → 133,894 bytes (+821 bytes total, far under +60KB budget)
+- CSS: 14,107 → 14,691 bytes (+584 bytes total)
+
+**Modularity maintained:**
+- All files under 400 LOC (max: Dashboard 372 LOC)
+- 4 shared components in `web/src/components/shared/` (23-97 LOC each)
+- 0 god-files introduced
+- No backend changes
+- No new dependencies (framer-motion was already installed)
+
+**Deploy verified:**
+- New bundle deployed to `.115` (`/opt/stackwatch/web/public/assets/index-Cimy8jJk.js` + `index-BCxvICfK.css`)
+- HTTP 200 on public URL (https://stackwatch.smarthomelab.fun/)
+- HTTP 200 on local URL (http://192.168.0.115:8090/)
+- 6 user stories from spec.md covered
+
+**Honest gaps:**
+- Live 4× authenticated verifier failed: production DB has no demo or super_admin accounts (prior session wipe); login returns 404/email_not_found. Static HTTP 200 verified for all routes. Authenticated verification deferred — needs a seeded user.
+- Playwright pixel-diff deferred — would need browser MCP + non-stale session. Visual verification done via code review (every motion variant wired correctly).
+
+**Next speckit change:** 003-tier7-datadog-parity (Tier 7.1 APM as the foundation trace model — every Tier 7 feature depends on it)
