@@ -12,6 +12,7 @@ import NameFormPanel from '../components/profile/NameFormPanel';
 import SecurityPanel from '../components/profile/SecurityPanel';
 import TokensPanel from '../components/profile/TokensPanel';
 import { api } from '../lib/api';
+import { motion, pageEnter } from '../lib/motion';
 
 type Profile = {
   email: string;
@@ -236,7 +237,12 @@ export default function ProfilePage() {
             />
           </div>
         </header>
-        <div className="dash-content">
+        <motion.div
+          className="dash-content"
+          initial="hidden"
+          animate="show"
+          variants={pageEnter}
+        >
           {error && (
             <div className="dash-error">
               <strong>Could not load your profile</strong>
@@ -307,7 +313,7 @@ export default function ProfilePage() {
               <p className="dash-foot-note">Email and tenant ID are tied to your account — change them via your administrator.</p>
             </>
           )}
-        </div>
+        </motion.div>
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>

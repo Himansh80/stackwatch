@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion, paletteEnter } from '../lib/motion';
 
 /**
  * Cmd+K / Ctrl+K command palette.
@@ -93,47 +94,69 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
   }
 
-  if (!open) return null;
-
-  return <div className="cmd-palette-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Command palette">
-    <div className="cmd-palette" onClick={(e) => e.stopPropagation()}>
-      <div className="cmd-palette-input-wrap">
-        <span className="cmd-palette-icon" aria-hidden="true">⌕</span>
-        <input
-          ref={inputRef}
-          type="search"
-          className="cmd-palette-input"
-          placeholder="Type a command, route, or action..."
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setHighlight(0); }}
-          onKeyDown={handleKey}
-          autoComplete="off"
-          spellCheck={false}
-          aria-label="Command palette search"
-        />
-        <kbd className="cmd-palette-kbd">esc</kbd>
-      </div>
-      <div className="cmd-palette-list" role="listbox">
-        {filtered.length === 0 ? <div className="cmd-palette-empty">
-          <span>⌕</span>
-          <strong>No results for "{query}"</strong>
-          <small>Try "overview", "settings", or "refresh".</small>
-        </div> : filtered.map((cmd, index) => <button
-          key={cmd.id}
-          className={`cmd-palette-item ${index === highlight ? 'cmd-palette-item-active' : ''}`}
-          onMouseEnter={() => setHighlight(index)}
-          onClick={() => cmd.run()}
-          role="option"
-          aria-selected={index === highlight}
+  // Always render AnimatePresence so the palette can run its exit
+  // animation. `open` controls whether the children render at all —
+  // when false, the children are omitted so exit plays on the
+  // currently-mounted panel.
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          key="cmd-backdrop"
+          className="cmd-palette-backdrop"
+          onClick={onClose}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command palette"
         >
-          <span className="cmd-palette-item-group">{cmd.group}</span>
-          <span className="cmd-palette-item-body">
-            <strong>{cmd.title}</strong>
-            {cmd.hint && <small>{cmd.hint}</small>}
-          </span>
-          <kbd className="cmd-palette-kbd">↵</kbd>
-        </button>)}
-      </div>
-    </div>
-  </div>;
+          <motion.div
+            className="cmd-palette"
+            onClick={(e) => e.stopPropagation()}
+            variants={paletteEnter}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+          >
+            <div className="cmd-palette-input-wrap">
+              <span className="cmd-palette-icon" aria-hidden="true">⌕</span>
+              <input
+                ref={inputRef}
+                type="search"
+                className="cmd-palette-input"
+                placeholder="Type a command, route, or action..."
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setHighlight(0); }}
+                onKeyDown={handleKey}
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Command palette search"
+              />
+              <kbd className="cmd-palette-kbd">esc</kbd>
+            </div>
+            <div className="cmd-palette-list" role="listbox">
+              {filtered.length === 0 ? <div className="cmd-palette-empty">
+                <span>⌕</span>
+                <strong>No results for &ldquo;{query}&rdquo;</strong>
+                <small>Try &ldquo;overview&rdquo;, &ldquo;settings&rdquo;, or &ldquo;refresh&rdquo;.</small>
+              </div> : filtered.map((cmd, index) => <button
+                key={cmd.id}
+                className={`cmd-palette-item ${index === highlight ? 'cmd-palette-item-active' : ''}`}
+                onMouseEnter={() => setHighlight(index)}
+                onClick={() => cmd.run()}
+                role="option"
+                aria-selected={index === highlight}
+              >
+                <span className="cmd-palette-item-group">{cmd.group}</span>
+                <span className="cmd-palette-item-body">
+                  <strong>{cmd.title}</strong>
+                  {cmd.hint && <small>{cmd.hint}</small>}
+                </span>
+                <kbd className="cmd-palette-kbd">↵</kbd>
+              </button>)}
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
 }

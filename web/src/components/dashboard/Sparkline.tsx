@@ -1,10 +1,17 @@
+import { motion, sparklineDraw, useReducedMotion } from '../../lib/motion';
+
 /**
  * Inline sparkline — a tiny SVG trend line used inside KPI cards.
- * Renders an N-point series as a polyline.
+ * Renders an N-point series as a polyline that draws on mount via
+ * the shared `sparklineDraw` variant (stroke-dashoffset pathLength
+ * animation, 600ms ease-out).
  *
  * Sized for a 60×24 box so it sits cleanly at the right edge of a
  * card. The tone prop maps to a stroke color so the line matches
  * the card's accent stripe.
+ *
+ * Honors `prefers-reduced-motion`: the path snaps to its final
+ * state when the user prefers reduced motion (no draw-in).
  */
 type SparklineTone = 'cyan' | 'indigo' | 'green' | 'amber' | 'red';
 
@@ -23,6 +30,7 @@ export default function Sparkline({
   values: number[];
   tone?: SparklineTone;
 }) {
+  const reduce = useReducedMotion();
   if (!values.length) {
     return <div className="dash-spark dash-spark-empty" aria-hidden="true" />;
   }
@@ -41,7 +49,17 @@ export default function Sparkline({
   const stroke = TONE_COLORS[tone] || TONE_COLORS.cyan;
   return (
     <svg className="dash-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <motion.polyline
+        points={points}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        variants={reduce ? undefined : sparklineDraw}
+        initial={reduce ? false : 'hidden'}
+        animate={reduce ? false : 'show'}
+      />
     </svg>
   );
 }

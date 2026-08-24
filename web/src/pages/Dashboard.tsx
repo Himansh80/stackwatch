@@ -13,7 +13,7 @@ import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
 import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import ErrorBar from '../components/dashboard/ErrorBar';
-import { motion, kpiStagger } from '../lib/motion';
+import { motion, kpiStagger, pageEnter } from '../lib/motion';
 import AppSidebar from '../components/AppSidebar';
 import { HeartIcon, NetworkIcon, PlayIcon, ServerIcon } from '../components/icons';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
@@ -70,6 +70,10 @@ const isRunning = (row: ProxmoxResource): boolean => {
  * Cmd+K binding, and the page shell (sidebar + topbar). Every
  * visible section is delegated to a component in
  * `components/dashboard/` so this file stays a thin shell.
+ *
+ * Motion: the content area wraps in `pageEnter` so the page
+ * fades + lifts in on mount. Inside, the KPI strip uses its
+ * own `kpiStagger` parent + child `kpiEnter` on each card.
  */
 export default function Dashboard() {
   const logout = useLogout();
@@ -240,7 +244,12 @@ export default function Dashboard() {
             />
           </div>
         </header>
-        <div className="dash-content">
+        <motion.div
+          className="dash-content"
+          initial="hidden"
+          animate="show"
+          variants={pageEnter}
+        >
           {error && <ErrorBar error={error} onRetry={() => void loadDashboard()} />}
           <WelcomeHeader userName={userName} lastUpdated={lastUpdated} formatRelative={formatRelative} now={now} />
           <motion.section
@@ -350,7 +359,7 @@ export default function Dashboard() {
               </div>
             )}
           </section>
-        </div>
+        </motion.div>
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>

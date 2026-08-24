@@ -5,6 +5,7 @@ import ProfileMenu from '../components/ProfileMenu';
 import PasswordInput from '../components/PasswordInput';
 import PasswordField from '../components/PasswordField';
 import { friendlyPasswordMessage } from '../lib/password';
+import { motion, pageEnter } from '../lib/motion';
 
 type Tenant = {
   id: string;
@@ -184,7 +185,12 @@ export default function SettingsPage() {
             <ProfileMenu firstName={tenant?.name ? tenant.name.split(' ')[0] : 'there'} fullName={tenant?.name || ''} tenantName={tenant?.name || 'Workspace'} initials={(tenant?.name || '?').charAt(0).toUpperCase()} />
           </div>
         </header>
-        <div className="dash-content">
+        <motion.div
+          className="dash-content"
+          initial="hidden"
+          animate="show"
+          variants={pageEnter}
+        >
           {error && (
             <div className="dash-error">
               <strong>Could not load your settings</strong>
@@ -283,7 +289,7 @@ export default function SettingsPage() {
               <p className="dash-foot-note">Changing your password invalidates this device&apos;s session. You&apos;ll be sent back to the sign-in screen.</p>
             </>
           )}
-        </div>
+        </motion.div>
       </main>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, clearToken, getToken } from '../lib/api';
 import ProfileMenu from '../components/ProfileMenu';
+import { motion, pageEnter } from '../lib/motion';
 
 type Tenant = {
   id: string;
@@ -129,7 +130,12 @@ export default function BillingPage() {
             <ProfileMenu firstName={tenant?.name ? tenant.name.split(' ')[0] : 'there'} fullName={tenant?.name || ''} tenantName={tenant?.name || 'Workspace'} initials={(tenant?.name || '?').charAt(0).toUpperCase()} />
           </div>
         </header>
-        <div className="dash-content">
+        <motion.div
+          className="dash-content"
+          initial="hidden"
+          animate="show"
+          variants={pageEnter}
+        >
           {error && (
             <div className="dash-error">
               <strong>Could not load your billing info</strong>
@@ -200,7 +206,7 @@ export default function BillingPage() {
               <p className="dash-foot-note">Payment provider integration (Stripe / Razorpay) is on the roadmap. The plan shown above is your workspace&apos;s current tier.</p>
             </>
           )}
-        </div>
+        </motion.div>
       </main>
     </div>
   );
