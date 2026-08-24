@@ -19,6 +19,7 @@ import SecurityPage from './pages/SecurityPage';
 import CspmPage from './pages/CspmPage';
 import CicdPage from './pages/CicdPage';
 import DatabasePage from './pages/DatabasePage';
+import IncidentsPage from './pages/IncidentsPage';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
 import { useAuthState } from './lib/useAuthState';
 
@@ -53,6 +54,7 @@ export default function App() {
       <Route path="/cspm" element={isLoggedIn ? <CspmPage /> : <Navigate to="/login" replace />} />
       <Route path="/cicd" element={isLoggedIn ? <CicdPage /> : <Navigate to="/login" replace />} />
       <Route path="/database" element={isLoggedIn ? <DatabasePage /> : <Navigate to="/login" replace />} />
+      <Route path="/incidents" element={isLoggedIn ? <IncidentsPage /> : <Navigate to="/login" replace />} />
       <Route path="/tier0" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

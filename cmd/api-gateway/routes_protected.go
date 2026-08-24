@@ -362,4 +362,9 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	protected.GET("/database/connection-pool", handler.ListDBMonConnectionPools(pool))
 	protected.POST("/database/connection-pool", handler.IngestDBMonConnectionPool(pool))
 	protected.POST("/database/query-stats", handler.IngestDBMonQueryStats(pool))
+
+	// ---- Tier 7.9: Service Management (D10) — Phase 3 ----
+	// 10 routes extracted to routes_incidents.go (mountIncidentRoutes)
+	// so routes_protected.go stays under the 400-LOC cap.
+	mountIncidentRoutes(protected, pool)
 }

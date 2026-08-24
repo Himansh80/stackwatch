@@ -12,7 +12,7 @@ import { ReactNode } from 'react';
  * handler. The sidebar itself has no internal data fetches.
  */
 interface SidebarProps {
-  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm' | 'logs' | 'rum' | 'synthetics' | 'security' | 'cspm' | 'cicd' | 'database';
+  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm' | 'logs' | 'rum' | 'synthetics' | 'security' | 'cspm' | 'cicd' | 'database' | 'incidents';
   onLogout: () => void;
   apiVersion?: string;
   firingAlerts?: number;
@@ -31,7 +31,7 @@ const ALL_NAV_ITEMS: Array<{
   to: string;
   icon: string;
   label: string;
-  section: 'workspace' | 'infrastructure' | 'observability';
+  section: 'workspace' | 'infrastructure' | 'observability' | 'operations';
 }> = [
   { key: 'dashboard', to: '/dashboard', icon: '⌂', label: 'Overview', section: 'workspace' },
   { key: 'billing', to: '/billing', icon: '$', label: 'Billing', section: 'workspace' },
@@ -47,6 +47,7 @@ const ALL_NAV_ITEMS: Array<{
   { key: 'cspm', to: '/cspm', icon: '◐', label: 'CSPM', section: 'observability' },
   { key: 'cicd', to: '/cicd', icon: '⇄', label: 'CI/CD', section: 'observability' },
   { key: 'database', to: '/database', icon: '◧', label: 'Database', section: 'observability' },
+  { key: 'incidents', to: '/incidents', icon: '⚑', label: 'Incidents', section: 'operations' },
 ];
 
 export default function AppSidebar({
@@ -63,6 +64,7 @@ export default function AppSidebar({
   const workspaceItems = visible.filter((i) => i.section === 'workspace');
   const infraItems = visible.filter((i) => i.section === 'infrastructure');
   const observabilityItems = visible.filter((i) => i.section === 'observability');
+  const operationsItems = visible.filter((i) => i.section === 'operations');
 
   return (
     <aside className="dash-sidebar">
@@ -115,6 +117,21 @@ export default function AppSidebar({
         <div className="dash-nav-section">
           <span className="dash-nav-heading">Observability</span>
           {observabilityItems.map((item) => (
+            <Link
+              key={item.key}
+              className={`dash-nav-item ${active === item.key ? 'dash-nav-active' : ''}`}
+              to={item.to}
+            >
+              <span className="dash-nav-icon">{item.icon}</span>
+              <span className="dash-nav-label">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+      {operationsItems.length > 0 ? (
+        <div className="dash-nav-section">
+          <span className="dash-nav-heading">Operations</span>
+          {operationsItems.map((item) => (
             <Link
               key={item.key}
               className={`dash-nav-item ${active === item.key ? 'dash-nav-active' : ''}`}
