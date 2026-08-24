@@ -100,6 +100,14 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	cicdWebhook.POST("/github", handler.GitHubCICDWebhook(pool))
 	cicdWebhook.POST("/gitlab", handler.GitLabCICDWebhook(pool))
 
+	// Public SSO callback routes (no JWT — IdP-issued code/assertion).
+	// Registered on the public engine (not the protected group) so
+	// users coming from an IdP can land on /sso/initiate and
+	// /sso/callback without already having a StackWatch JWT.
+	// These 3 endpoints are the only PUBLIC Tier 9 endpoints — every
+	// other enterprise route lives behind RequireAuth.
+	mountEnterprisePublicRoutes(r, pool, issuer)
+
 	// Public container templates (no auth — public knowledge endpoint).
 	// Mounted at the end so it sits OUTSIDE the protected group; it was
 	// historically registered near the protected container block but its

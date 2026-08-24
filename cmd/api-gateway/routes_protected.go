@@ -394,4 +394,7 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	// (ML Anomaly Detection); the remaining 19 are spread across
 	// Phases 2-5 in subsequent commits.
 	mountIntelligenceRoutes(protected, pool)
+
+	// Tier 9: 32 routes (SSO+SCIM+RBAC+Audit+Compliance+Orgs) live in routes_enterprise.go (Phase 1 of 007 adds the first 8 SSO).
+	mountEnterpriseRoutes(protected, pool)
 }
