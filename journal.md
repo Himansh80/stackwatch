@@ -1234,3 +1234,57 @@ Collaborative notebooks runbooks YES
 Team collaboration shared dashboards + mentions + timeline YES
 
 **Tier 7 COMPLETE. Next Tier 8 Intelligence and Alerting.**
+## Session 2026-08-24 (Tier 8 FINAL PUSH)
+
+# TIER 8 COMPLETE - All 5 Intelligence and Alerting Subtiers Shipped
+
+**Speckit change 006-tier8-intelligence-alerting** shipped end-to-end with full speckit workflow (proposal + spec + plan + tasks + checklist + 5 phases). **25 Tier 8 routes live on .115. 9 Tier 8 DB tables on .116.**
+
+## Five commits for Tier 8
+
+| Phase | Commit | Sub-tier | Routes | Tables |
+|---|---|---|---|---|
+| 0 | included in 0a859e7 | routes split intelligence |  |  |
+| 1 | 0a859e7 | ML Anomaly Detection 8.1 | 5 | 2 |
+| 2 | 8600ffe | Predictive Alerting 8.2 | 4 | 2 |
+| 3 | 8a7b6a3 | Alert Correlation + RCA 8.3 | 5 | 3 |
+| 4 | 4be4502 | Alert Noise Reduction 8.4 | 6 | 2 |
+| 5 | 1952f7e | Intelligence Dashboard + Export 8.5 | 5 |  |
+
+## Tier 8 architecture outcomes
+
+- 25 Tier 8 routes live on .115 + verified 4 pass
+- 9 Tier 8 DB tables on .116
+- 1 new internal route split (mountIntelligenceRoutes extracted)
+- 4 extracted page sections (Anomalies, PredictiveAlerts, Correlations, NoiseReduction)
+- 5 new shared components (AnomalyChart, PredictionChart, CorrelationCard, NoiseRuleEditor, RcaPanel)
+- Every file under 400 LOC
+- IntelligencePage stays under 400 LOC thanks to extracted sections
+- All migrations idempotent
+- Tenant_id isolation on every query
+- No new dependencies (pure stdlib + existing tokens + existing motion)
+
+## Tier 8 features shipped (Datadog-style)
+
+- ML Anomaly Detection uses existing internal/ml.Detector (Welford + EWMA) for O(1) model updates
+- Predictive Alerting uses simple linear regression (slope + intercept from least squares + residual sigma for p10/p50/p90)
+- Alert Correlation groups related alerts by similarity_score + supports manual override + feedback
+- RCA hints generated heuristically (3+ alerts in 5 min on same server = resource_saturation)
+- Noise Reduction supports glob patterns (*cpu*) via SQL wildcards + suppression preview
+- Export endpoint generates JSON download with last 7 days of all intelligence data
+
+## Speckit workflow validated
+
+Tier 8 is the FIRST tier that used the full speckit workflow from start to finish:
+- Proposal (why, scope, impact)
+- Spec (5 user stories with acceptance scenarios)
+- Plan (6 phases with risks + mitigations)
+- Tasks (granular ladder with 10 success criteria)
+- Checklist (quality gates)
+- Live verification at every phase
+- Archive at completion
+- Journal entry
+
+The speckit method worked perfectly. Recommend applying it retroactively to Tier 9 (Security & Enterprise).
+
+TIER 8 COMPLETE. Next Tier 9 Security and Enterprise.
