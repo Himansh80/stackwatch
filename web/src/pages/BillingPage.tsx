@@ -106,9 +106,7 @@ export default function BillingPage() {
         </Link>
         <div className="dash-nav-section"><span className="dash-nav-heading">Workspace</span>
           <Link className="dash-nav-item" to="/dashboard"><span>⌂</span>Overview</Link>
-          <Link className="dash-nav-item" to="/profile"><span>◉</span>Profile</Link>
           <Link className="dash-nav-item dash-nav-active" to="/billing"><span>$</span>Billing</Link>
-          <Link className="dash-nav-item" to="/settings"><span>⚙</span>Settings</Link>
         </div>
         <div className="dash-nav-section"><span className="dash-nav-heading">Infrastructure</span>
           <Link className="dash-nav-item" to="/proxmox"><span>◈</span>Proxmox</Link>

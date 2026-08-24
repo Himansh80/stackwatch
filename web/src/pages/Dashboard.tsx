@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api, health, me } from '../lib/api';
+import { Link, useNavigate } from 'react-router-dom';
+import { api, clearToken, health, me } from '../lib/api';
 import { useLogout } from '../lib/useLogout';
 import ProfileMenu from '../components/ProfileMenu';
 import CommandPalette from '../components/CommandPalette';
@@ -115,14 +115,46 @@ function SkeletonCard() {
 }
 
 function MetricCard({ label, value: metric, hint, tone, icon, sparkline }: { label: string; value: string; hint: string; tone: string; icon: string; sparkline?: number[] }) {
-  return <article className={`dash-metric dash-metric-${tone}`}>
-    <div className="dash-metric-top"><span className="dash-metric-icon">{icon}</span><span className="dash-metric-label">{label}</span></div>
-    <div className="dash-metric-row">
-      <strong>{metric}</strong>
-      {sparkline && <Sparkline values={sparkline} tone={tone as 'cyan' | 'indigo' | 'green' | 'amber' | 'red'} />}
-    </div>
-    <span className="dash-metric-hint">{hint}</span>
-  </article>;
+  // Inline SVGs so the card looks crisp at every size. Each icon is
+  // themed to match the tone's accent color via the .dash-metric-<tone>
+  // class on the card root, plus an explicit color attribute on the
+  // stroke so SVG renders consistently inside the colored circle.
+  const iconPaths: Record<string, React.ReactNode> = {
+    hosts: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="6" rx="1.5" /><rect x="3" y="14" width="18" height="6" rx="1.5" /><circle cx="7" cy="7" r="0.8" fill="currentColor" stroke="none" /><circle cx="7" cy="17" r="0.8" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+    nodes: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3 L21 8 L21 16 L12 21 L3 16 L3 8 Z" /><path d="M12 12 L21 8 M12 12 L3 8 M12 12 L12 21" />
+      </svg>
+    ),
+    workloads: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="6,4 20,12 6,20" />
+      </svg>
+    ),
+    health: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78z" />
+      </svg>
+    ),
+  };
+  return (
+    <article className={`dash-metric dash-metric-${tone}`}>
+      <span className="dash-metric-stripe" aria-hidden="true" />
+      <div className="dash-metric-top">
+        <span className="dash-metric-icon">{iconPaths[icon] ?? null}</span>
+        <span className="dash-metric-label">{label}</span>
+      </div>
+      <div className="dash-metric-row">
+        <strong>{metric}</strong>
+        {sparkline && <Sparkline values={sparkline} tone={tone as 'cyan' | 'indigo' | 'green' | 'amber' | 'red'} />}
+      </div>
+      <span className="dash-metric-hint">{hint}</span>
+    </article>
+  );
 }
 
 function TrendChart({ resources }: { resources: ProxmoxResource[] }) {
@@ -159,6 +191,7 @@ function TrendChart({ resources }: { resources: ProxmoxResource[] }) {
 }
 
 export default function Dashboard() {
+  const nav = useNavigate();
   const logout = useLogout();
   const abortRef = useRef<AbortController | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot>(emptySnapshot);
@@ -282,9 +315,7 @@ export default function Dashboard() {
       <Link className="dash-brand" to="/dashboard"><span className="dash-brand-mark">S</span><span><strong>StackWatch</strong><small>Infrastructure control plane</small></span></Link>
       <div className="dash-nav-section"><span className="dash-nav-heading">Workspace</span>
         <Link className="dash-nav-item dash-nav-active" to="/dashboard"><span className="dash-nav-icon">⌂</span><span className="dash-nav-label">Overview</span></Link>
-        <Link className="dash-nav-item" to="/profile"><span className="dash-nav-icon">◉</span><span className="dash-nav-label">Profile</span></Link>
         <Link className="dash-nav-item" to="/billing"><span className="dash-nav-icon">$</span><span className="dash-nav-label">Billing</span></Link>
-        <Link className="dash-nav-item" to="/settings"><span className="dash-nav-icon">⚙</span><span className="dash-nav-label">Settings</span></Link>
       </div>
       <div className="dash-nav-section"><span className="dash-nav-heading">Infrastructure</span>
         <Link className="dash-nav-item" to="/proxmox"><span className="dash-nav-icon">◈</span><span className="dash-nav-label">Proxmox</span></Link>
@@ -303,16 +334,39 @@ export default function Dashboard() {
         <ProfileMenu firstName={firstNameOf(userName)} fullName={userName} tenantName={tenantName} initials={userName.charAt(0).toUpperCase()} />
       </div></header>
       <div className="dash-content">
-        {error && <div className="dash-error"><strong>Live data unavailable</strong><span>{error}</span><button onClick={() => void loadDashboard()}>Retry</button></div>}
-        <section className="dash-welcome"><div><span className="dash-eyebrow">Infrastructure overview</span><h2>Good to see you, {userName.split(' ')[0]}.</h2><p>One place to see the health of your infrastructure and move from signal to action.</p></div><div className="dash-welcome-meta"><span className="dash-live-dot" />Live sync<div title={lastUpdated?.toLocaleString()}>{lastUpdated ? `Updated ${formatRelative(lastUpdated, now)}` : 'Syncing now'}</div></div></section>
+        {error && (() => {
+          // Soft "session expired" tone — the user just needs to sign
+          // back in, not panic about a server outage. Anything else
+          // gets the louder red error bar so they know to retry.
+          const isAuthError = /unauthor|sign.in|token|expired|401/i.test(error);
+          if (isAuthError) {
+            return (
+              <div className="dash-error dash-error-info">
+                <span className="dash-error-icon" aria-hidden="true">!</span>
+                <strong>Sign in again</strong>
+                <span>Your session ended. Sign back in to load live infrastructure data.</span>
+                <button type="button" onClick={() => { clearToken(); nav('/login'); }}>Sign in</button>
+              </div>
+            );
+          }
+          return (
+            <div className="dash-error">
+              <span className="dash-error-icon" aria-hidden="true">!</span>
+              <strong>Live data unavailable</strong>
+              <span>{error}</span>
+              <button type="button" onClick={() => void loadDashboard()}>Retry</button>
+            </div>
+          );
+        })()}
+        <section className="dash-welcome"><div><span className="dash-welcome-eyebrow">Infrastructure overview</span><h2>{userName ? `Good to see you, ${userName.split(' ')[0]}.` : 'Welcome to StackWatch'}</h2><p>One place to see the health of your infrastructure and move from signal to action.</p></div><div className="dash-welcome-meta"><div className="dash-welcome-meta-row"><span className="dash-welcome-meta-dot" />Live sync</div><div className="dash-welcome-meta-time" title={lastUpdated?.toLocaleString()}>{lastUpdated ? `Updated ${formatRelative(lastUpdated, now)}` : 'Syncing…'}</div></div></section>
         <section className="dash-metric-grid">
           {loading && !snapshot.hosts.length ? <>
             <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
           </> : <>
-            <MetricCard label="Connected hosts" value={String(snapshot.hosts.length)} hint="Registered control planes" tone="cyan" icon="◫" sparkline={history.hosts} />
-            <MetricCard label="Compute nodes" value={String(snapshot.nodes.length)} hint="Across your Proxmox fabric" tone="indigo" icon="◇" sparkline={history.nodes} />
-            <MetricCard label="Running workloads" value={String(running)} hint={`${stopped} stopped`} tone="green" icon="▶" sparkline={history.running} />
-            <MetricCard label="API health" value={text(value(snapshot.health, 'status'), 'unknown')} hint={text(value(snapshot.health, 'version'), 'StackWatch API')} tone="amber" icon="♥" sparkline={history.cpu.map((c) => Math.min(100, c))} />
+            <MetricCard label="Connected hosts" value={String(snapshot.hosts.length)} hint="Registered control planes" tone="cyan" icon="hosts" sparkline={history.hosts} />
+            <MetricCard label="Compute nodes" value={String(snapshot.nodes.length)} hint="Across your Proxmox fabric" tone="indigo" icon="nodes" sparkline={history.nodes} />
+            <MetricCard label="Running workloads" value={String(running)} hint={`${stopped} stopped`} tone="green" icon="workloads" sparkline={history.running} />
+            <MetricCard label="API health" value={text(value(snapshot.health, 'status'), '—')} hint={text(value(snapshot.health, 'version'), 'StackWatch API')} tone={value(snapshot.health, 'status') === 'ok' ? 'green' : 'amber'} icon="health" sparkline={history.cpu.map((c) => Math.min(100, c))} />
           </>}
         </section>
         <section className="dash-grid-main"><article className="dash-panel dash-chart-panel"><div className="dash-panel-head"><div><span className="dash-eyebrow">Live telemetry</span><h3>Workload pressure</h3></div><span className="dash-panel-context">Current snapshot</span></div><TrendChart resources={snapshot.resources} /></article><article className="dash-panel"><div className="dash-panel-head"><div><span className="dash-eyebrow">Operations</span><h3>Infrastructure status</h3></div><span className="dash-panel-context">{snapshot.hosts.length} host{snapshot.hosts.length === 1 ? '' : 's'}</span></div><div className="dash-host-list">{snapshot.hosts.length ? snapshot.hosts.map((host) => <div className="dash-host-row" key={host.id}><span className="dash-host-icon">⌁</span><span className="dash-host-name"><strong>{host.name || 'Unnamed host'}</strong><small>{host.base_url}</small></span><StatusPill status={host.status || 'unknown'} /></div>) : <div className="dash-panel-empty">
