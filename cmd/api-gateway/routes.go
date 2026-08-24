@@ -341,9 +341,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/traces/services/summary", handler.TraceServiceSummary(pool))
 	protected.GET("/traces/:trace_id", handler.GetTraceByID(pool))
 
-	// Tier 7.1 — APM (D2): Distributed Tracing foundation.
-	// New service/traces/spans/deployments model (Datadog parity).
-	// Sits beside the Tier 6 v5 /traces legacy endpoints.
+	// Tier 7.1 — APM (D2).
 	protected.POST("/apm/services", handler.RegisterAPMService(pool))
 	protected.GET("/apm/services", handler.ListAPMServices(pool))
 	protected.GET("/apm/services/:id", handler.GetAPMService(pool))
@@ -354,9 +352,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/apm/deployments", handler.ListAPMDeployments(pool))
 	protected.GET("/apm/service-map", handler.APMServiceMap(pool))
 
-	// Tier 7.2 — Log Management Full (D3): Datadog-grade log surface.
-	// Monitors + Archives + Rehydrations + Retention + Patterns.
-	// All tenant-scoped, all honor JWT.tenant_id.
+	// Tier 7.2 — Log Management Full (D3).
 	protected.POST("/logs/monitors", handler.CreateLogMonitor(pool))
 	protected.GET("/logs/monitors", handler.ListLogMonitors(pool))
 	protected.PUT("/logs/monitors/:id", handler.UpdateLogMonitor(pool))
@@ -369,8 +365,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/logs/retention", handler.ListLogRetention(pool))
 	protected.GET("/logs/patterns", handler.ListLogPatterns(pool))
 
-	// Tier 7.3 — RUM Full (D4): Datadog-grade Real User Monitoring.
-	// Ingest (6 POST) + Query (4 GET). All tenant-scoped.
+	// Tier 7.3 — RUM Full (D4).
 	protected.POST("/rum/web-vitals", handler.IngestRUMWebVital(pool))
 	protected.POST("/rum/resource-timings", handler.IngestRUMResource(pool))
 	protected.POST("/rum/interactions", handler.IngestRUMInteraction(pool))
@@ -382,7 +377,6 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/rum/sessions/:id/waterfall", handler.GetRUMSessionWaterfall(pool))
 	protected.GET("/rum/error-groups", handler.ListRUMErrorGroups(pool))
 
-	// Tier 7.4 — Synthetics Full (D5). 13 routes. Runner created in main.go.
 	protected.POST("/synthetics/locations", handler.CreateSynthLocation(pool))
 	protected.GET("/synthetics/locations", handler.ListSynthLocations(pool))
 	protected.POST("/synthetics/ci-configs", handler.CreateSynthCIConfig(pool))
@@ -396,5 +390,11 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.POST("/synthetics/tests-full/:test_id/run", handler.RunSynthTestNow(pool, synthRunner))
 	protected.GET("/synthetics/tests-full/:test_id/sla", handler.GetSynthTestSLA(pool))
 	protected.GET("/synthetics/tests-full/:test_id/results", handler.GetSynthTestResults(pool))
+
+	// Tier 7.5 — Security (D6): 4 read-only routes over threats/audit/compliance/siem.
+	protected.GET("/security/threats", handler.ListSecurityThreats(pool))
+	protected.GET("/security/audit-trails", handler.ListSecurityAuditTrails(pool))
+	protected.GET("/security/compliance", handler.ListSecurityCompliance(pool))
+	protected.GET("/security/siem", handler.ListSecuritySIEM(pool))
 	return r
 }
