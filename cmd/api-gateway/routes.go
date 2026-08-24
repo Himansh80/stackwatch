@@ -341,5 +341,18 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/traces/services/summary", handler.TraceServiceSummary(pool))
 	protected.GET("/traces/:trace_id", handler.GetTraceByID(pool))
 
+	// Tier 7.1 — APM (D2): Distributed Tracing foundation.
+	// New service/traces/spans/deployments model (Datadog parity).
+	// Sits beside the Tier 6 v5 /traces legacy endpoints.
+	protected.POST("/apm/services", handler.RegisterAPMService(pool))
+	protected.GET("/apm/services", handler.ListAPMServices(pool))
+	protected.GET("/apm/services/:id", handler.GetAPMService(pool))
+	protected.GET("/apm/services/:id/flame-graph", handler.APMFlameGraph(pool))
+	protected.POST("/apm/traces", handler.IngestAPMTrace(pool))
+	protected.GET("/apm/traces/:trace_id", handler.GetAPMTrace(pool))
+	protected.POST("/apm/deployments", handler.RecordAPMDeployment(pool))
+	protected.GET("/apm/deployments", handler.ListAPMDeployments(pool))
+	protected.GET("/apm/service-map", handler.APMServiceMap(pool))
+
 	return r
 }

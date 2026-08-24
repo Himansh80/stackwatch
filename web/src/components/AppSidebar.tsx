@@ -12,7 +12,7 @@ import { ReactNode } from 'react';
  * handler. The sidebar itself has no internal data fetches.
  */
 interface SidebarProps {
-  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas';
+  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm';
   onLogout: () => void;
   apiVersion?: string;
   firingAlerts?: number;
@@ -31,7 +31,7 @@ const ALL_NAV_ITEMS: Array<{
   to: string;
   icon: string;
   label: string;
-  section: 'workspace' | 'infrastructure';
+  section: 'workspace' | 'infrastructure' | 'observability';
 }> = [
   { key: 'dashboard', to: '/dashboard', icon: '⌂', label: 'Overview', section: 'workspace' },
   { key: 'billing', to: '/billing', icon: '$', label: 'Billing', section: 'workspace' },
@@ -39,6 +39,7 @@ const ALL_NAV_ITEMS: Array<{
   { key: 'settings', to: '/settings', icon: '⚙', label: 'Settings', section: 'workspace' },
   { key: 'proxmox', to: '/proxmox', icon: '◈', label: 'Proxmox', section: 'infrastructure' },
   { key: 'truenas', to: '/truenas', icon: '▤', label: 'TrueNAS', section: 'infrastructure' },
+  { key: 'apm', to: '/apm', icon: '◴', label: 'APM', section: 'observability' },
 ];
 
 export default function AppSidebar({
@@ -54,6 +55,7 @@ export default function AppSidebar({
     : ALL_NAV_ITEMS;
   const workspaceItems = visible.filter((i) => i.section === 'workspace');
   const infraItems = visible.filter((i) => i.section === 'infrastructure');
+  const observabilityItems = visible.filter((i) => i.section === 'observability');
 
   return (
     <aside className="dash-sidebar">
@@ -89,19 +91,34 @@ export default function AppSidebar({
             <span className="dash-nav-label">{item.label}</span>
           </Link>
         ))}
-        {(firingAlerts ?? 0) > 0 && (
-          <div className="dash-nav-section">
-            <span className="dash-nav-heading">Health</span>
-            <div
-              className="dash-nav-alert-pill"
-              title={`${firingAlerts} firing alert${firingAlerts === 1 ? '' : 's'}`}
-            >
-              <span className="dash-status-dot dash-status-bad" />
-              {firingAlerts} firing
-            </div>
-          </div>
-        )}
       </div>
+      {(firingAlerts ?? 0) > 0 ? (
+        <div className="dash-nav-section">
+          <span className="dash-nav-heading">Health</span>
+          <div
+            className="dash-nav-alert-pill"
+            title={`${firingAlerts} firing alert${firingAlerts === 1 ? '' : 's'}`}
+          >
+            <span className="dash-status-dot dash-status-bad" />
+            {firingAlerts} firing
+          </div>
+        </div>
+      ) : null}
+      {observabilityItems.length > 0 ? (
+        <div className="dash-nav-section">
+          <span className="dash-nav-heading">Observability</span>
+          {observabilityItems.map((item) => (
+            <Link
+              key={item.key}
+              className={`dash-nav-item ${active === item.key ? 'dash-nav-active' : ''}`}
+              to={item.to}
+            >
+              <span className="dash-nav-icon">{item.icon}</span>
+              <span className="dash-nav-label">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      ) : null}
       <div className="dash-sidebar-bottom">
         <div className="dash-connection">
           <span className="dash-live-dot" />
