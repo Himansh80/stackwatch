@@ -12,7 +12,7 @@ import { ReactNode } from 'react';
  * handler. The sidebar itself has no internal data fetches.
  */
 interface SidebarProps {
-  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm';
+  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm' | 'logs';
   onLogout: () => void;
   apiVersion?: string;
   firingAlerts?: number;
@@ -40,6 +40,7 @@ const ALL_NAV_ITEMS: Array<{
   { key: 'proxmox', to: '/proxmox', icon: '◈', label: 'Proxmox', section: 'infrastructure' },
   { key: 'truenas', to: '/truenas', icon: '▤', label: 'TrueNAS', section: 'infrastructure' },
   { key: 'apm', to: '/apm', icon: '◴', label: 'APM', section: 'observability' },
+  { key: 'logs', to: '/logs', icon: '≡', label: 'Logs', section: 'observability' },
 ];
 
 export default function AppSidebar({

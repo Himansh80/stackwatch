@@ -354,5 +354,20 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.GET("/apm/deployments", handler.ListAPMDeployments(pool))
 	protected.GET("/apm/service-map", handler.APMServiceMap(pool))
 
+	// Tier 7.2 — Log Management Full (D3): Datadog-grade log surface.
+	// Monitors + Archives + Rehydrations + Retention + Patterns.
+	// All tenant-scoped, all honor JWT.tenant_id.
+	protected.POST("/logs/monitors", handler.CreateLogMonitor(pool))
+	protected.GET("/logs/monitors", handler.ListLogMonitors(pool))
+	protected.PUT("/logs/monitors/:id", handler.UpdateLogMonitor(pool))
+	protected.DELETE("/logs/monitors/:id", handler.DeleteLogMonitor(pool))
+	protected.POST("/logs/archives", handler.CreateLogArchive(pool))
+	protected.GET("/logs/archives", handler.ListLogArchives(pool))
+	protected.POST("/logs/archives/:id/rehydrate", handler.TriggerLogRehydration(pool))
+	protected.GET("/logs/rehydrations", handler.ListLogRehydrations(pool))
+	protected.POST("/logs/retention", handler.SetLogRetention(pool))
+	protected.GET("/logs/retention", handler.ListLogRetention(pool))
+	protected.GET("/logs/patterns", handler.ListLogPatterns(pool))
+
 	return r
 }

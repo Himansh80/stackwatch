@@ -11,6 +11,7 @@ import SettingsPage from './pages/SettingsPage';
 import TrueNASWorkspace from './pages/TrueNASWorkspace';
 import ApmPage from './pages/ApmPage';
 import ApmServicePage from './pages/ApmServicePage';
+import LogsFullPage from './pages/LogsFullPage';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
 import { useAuthState } from './lib/useAuthState';
 
@@ -37,6 +38,7 @@ export default function App() {
       <Route path="/truenas" element={isLoggedIn ? <TrueNASWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/apm" element={isLoggedIn ? <ApmPage /> : <Navigate to="/login" replace />} />
       <Route path="/apm/service" element={isLoggedIn ? <ApmServicePage /> : <Navigate to="/login" replace />} />
+      <Route path="/logs" element={isLoggedIn ? <LogsFullPage /> : <Navigate to="/login" replace />} />
       <Route path="/tier0" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
