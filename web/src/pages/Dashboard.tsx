@@ -1,197 +1,76 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { api, clearToken, health, me } from '../lib/api';
+import { Link } from 'react-router-dom';
+import { api, health, me } from '../lib/api';
 import { useLogout } from '../lib/useLogout';
 import ProfileMenu from '../components/ProfileMenu';
 import CommandPalette from '../components/CommandPalette';
 import FilterBar from '../components/FilterBar';
 import TimeWidget from '../components/TimeWidget';
+import MetricCard from '../components/dashboard/MetricCard';
+import SkeletonCard from '../components/dashboard/SkeletonCard';
+import TrendChart from '../components/dashboard/TrendChart';
+import HostList from '../components/dashboard/HostList';
+import StatusPill from '../components/dashboard/StatusPill';
+import WelcomeHeader from '../components/dashboard/WelcomeHeader';
+import ErrorBar from '../components/dashboard/ErrorBar';
+import AppSidebar from '../components/AppSidebar';
+import { HeartIcon, NetworkIcon, PlayIcon, ServerIcon } from '../components/icons';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
+import { greetingFor, formatRelative } from '../lib/clock';
 
 type Json = Record<string, unknown>;
 
-type Snapshot = {
+interface Alert {
+  id: string;
+  state: string;
+  severity: string;
+  name: string;
+}
+
+interface Snapshot {
   hosts: ProxmoxHost[];
   nodes: Json[];
   resources: ProxmoxResource[];
-  health: Json | null;
-  user: Json | null;
-  tenant: Json | null;
-  alerts: { id: string; state: string; severity: string; name: string }[];
+  health: Json;
+  user: Json;
+  tenant: Json;
+  alerts: Alert[];
+}
+
+const emptySnapshot: Snapshot = {
+  hosts: [], nodes: [], resources: [], health: {}, user: {}, tenant: {}, alerts: [],
 };
 
-const emptySnapshot: Snapshot = { hosts: [], nodes: [], resources: [], health: null, user: null, tenant: null, alerts: [] };
-
-function value(row: Json | null, key: string): unknown {
-  return row?.[key];
-}
-
-function text(valueToRead: unknown, fallback = '—'): string {
+const text = (valueToRead: unknown, fallback = '—'): string => {
   if (valueToRead === null || valueToRead === undefined || valueToRead === '') return fallback;
   return String(valueToRead);
-}
+};
+const value = (obj: unknown, ...path: string[]): unknown => {
+  let cur: unknown = obj;
+  for (const key of path) {
+    if (cur && typeof cur === 'object' && key in (cur as Record<string, unknown>)) {
+      cur = (cur as Record<string, unknown>)[key];
+    } else {
+      return undefined;
+    }
+  }
+  return cur;
+};
 
-function greetingFor(date: Date): string {
-  const hour = date.getHours();
-  if (hour < 5) return 'Working late';
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  if (hour < 22) return 'Good evening';
-  return 'Working late';
-}
-
-function firstNameOf(full: string): string {
-  const trimmed = full.trim();
-  if (!trimmed || trimmed === '—') return 'there';
-  return trimmed.split(/\s+/)[0]!;
-}
-
-function formatRelative(date: Date, now: Date): string {
-  const seconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
-  if (seconds < 5) return 'just now';
-  if (seconds < 60) return `${seconds} sec ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days} days ago`;
-  return date.toLocaleDateString();
-}
-
-function isRunning(row: Json): boolean {
-  return ['running', 'online', 'up', 'active'].includes(text(row.status, '').toLowerCase());
-}
-
-function statusTone(status: unknown): 'good' | 'warn' | 'bad' {
-  const normalized = text(status, '').toLowerCase();
-  if (['running', 'online', 'up', 'active', 'ok'].includes(normalized)) return 'good';
-  if (['stopped', 'offline', 'down', 'error', 'failed'].includes(normalized)) return 'bad';
-  return 'warn';
-}
-
-function StatusPill({ status }: { status: unknown }) {
-  const tone = statusTone(status);
-  return <span className={`dash-status dash-status-${tone}`}><span className="dash-status-dot" />{text(status, 'unknown')}</span>;
-}
+const isRunning = (row: ProxmoxResource): boolean => {
+  const status = String(row.status || '').toLowerCase();
+  return status === 'running' || status === 'online' || status === 'active' || status === '';
+};
 
 /**
- * Inline sparkline — a tiny SVG trend line used inside KPI cards.
- * Renders an N-point series as a polyline with optional area fill.
- * Sized for a 60×24 box so it sits cleanly at the right edge of a card.
+ * Dashboard — top-level route at /dashboard.
+ *
+ * Owns data loading, top-level state (snapshot, error, history),
+ * Cmd+K binding, and the page shell (sidebar + topbar). Every
+ * visible section is delegated to a component in
+ * `components/dashboard/` so this file stays a thin shell.
  */
-function Sparkline({ values, tone = 'cyan' }: { values: number[]; tone?: 'cyan' | 'indigo' | 'green' | 'amber' | 'red' }) {
-  if (!values.length) {
-    return <div className="dash-spark dash-spark-empty" aria-hidden="true" />;
-  }
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const range = Math.max(max - min, 1);
-  const w = 60;
-  const h = 24;
-  const points = values.map((number, index) => {
-    const x = (index / Math.max(values.length - 1, 1)) * w;
-    const y = h - ((number - min) / range) * h;
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(' ');
-  const colorMap: Record<string, string> = { cyan: '#38bdf8', indigo: '#818cf8', green: '#34d399', amber: '#fbbf24', red: '#f87171' };
-  const stroke = colorMap[tone] || colorMap.cyan;
-  return <svg className="dash-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-    <polyline points={points} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>;
-}
-
-/**
- * Skeleton loader card — used while data is loading on initial mount.
- * Mirrors the MetricCard layout so the page doesn't jump when data arrives.
- */
-function SkeletonCard() {
-  return <article className="dash-metric dash-metric-skeleton">
-    <div className="dash-metric-top"><span className="dash-metric-icon dash-skel-line" style={{ width: 18, height: 18, display: 'inline-block' }} /><span className="dash-metric-label dash-skel-line" style={{ width: 80, height: 10 }} /></div>
-    <strong className="dash-skel-line" style={{ width: 50, height: 28 }} />
-    <span className="dash-metric-hint dash-skel-line" style={{ width: 120, height: 10 }} />
-  </article>;
-}
-
-function MetricCard({ label, value: metric, hint, tone, icon, sparkline }: { label: string; value: string; hint: string; tone: string; icon: string; sparkline?: number[] }) {
-  // Inline SVGs so the card looks crisp at every size. Each icon is
-  // themed to match the tone's accent color via the .dash-metric-<tone>
-  // class on the card root, plus an explicit color attribute on the
-  // stroke so SVG renders consistently inside the colored circle.
-  const iconPaths: Record<string, React.ReactNode> = {
-    hosts: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="6" rx="1.5" /><rect x="3" y="14" width="18" height="6" rx="1.5" /><circle cx="7" cy="7" r="0.8" fill="currentColor" stroke="none" /><circle cx="7" cy="17" r="0.8" fill="currentColor" stroke="none" />
-      </svg>
-    ),
-    nodes: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3 L21 8 L21 16 L12 21 L3 16 L3 8 Z" /><path d="M12 12 L21 8 M12 12 L3 8 M12 12 L12 21" />
-      </svg>
-    ),
-    workloads: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="6,4 20,12 6,20" />
-      </svg>
-    ),
-    health: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78z" />
-      </svg>
-    ),
-  };
-  return (
-    <article className={`dash-metric dash-metric-${tone}`}>
-      <span className="dash-metric-stripe" aria-hidden="true" />
-      <div className="dash-metric-top">
-        <span className="dash-metric-icon">{iconPaths[icon] ?? null}</span>
-        <span className="dash-metric-label">{label}</span>
-      </div>
-      <div className="dash-metric-row">
-        <strong>{metric}</strong>
-        {sparkline && <Sparkline values={sparkline} tone={tone as 'cyan' | 'indigo' | 'green' | 'amber' | 'red'} />}
-      </div>
-      <span className="dash-metric-hint">{hint}</span>
-    </article>
-  );
-}
-
-function TrendChart({ resources }: { resources: ProxmoxResource[] }) {
-  const values = resources.map((row) => Number(row.cpu)).filter((number) => Number.isFinite(number));
-  if (!values.length) {
-    return <div className="dash-chart-empty">
-      <div className="dash-empty-illustration" aria-hidden="true">
-        <svg viewBox="0 0 120 80" fill="none" stroke="currentColor" strokeWidth="1.2">
-          <rect x="6" y="14" width="108" height="56" rx="6" opacity=".35" />
-          <path d="M14 60 L34 44 L54 50 L74 32 L94 38 L106 28" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="34" cy="44" r="2" /><circle cx="54" cy="50" r="2" /><circle cx="74" cy="32" r="2" /><circle cx="94" cy="38" r="2" />
-        </svg>
-      </div>
-      <strong>Waiting for live resource data</strong>
-      <small>Connect a Proxmox host to populate this view.</small>
-    </div>;
-  }
-  const max = Math.max(...values, 1);
-  const points = values.map((number, index) => {
-    const x = 18 + (index / Math.max(values.length - 1, 1)) * 464;
-    const y = 158 - (number / max) * 124;
-    return `${x},${y}`;
-  }).join(' ');
-  return <div className="dash-chart-wrap">
-    <svg viewBox="0 0 500 190" role="img" aria-label="Current workload CPU values">
-      <defs><linearGradient id="dashArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#38bdf8" stopOpacity=".34" /><stop offset="1" stopColor="#38bdf8" stopOpacity="0" /></linearGradient></defs>
-      <line x1="18" y1="34" x2="482" y2="34" className="dash-grid-line" /><line x1="18" y1="96" x2="482" y2="96" className="dash-grid-line" /><line x1="18" y1="158" x2="482" y2="158" className="dash-grid-line" />
-      <polygon points={`18,158 ${points} 482,158`} fill="url(#dashArea)" />
-      <polyline points={points} fill="none" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      {values.map((number, index) => { const x = 18 + (index / Math.max(values.length - 1, 1)) * 464; const y = 158 - (number / max) * 124; return <circle key={`${number}-${index}`} cx={x} cy={y} r="3.5" fill="#0b1220" stroke="#67e8f9" strokeWidth="2" />; })}
-    </svg>
-    <div className="dash-chart-axis"><span>0%</span><span>Current workload CPU by resource</span><span>100%</span></div>
-  </div>;
-}
-
 export default function Dashboard() {
-  const nav = useNavigate();
   const logout = useLogout();
   const abortRef = useRef<AbortController | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot>(emptySnapshot);
@@ -199,9 +78,9 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(() => new Date());
-  // Rolling history of metric values for sparklines. We keep the last
-  // 30 samples (≈ 30 minutes at the 60s refresh cadence) so the sparkline
-  // gives a useful shape without unbounded memory growth.
+  // Rolling history of metric values for sparklines. Capped at 30
+  // samples (~30 minutes at the 60s refresh cadence) so the
+  // sparkline gives useful shape without unbounded memory growth.
   const [history, setHistory] = useState<{ hosts: number[]; nodes: number[]; running: number[]; cpu: number[] }>({
     hosts: [], nodes: [], running: [], cpu: [],
   });
@@ -227,7 +106,7 @@ export default function Dashboard() {
         api<{ hosts?: ProxmoxHost[] }>('GET', '/api/v1/proxmox/hosts', undefined, true, { signal: ctrl.signal }),
         // Alerts endpoint may not exist yet on this build — catch and
         // degrade to an empty array rather than failing the whole load.
-        api<{ alerts?: { id: string; state: string; severity: string; name: string }[] }>('GET', '/api/v1/alerts?state=open&limit=200', undefined, true, { signal: ctrl.signal }).catch(() => ({ alerts: [] })),
+        api<{ alerts?: Alert[] }>('GET', '/api/v1/alerts?state=open&limit=200', undefined, true, { signal: ctrl.signal }).catch(() => ({ alerts: [] })),
       ]);
       const hosts = hostsData.hosts || [];
       const primary = hosts[0];
@@ -249,9 +128,6 @@ export default function Dashboard() {
         alerts: alertsData.alerts || [],
       });
       setLastUpdated(new Date());
-      // Append this cycle's values to the rolling history. We cap at
-      // 30 samples so the sparkline has a stable shape (~30 minutes
-      // of context at the 60s auto-refresh rate).
       setHistory((prev) => ({
         hosts: [...prev.hosts, hosts.length].slice(-30),
         nodes: [...prev.nodes, listFrom(nodesPayload, 'nodes').length].slice(-30),
@@ -272,8 +148,6 @@ export default function Dashboard() {
     return () => {
       window.clearInterval(timer);
       window.clearInterval(clockTimer);
-      // Cancel any pending request so it can't fire after the user signs
-      // out and surface a stale 401 against the now-unmounted Dashboard.
       abortRef.current?.abort();
     };
   }, []);
@@ -295,10 +169,16 @@ export default function Dashboard() {
   }, [paletteOpen]);
 
   const running = useMemo(() => snapshot.resources.filter(isRunning).length, [snapshot.resources]);
-  const stopped = useMemo(() => snapshot.resources.filter((row) => text(row.status, '').toLowerCase() === 'stopped').length, [snapshot.resources]);
+  const stopped = useMemo(
+    () => snapshot.resources.filter((row) => text(row.status, '').toLowerCase() === 'stopped').length,
+    [snapshot.resources],
+  );
   const tenantName = text(value(snapshot.tenant, 'name'), 'Workspace');
   const userName = text(value(snapshot.user, 'full_name'), text(value(snapshot.user, 'email'), 'Operator'));
+  const firstName = (userName || '').split(' ')[0] || 'Operator';
   const firingAlerts = snapshot.alerts.filter((a) => a.state === 'open' || a.state === 'firing').length;
+  const apiHealthStatus = String(value(snapshot.health, 'status') || '');
+  const apiHealthTone = apiHealthStatus === 'ok' ? 'green' : apiHealthStatus ? 'amber' : 'amber';
 
   // Filter resources by the search query — matches name, type, vmid, status.
   const filteredResources = useMemo(() => {
@@ -310,94 +190,157 @@ export default function Dashboard() {
     });
   }, [snapshot.resources, search]);
 
-  return <div className="dash-app">
-    <aside className="dash-sidebar">
-      <Link className="dash-brand" to="/dashboard"><span className="dash-brand-mark">S</span><span><strong>StackWatch</strong><small>Infrastructure control plane</small></span></Link>
-      <div className="dash-nav-section"><span className="dash-nav-heading">Workspace</span>
-        <Link className="dash-nav-item dash-nav-active" to="/dashboard"><span className="dash-nav-icon">⌂</span><span className="dash-nav-label">Overview</span></Link>
-        <Link className="dash-nav-item" to="/billing"><span className="dash-nav-icon">$</span><span className="dash-nav-label">Billing</span></Link>
-      </div>
-      <div className="dash-nav-section"><span className="dash-nav-heading">Infrastructure</span>
-        <Link className="dash-nav-item" to="/proxmox"><span className="dash-nav-icon">◈</span><span className="dash-nav-label">Proxmox</span></Link>
-        <Link className="dash-nav-item" to="/truenas"><span className="dash-nav-icon">▤</span><span className="dash-nav-label">TrueNAS</span></Link>
-        <Link className="dash-nav-item" to="/dashboard"><span className="dash-nav-icon">⌘</span><span className="dash-nav-label">Terminal</span></Link>
-        {firingAlerts > 0 && <div className="dash-nav-section"><span className="dash-nav-heading">Health</span>
-          <div className="dash-nav-alert-pill" title={`${firingAlerts} firing alert${firingAlerts === 1 ? '' : 's'}`}>
-            <span className="dash-status-dot dash-status-bad" />{firingAlerts} firing
+  return (
+    <div className="dash-app">
+      <AppSidebar
+        active="dashboard"
+        onLogout={logout}
+        apiVersion={text(value(snapshot.health, 'version'), 'StackWatch API')}
+        firingAlerts={firingAlerts}
+        show={['dashboard', 'billing', 'proxmox', 'truenas']}
+      />
+      <main className="dash-main">
+        <header className="dash-topbar">
+          <div className="dash-greeting">
+            <span className="dash-greeting-eyebrow">Hello, {firstName}</span>
+            <div className="dash-greeting-row">
+              <strong className="dash-greeting-text">{greetingFor(now)}.</strong>
+              <span className="dash-greeting-live" title="You are live" aria-label="Live">
+                <span className="dash-live-dot" aria-hidden />
+                <span className="dash-greeting-live-text">Live</span>
+              </span>
+            </div>
           </div>
-        </div>}
-      </div>
-      <div className="dash-sidebar-bottom"><div className="dash-connection"><span className="dash-live-dot" />Control plane online<small>{text(value(snapshot.health, 'version'), 'StackWatch API')}</small></div><button className="dash-sidebar-logout" onClick={logout}>↪ Sign out</button></div>
-    </aside>
-    <main className="dash-main">
-      <header className="dash-topbar"><div className="dash-greeting"><span className="dash-greeting-eyebrow">Hello, {firstNameOf(userName)}</span><div className="dash-greeting-row"><strong className="dash-greeting-text">{greetingFor(now)}.</strong><span className="dash-greeting-live" title="You are live" aria-label="Live"><span className="dash-live-dot" aria-hidden /><span className="dash-greeting-live-text">Live</span></span></div></div><div className="dash-topbar-center"><button className="dash-topbar-search" onClick={() => setPaletteOpen(true)} title="Search & navigate (Cmd+K)" aria-label="Open command palette"><span className="dash-topbar-search-icon" aria-hidden="true">⌕</span><span className="dash-topbar-search-placeholder">Search & navigate…</span><kbd className="dash-topbar-search-kbd">⌘</kbd><kbd className="dash-topbar-search-kbd">K</kbd></button></div><div className="dash-top-actions"><TimeWidget /><button className="dash-icon-button" onClick={() => window.location.reload()} aria-label="Refresh page" title="Refresh page">↻</button>
-        <ProfileMenu firstName={firstNameOf(userName)} fullName={userName} tenantName={tenantName} initials={userName.charAt(0).toUpperCase()} />
-      </div></header>
-      <div className="dash-content">
-        {error && (() => {
-          // Soft "session expired" tone — the user just needs to sign
-          // back in, not panic about a server outage. Anything else
-          // gets the louder red error bar so they know to retry.
-          const isAuthError = /unauthor|sign.in|token|expired|401/i.test(error);
-          if (isAuthError) {
-            return (
-              <div className="dash-error dash-error-info">
-                <span className="dash-error-icon" aria-hidden="true">!</span>
-                <strong>Sign in again</strong>
-                <span>Your session ended. Sign back in to load live infrastructure data.</span>
-                <button type="button" onClick={() => { clearToken(); nav('/login'); }}>Sign in</button>
+          <div className="dash-topbar-center">
+            <button
+              className="dash-topbar-search"
+              onClick={() => setPaletteOpen(true)}
+              title="Search & navigate (Cmd+K)"
+              aria-label="Open command palette"
+            >
+              <span className="dash-topbar-search-icon" aria-hidden="true">⌕</span>
+              <span className="dash-topbar-search-placeholder">Search & navigate…</span>
+              <kbd className="dash-topbar-search-kbd">⌘</kbd>
+              <kbd className="dash-topbar-search-kbd">K</kbd>
+            </button>
+          </div>
+          <div className="dash-top-actions">
+            <TimeWidget />
+            <button
+              className="dash-icon-button"
+              onClick={() => window.location.reload()}
+              aria-label="Refresh page"
+              title="Refresh page"
+            >↻</button>
+            <ProfileMenu
+              firstName={firstName}
+              fullName={userName}
+              tenantName={tenantName}
+              initials={userName.charAt(0).toUpperCase()}
+            />
+          </div>
+        </header>
+        <div className="dash-content">
+          {error && <ErrorBar error={error} onRetry={() => void loadDashboard()} />}
+          <WelcomeHeader userName={userName} lastUpdated={lastUpdated} formatRelative={formatRelative} now={now} />
+          <section className="dash-metric-grid">
+            {loading && !snapshot.hosts.length ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : (
+              <>
+                <MetricCard label="Connected hosts" value={String(snapshot.hosts.length)} hint="Registered control planes" tone="cyan" icon={<ServerIcon />} sparkline={history.hosts} />
+                <MetricCard label="Compute nodes" value={String(snapshot.nodes.length)} hint="Across your Proxmox fabric" tone="indigo" icon={<NetworkIcon />} sparkline={history.nodes} />
+                <MetricCard label="Running workloads" value={String(running)} hint={`${stopped} stopped`} tone="green" icon={<PlayIcon />} sparkline={history.running} />
+                <MetricCard label="API health" value={apiHealthStatus || '—'} hint={text(value(snapshot.health, 'version'), 'StackWatch API')} tone={apiHealthTone} icon={<HeartIcon />} sparkline={history.cpu.map((c) => Math.min(100, c))} />
+              </>
+            )}
+          </section>
+          <section className="dash-grid-main">
+            <article className="dash-panel dash-chart-panel">
+              <div className="dash-panel-head">
+                <div>
+                  <span className="dash-eyebrow">Live telemetry</span>
+                  <h3>Workload pressure</h3>
+                </div>
+                <span className="dash-panel-context">Current snapshot</span>
               </div>
-            );
-          }
-          return (
-            <div className="dash-error">
-              <span className="dash-error-icon" aria-hidden="true">!</span>
-              <strong>Live data unavailable</strong>
-              <span>{error}</span>
-              <button type="button" onClick={() => void loadDashboard()}>Retry</button>
+              <TrendChart resources={snapshot.resources} />
+            </article>
+            <article className="dash-panel">
+              <div className="dash-panel-head">
+                <div>
+                  <span className="dash-eyebrow">Operations</span>
+                  <h3>Infrastructure status</h3>
+                </div>
+                <span className="dash-panel-context">{snapshot.hosts.length} host{snapshot.hosts.length === 1 ? '' : 's'}</span>
+              </div>
+              <HostList hosts={snapshot.hosts} />
+            </article>
+          </section>
+          <section className="dash-panel">
+            <div className="dash-panel-head">
+              <div>
+                <span className="dash-eyebrow">Compute inventory</span>
+                <h3>Workloads and resources</h3>
+              </div>
+              <div className="dash-panel-controls">
+                <FilterBar
+                  search={search}
+                  onSearchChange={setSearch}
+                  placeholder="Search workloads by name, type, or status..."
+                  ariaLabel="Search workloads"
+                />
+                <Link className="dash-text-link" to="/proxmox">Open full workspace →</Link>
+              </div>
             </div>
-          );
-        })()}
-        <section className="dash-welcome"><div><span className="dash-welcome-eyebrow">Infrastructure overview</span><h2>{userName ? `Good to see you, ${userName.split(' ')[0]}.` : 'Welcome to StackWatch'}</h2><p>One place to see the health of your infrastructure and move from signal to action.</p></div><div className="dash-welcome-meta"><div className="dash-welcome-meta-row"><span className="dash-welcome-meta-dot" />Live sync</div><div className="dash-welcome-meta-time" title={lastUpdated?.toLocaleString()}>{lastUpdated ? `Updated ${formatRelative(lastUpdated, now)}` : 'Syncing…'}</div></div></section>
-        <section className="dash-metric-grid">
-          {loading && !snapshot.hosts.length ? <>
-            <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
-          </> : <>
-            <MetricCard label="Connected hosts" value={String(snapshot.hosts.length)} hint="Registered control planes" tone="cyan" icon="hosts" sparkline={history.hosts} />
-            <MetricCard label="Compute nodes" value={String(snapshot.nodes.length)} hint="Across your Proxmox fabric" tone="indigo" icon="nodes" sparkline={history.nodes} />
-            <MetricCard label="Running workloads" value={String(running)} hint={`${stopped} stopped`} tone="green" icon="workloads" sparkline={history.running} />
-            <MetricCard label="API health" value={text(value(snapshot.health, 'status'), '—')} hint={text(value(snapshot.health, 'version'), 'StackWatch API')} tone={value(snapshot.health, 'status') === 'ok' ? 'green' : 'amber'} icon="health" sparkline={history.cpu.map((c) => Math.min(100, c))} />
-          </>}
-        </section>
-        <section className="dash-grid-main"><article className="dash-panel dash-chart-panel"><div className="dash-panel-head"><div><span className="dash-eyebrow">Live telemetry</span><h3>Workload pressure</h3></div><span className="dash-panel-context">Current snapshot</span></div><TrendChart resources={snapshot.resources} /></article><article className="dash-panel"><div className="dash-panel-head"><div><span className="dash-eyebrow">Operations</span><h3>Infrastructure status</h3></div><span className="dash-panel-context">{snapshot.hosts.length} host{snapshot.hosts.length === 1 ? '' : 's'}</span></div><div className="dash-host-list">{snapshot.hosts.length ? snapshot.hosts.map((host) => <div className="dash-host-row" key={host.id}><span className="dash-host-icon">⌁</span><span className="dash-host-name"><strong>{host.name || 'Unnamed host'}</strong><small>{host.base_url}</small></span><StatusPill status={host.status || 'unknown'} /></div>) : <div className="dash-panel-empty">
-          <div className="dash-empty-illustration" aria-hidden="true">
-            <svg viewBox="0 0 120 80" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <rect x="14" y="20" width="92" height="48" rx="6" opacity=".4" />
-              <circle cx="60" cy="44" r="14" opacity=".5" />
-              <path d="M44 44 L52 52 L76 28" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <strong>No infrastructure connected yet</strong>
-          <span>Register a Proxmox host to see your environment here.</span>
-          <Link to="/proxmox">Open Proxmox workspace →</Link>
-        </div>}</div></article></section>
-        <section className="dash-panel">
-          <div className="dash-panel-head">
-            <div><span className="dash-eyebrow">Compute inventory</span><h3>Workloads and resources</h3></div>
-            <div className="dash-panel-controls">
-              <FilterBar
-                search={search}
-                onSearchChange={setSearch}
-                placeholder="Search workloads by name, type, or status..."
-                ariaLabel="Search workloads"
-              />
-              <Link className="dash-text-link" to="/proxmox">Open full workspace →</Link>
-            </div>
-          </div>
-          {filteredResources.length ? <div className="dash-resource-grid">{filteredResources.slice(0, 12).map((resource, index) => <div className="dash-resource-card" key={String(resource.id || resource.vmid || index)}><div className="dash-resource-head"><span className="dash-resource-type">{text(resource.type, 'resource')}</span><StatusPill status={resource.status} /></div><strong>{text(resource.name, `Workload ${text(resource.vmid, String(index + 1))}`)}</strong><div className="dash-resource-meta"><span>CPU <b>{typeof resource.cpu === 'number' ? formatPercent(resource.cpu) : '—'}</b></span><span>RAM <b>{formatBytes(resource.mem)}</b></span></div></div>)}</div> : search ? <div className="dash-empty-inline"><span>⌕</span><div><strong>No workloads match &ldquo;{search}&rdquo;</strong><p>Try a different search term, or clear the search to see all {snapshot.resources.length} workload{snapshot.resources.length === 1 ? '' : 's'}.</p></div></div> : <div className="dash-empty-inline"><span>◇</span><div><strong>No workloads reported</strong><p>The dashboard will populate as soon as the connected host returns resource inventory.</p></div></div>}
-        </section>
-      </div>
-    </main>
-    <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-  </div>;
+            {filteredResources.length ? (
+              <div className="dash-resource-grid">
+                {filteredResources.slice(0, 12).map((resource, index) => (
+                  <div className="dash-resource-card" key={String(resource.id || resource.vmid || index)}>
+                    <div className="dash-resource-head">
+                      <span className="dash-resource-type">{text(resource.type, 'resource')}</span>
+                      <StatusPill status={resource.status ?? ''} />
+                    </div>
+                    <strong>{text(resource.name, `Workload ${text(resource.vmid, String(index + 1))}`)}</strong>
+                    <div className="dash-resource-meta">
+                      <span>
+                        CPU <b>{typeof resource.cpu === 'number' ? formatPercent(resource.cpu) : '—'}</b>
+                      </span>
+                      <span>
+                        RAM <b>{formatBytes(resource.mem)}</b>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : search ? (
+              <div className="dash-empty-inline">
+                <span>⌕</span>
+                <div>
+                  <strong>No workloads match &ldquo;{search}&rdquo;</strong>
+                  <p>
+                    Try a different search term, or clear the search to see all {snapshot.resources.length} workload{snapshot.resources.length === 1 ? '' : 's'}.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="dash-empty-inline">
+                <span>◇</span>
+                <div>
+                  <strong>No workloads reported</strong>
+                  <p>The dashboard will populate as soon as the connected host returns resource inventory.</p>
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+    </div>
+  );
 }

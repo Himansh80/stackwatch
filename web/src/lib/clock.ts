@@ -20,3 +20,32 @@ export function formatDayLabel(d: Date): string {
   const year = d.toLocaleDateString('en-US', { year: 'numeric' });
   return `${weekday}, ${day} ${month} ${year}`;
 }
+
+/**
+ * Time-of-day greeting. Datadog/Linear style: <12 "Good morning",
+ * 12-17 "Good afternoon", 17-21 "Good evening", else "Working late".
+ */
+export function greetingFor(d: Date): string {
+  const hour = d.getHours();
+  if (hour < 5) return 'Working late';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 21) return 'Good evening';
+  return 'Working late';
+}
+
+/**
+ * Relative time formatter. "3 sec ago", "4 min ago", "1 hr ago",
+ * "yesterday". Falls back to absolute time after a day.
+ */
+export function formatRelative(date: Date, now: Date): string {
+  const seconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
+  if (seconds < 5) return 'just now';
+  if (seconds < 60) return `${seconds} sec ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return date.toLocaleString();
+}
+
