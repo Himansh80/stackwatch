@@ -3,6 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, setToken } from '../lib/api';
 import PasswordInput from '../components/PasswordInput';
 import { friendlyPasswordMessage } from '../lib/password';
+import {
+  motion,
+  cardEntrance,
+  staggerFormRows,
+  formRow,
+  buttonSpring,
+  useReducedMotion,
+} from '../lib/motion';
 
 interface SignupError {
   message: string;
@@ -19,6 +27,9 @@ export default function Signup() {
   const [tenantName, setTenantName] = useState('');
   const [error, setError] = useState<SignupError | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Reduced-motion: snap into the show state instead of running the entrance.
+  const reduce = useReducedMotion();
 
   function clientValidate(): string | null {
     if (!tenantName.trim()) return 'Please enter a workspace name.';
@@ -80,14 +91,24 @@ export default function Signup() {
         <span className="auth-brand-mark">S</span>
         <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
       </Link>
-      <div className="auth-card">
-        <header>
+      <motion.div
+        className="auth-card"
+        initial={reduce ? false : 'hidden'}
+        animate="show"
+        variants={cardEntrance}
+      >
+        <motion.header variants={formRow}>
           <span className="auth-eyebrow">Create your workspace</span>
           <h1>Start free</h1>
           <p>One workspace, one admin user, no credit card. You can run a hosted free tier or download the binary and self-host.</p>
-        </header>
-        <form onSubmit={onSubmit}>
-          <label>
+        </motion.header>
+        <motion.form
+          onSubmit={onSubmit}
+          initial={reduce ? false : 'hidden'}
+          animate="show"
+          variants={staggerFormRows}
+        >
+          <motion.label variants={formRow}>
             <span>Workspace name</span>
             <input
               type="text"
@@ -98,8 +119,8 @@ export default function Signup() {
               autoFocus
             />
             <small>Shared by everyone in your team. You can rename later.</small>
-          </label>
-          <label>
+          </motion.label>
+          <motion.label variants={formRow}>
             <span>Your name</span>
             <input
               type="text"
@@ -108,8 +129,8 @@ export default function Signup() {
               placeholder="Your full name"
               required
             />
-          </label>
-          <label>
+          </motion.label>
+          <motion.label variants={formRow}>
             <span>Work email</span>
             <input
               type="email"
@@ -118,8 +139,8 @@ export default function Signup() {
               placeholder="you@example.com"
               required
             />
-          </label>
-          <label className="auth-pwd-label">
+          </motion.label>
+          <motion.label className="auth-pwd-label" variants={formRow}>
             <span>Password</span>
             <PasswordInput
               value={password}
@@ -128,16 +149,39 @@ export default function Signup() {
               required
             />
             <small>Minimum 10 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
-          </label>
-          {error && <div className="auth-error">{error.message}</div>}
-          <button type="submit" className="auth-button-primary" disabled={loading}>
+          </motion.label>
+          {error && (
+            <motion.div
+              className="auth-error"
+              variants={formRow}
+              initial={reduce ? false : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              role="alert"
+            >
+              {error.message}
+            </motion.div>
+          )}
+          <motion.button
+            type="submit"
+            className="auth-button-primary"
+            disabled={loading}
+            whileHover={loading ? undefined : buttonSpring.whileHover}
+            whileTap={loading ? undefined : buttonSpring.whileTap}
+            transition={buttonSpring.transition}
+          >
             {loading ? 'Creating workspace...' : 'Create free account'}
-          </button>
-        </form>
-        <p className="auth-switch">
+          </motion.button>
+        </motion.form>
+        <motion.p
+          className="auth-switch"
+          variants={formRow}
+          initial={reduce ? false : 'hidden'}
+          animate="show"
+        >
           Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
       <p className="auth-foot">
         By creating an account you agree to run StackWatch on systems you own or are authorized to monitor.
       </p>

@@ -2,6 +2,15 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, login, setToken } from '../lib/api';
 import PasswordField from '../components/PasswordField';
+import {
+  motion,
+  cardEntrance,
+  staggerFormRows,
+  formRow,
+  buttonSpring,
+  EASE_OUT,
+  useReducedMotion,
+} from '../lib/motion';
 
 // Lightweight RFC-5322-ish check. Same shape browser's <input type="email">
 // uses, but we surface the error inline instead of relying on the
@@ -94,20 +103,35 @@ export default function Login() {
       ? `Too many attempts. Please wait ${secondsLeft} second${secondsLeft === 1 ? '' : 's'} and try again.`
       : error;
 
+  // Honour reduced-motion at the React layer too (the CSS guard catches
+  // rest, this guards the framer-motion transitions).
+  const reduce = useReducedMotion();
+
   return (
     <div className="auth-shell">
       <Link className="auth-brand" to="/">
         <span className="auth-brand-mark">S</span>
         <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
       </Link>
-      <div className="auth-card">
-        <header>
+      <motion.div
+        className="auth-card"
+        initial={reduce ? false : "hidden"}
+        animate="show"
+        variants={cardEntrance}
+      >
+        <motion.header variants={formRow}>
           <span className="auth-eyebrow">Welcome back</span>
           <h1>Sign in</h1>
           <p>Use your StackWatch workspace email to connect to the control plane.</p>
-        </header>
-        <form onSubmit={onSubmit} noValidate>
-          <label>
+        </motion.header>
+        <motion.form
+          onSubmit={onSubmit}
+          noValidate
+          initial={reduce ? false : "hidden"}
+          animate="show"
+          variants={staggerFormRows}
+        >
+          <motion.label variants={formRow}>
             <span>Email</span>
             <input
               type="email"
@@ -119,8 +143,8 @@ export default function Login() {
               autoComplete="email"
               aria-invalid={errorCode === 'client_validation' && !EMAIL_RE.test(email.trim()) ? 'true' : undefined}
             />
-          </label>
-          <label>
+          </motion.label>
+          <motion.label variants={formRow}>
             <span>Password</span>
             <PasswordField
               value={password}
@@ -130,21 +154,44 @@ export default function Login() {
               autoComplete="current-password"
               ariaInvalid={errorCode === 'client_validation' && password.length > 0 && password.length < 8 ? 'true' : undefined}
             />
-          </label>
-          {error && <div className="auth-error"><span>{errorMessage}</span></div>}
-          <button type="submit" className="auth-button-primary" disabled={loading || secondsLeft > 0}>
-            {loading ? 'Signing in...' : secondsLeft > 0 ? `Try again in ${secondsLeft}s` : 'Sign in'}
-          </button>
-          {showForgotLink && (
-            <p className="auth-forgot">
-              <Link to="/forgot-password">Forgot password?</Link>
-            </p>
+          </motion.label>
+          {error && (
+            <motion.div
+              className="auth-error"
+              variants={formRow}
+              initial={reduce ? false : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, ease: EASE_OUT }}
+              role="alert"
+            >
+              <span>{errorMessage}</span>
+            </motion.div>
           )}
-        </form>
-        <p className="auth-switch">
+          <motion.button
+            type="submit"
+            className="auth-button-primary"
+            disabled={loading || secondsLeft > 0}
+            whileHover={loading || secondsLeft > 0 ? undefined : buttonSpring.whileHover}
+            whileTap={loading || secondsLeft > 0 ? undefined : buttonSpring.whileTap}
+            transition={buttonSpring.transition}
+          >
+            {loading ? 'Signing in...' : secondsLeft > 0 ? `Try again in ${secondsLeft}s` : 'Sign in'}
+          </motion.button>
+          {showForgotLink && (
+            <motion.p className="auth-forgot" variants={formRow}>
+              <Link to="/forgot-password">Forgot password?</Link>
+            </motion.p>
+          )}
+        </motion.form>
+        <motion.p
+          className="auth-switch"
+          variants={formRow}
+          initial={reduce ? false : "hidden"}
+          animate="show"
+        >
           New to StackWatch? <Link to="/signup">Create a free workspace</Link>
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
       <p className="auth-foot">
         StackWatch runs on hardware you control. Self-host with a single binary, or use the hosted control plane.
       </p>

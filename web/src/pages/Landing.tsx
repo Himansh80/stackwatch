@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   motion,
   useReducedMotion,
+  EASE_OUT,
+  fadeUp,
+  stagger,
+  cardLift,
+  buttonSpring,
+  CountUp,
+  LiveDot,
   type Variants,
-} from 'framer-motion';
+} from '../lib/motion';
 
 // ---------- Demo data (unchanged) --------------------------------------
 const NODE_NAMES = ['edge-01', 'core-a', 'core-b', 'mgmt-01', 'gpu-02', 'storage-1', 'hypervisor-eu', 'worker-3', 'bastion', 'observability-1', 'db-primary', 'cache-01', 'ci-runner-2'];
@@ -127,60 +134,9 @@ const steps = [
 ];
 
 // ---------- Motion tokens (single source of truth) --------------------
-// Durations follow agent-design-intelligence: 320ms for UI, 420-520ms for
-// bigger moments. Easings: ease-out for enter, ease-in for exit. Stagger 50-80ms.
-// Reduced motion is honored globally via useReducedMotion() below.
-const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
-
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: EASE_OUT } },
-};
-
-const stagger = (delayChildren = 0.08, staggerChildren = 0.06): Variants => ({
-  hidden: {},
-  show: { transition: { delayChildren, staggerChildren } },
-});
-
-const cardHover: MotionHoverProps = { y: -3, transition: { type: 'spring', stiffness: 380, damping: 26 } };
-
-// ---------- KPI counter (animates from 0 -> n over ~700ms) ------------
-type MotionHoverProps = { y: number; transition: { type: 'spring'; stiffness: number; damping: number } };
-
-function CountUp({ value, durationMs = 700 }: { value: number; durationMs?: number }) {
-  const reduce = useReducedMotion();
-  const [display, setDisplay] = useState(reduce ? value : 0);
-  const raf = useRef<number | null>(null);
-  useEffect(() => {
-    if (reduce) {
-      setDisplay(value);
-      return;
-    }
-    const start = performance.now();
-    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
-      setDisplay(Math.round(value * ease(t)));
-      if (t < 1) raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-    return () => {
-      if (raf.current != null) cancelAnimationFrame(raf.current);
-    };
-  }, [value, durationMs, reduce]);
-  return <>{display}</>;
-}
-
-// ---------- Live dot (real elapsed-since-mount, no fake shimmer) -------
-function LiveDot() {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => force((n) => n + 1), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  return <span className="landing-live-dot" aria-hidden="true" />;
-}
-
+// Tokens live in ../lib/motion so Login and Signup share the exact same
+// feel. Keep this file behaviour-only (no token definitions).
+//
 // ---------- Topbar (motion-aware Sign in / Sign up CTAs only) ----------
 function LandingTopbar() {
   const reduce = useReducedMotion();
@@ -202,10 +158,10 @@ function LandingTopbar() {
         <a href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
       </nav>
       <div className="landing-top-actions">
-        <motion.div whileHover={cardHover} className="landing-button-wrap">
+        <motion.div whileHover={cardLift} className="landing-button-wrap">
           <Link className="landing-button landing-button-ghost" to="/login">Sign in</Link>
         </motion.div>
-        <motion.div whileHover={cardHover} className="landing-button-wrap">
+        <motion.div whileHover={cardLift} className="landing-button-wrap">
           <Link className="landing-button landing-button-primary" to="/signup">Sign up free</Link>
         </motion.div>
       </div>
@@ -241,12 +197,12 @@ function LandingHero({ preview }: { preview: ReturnType<typeof generatePreview> 
           terminals — in a single place, on hardware you control.
         </motion.p>
         <motion.div className="landing-hero-actions" variants={heroItemVariants}>
-          <motion.div whileHover={cardHover} whileTap={{ y: 0, scale: 0.98 }} className="landing-button-wrap">
+          <motion.div whileHover={cardLift} whileTap={buttonSpring.whileTap} className="landing-button-wrap">
             <Link className="landing-button landing-button-primary landing-button-large" to="/signup">
               Create a free account
             </Link>
           </motion.div>
-          <motion.div whileHover={cardHover} className="landing-button-wrap">
+          <motion.div whileHover={cardLift} className="landing-button-wrap">
             <Link className="landing-button landing-button-ghost landing-button-large" to="/login">
               I already have one
             </Link>
@@ -476,10 +432,10 @@ function BottomCta() {
         <p>Create a free account in under a minute. No credit card, no trial countdown.</p>
       </div>
       <div className="landing-cta-actions">
-        <motion.div whileHover={cardHover} whileTap={{ y: 0, scale: 0.98 }} className="landing-button-wrap">
+        <motion.div whileHover={cardLift} whileTap={buttonSpring.whileTap} className="landing-button-wrap">
           <Link className="landing-button landing-button-primary landing-button-large" to="/signup">Create free account</Link>
         </motion.div>
-        <motion.div whileHover={cardHover} className="landing-button-wrap">
+        <motion.div whileHover={cardLift} className="landing-button-wrap">
           <Link className="landing-button landing-button-ghost landing-button-large" to="/login">Sign in</Link>
         </motion.div>
       </div>
