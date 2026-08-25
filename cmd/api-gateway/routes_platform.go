@@ -167,11 +167,48 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 	//   GET  /api/v1/platform/backup/:id/download  — DownloadBackup (streamed ciphertext)
 	//   DELETE /api/v1/platform/backup/:id         — DeleteBackup  (unlink file + row)
 	protected.POST("/platform/backup/create", handler.CreateBackup(pool))
-	protected.GET("/platform/backup/list", handler.ListBackups(pool))
-	protected.POST("/platform/backup/restore", handler.RestoreBackup(pool))
-	protected.GET("/platform/backup/:id/download", handler.DownloadBackup(pool))
-	protected.DELETE("/platform/backup/:id", handler.DeleteBackup(pool))
-}
+		protected.GET("/platform/backup/list", handler.ListBackups(pool))
+		protected.POST("/platform/backup/restore", handler.RestoreBackup(pool))
+		protected.GET("/platform/backup/:id/download", handler.DownloadBackup(pool))
+		protected.DELETE("/platform/backup/:id", handler.DeleteBackup(pool))
+
+		// ---- Tier 11.6: Multi-Region / HA (Phase 6 — PL6) ----
+		//
+		// Per spec §"PL6 — Multi-Region/HA". The 3 endpoints
+		// back the platform-admin region catalog + health
+		// surface. The catalog is PLATFORM-WIDE (no tenant
+		// scoping) so every super_admin sees the same set of
+		// regions. ListRegions + ProbeRegionsHealth require a
+		// JWT; CreateRegion additionally gates on
+		// claims.Role == "super_admin" because adding
+		// infrastructure is an admin-only operation.
+		//
+		// Probe semantics: every POST /regions triggers a
+		// fire-and-forget HTTP probe against the new region's
+		// endpoint_url so the row appears in
+		// /regions/health within ~1s. The /regions/health
+		// endpoint itself probes every active region
+		// sequentially (2s timeout each) and writes the
+		// result to platform_regions.last_health_*. See
+		// handlers_platform_regions.go + the probe helper
+		// in handlers_platform_regions_probe.go.
+		//
+		// Why the router-order matters: `/regions/health`
+		// is a STATIC path sibling of the dynamic
+		// `/regions/:id` would-be-suffix; registering
+		// `/regions/health` BEFORE any future `:id` handler
+		// keeps Gin's tree-router matching the literal
+		// suffix first. Today Phase 6 has no :id endpoint —
+		// the explicit ordering is just future-proofing.
+		//
+		// Routes (2 protected + 1 super_admin):
+		//   GET  /api/v1/platform/regions         — ListRegions
+		//   POST /api/v1/platform/regions         — CreateRegion         (super_admin only)
+		//   GET  /api/v1/platform/regions/health  — ProbeRegionsHealth
+		protected.GET("/platform/regions/health", handler.ProbeRegionsHealth(pool))
+		protected.GET("/platform/regions", handler.ListRegions(pool))
+		protected.POST("/platform/regions", handler.CreateRegion(pool))
+	}
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints
 // (no JWT, no RequireAuth). Called from routes.go where the

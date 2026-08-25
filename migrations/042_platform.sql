@@ -472,3 +472,90 @@ CREATE TABLE IF NOT EXISTS platform_backup_jobs (
 -- pull every job that needs a run with a single index scan.
 CREATE INDEX IF NOT EXISTS idx_platform_backup_jobs_enabled
     ON platform_backup_jobs(enabled, last_run_at NULLS FIRST);
+
+-- ============================================================================
+-- Tier 11 Phase 6 — Multi-Region / HA (PL6)
+-- ============================================================================
+--
+-- Adds the 2 tables backing the multi-region / HA surface:
+--
+--   platform_regions — region catalog. One row per StackWatch
+--                      instance the platform knows about (primary
+--                      sites, replica sites, standby / DR sites).
+--                      `code` is the URL-safe lowercase handle
+--                      (`us-east-1`, `eu-west-2`) that callers
+--                      reference; `region_kind` ('primary' |
+--                      'replica' | 'standby') drives the dashboard
+--                      tile color. The last_health_* columns are
+--                      written by the probe path (GET
+--                      /platform/regions/health) — a fire-and-forget
+--                      GET against `endpoint_url` measures latency
+--                      and surfaces the result in the row.
+--
+--   platform_region_replicas — replication topology. One row per
+--                      (primary, replica) pairing. Today Phase 6
+--                      catalogs the rows but does NOT run a
+--                      replication worker (the `/regions/replication`
+--                      write endpoint is deferred to a follow-up
+--                      phase; the platform_admin dashboard still
+--                      needs the topology to render the failover
+--                      preview).
+--
+-- Why platform-wide (no tenant_id):
+--   Regions are a platform-admin concept. A given tenant's data
+--   may live on N regions but the REGION LIST is global — every
+--   super_admin sees the same catalog. Tenant scoping enters via
+--   the existing `tenants.region_code` column added in Phase 6
+--   follow-up; the catalog itself is intentionally shared.
+--
+-- Idempotency: every CREATE uses IF NOT EXISTS so re-running the
+-- migration (the .115 deploy script runs 042 on every boot) is a
+-- no-op rather than a destructive error.
+
+CREATE TABLE IF NOT EXISTS platform_regions (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code              text NOT NULL UNIQUE,
+    display_name      text NOT NULL,
+    region_kind       text NOT NULL DEFAULT 'primary',
+    endpoint_url      text NOT NULL,
+    is_active         boolean NOT NULL DEFAULT true,
+    last_health_at    timestamptz,
+    last_health_status text,
+    last_health_latency_ms integer,
+    last_health_error text,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    updated_at        timestamptz NOT NULL DEFAULT now()
+);
+
+-- "List all regions on the dashboard" — the hot path for GET
+-- /platform/regions. Composite index because the dashboard
+-- renders the list on every page load; the is_active filter
+-- drops deactivated regions from the default view.
+CREATE INDEX IF NOT EXISTS idx_platform_regions_active
+    ON platform_regions(is_active, code);
+
+-- "Find regions needing a probe" — the partial index keeps the
+-- /platform/regions/health worker hot (Phase 8 PL8 will move the
+-- probe into a scheduler; today Phase 6 triggers the probe
+-- on-demand inside the POST handler).
+CREATE INDEX IF NOT EXISTS idx_platform_regions_health
+    ON platform_regions(last_health_at NULLS FIRST)
+    WHERE is_active = true;
+
+CREATE TABLE IF NOT EXISTS platform_region_replicas (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    primary_region_id uuid NOT NULL REFERENCES platform_regions(id) ON DELETE CASCADE,
+    replica_region_id uuid NOT NULL REFERENCES platform_regions(id) ON DELETE CASCADE,
+    replication_kind  text NOT NULL DEFAULT 'streaming',
+    replication_lag_ms integer NOT NULL DEFAULT 0,
+    last_sync_at      timestamptz,
+    is_active         boolean NOT NULL DEFAULT true,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (primary_region_id, replica_region_id)
+);
+
+-- "Find all replicas of a primary" — the failover-preview hot
+-- path (a future /platform/regions/replication endpoint will
+-- surface this list).
+CREATE INDEX IF NOT EXISTS idx_platform_region_replicas_primary
+    ON platform_region_replicas(primary_region_id) WHERE is_active = true;
