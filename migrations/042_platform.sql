@@ -1,37 +1,43 @@
 -- Tier 11 Phase 1 — Platform & Commerce (009-tier11-platform-commerce)
 --
--- Adds the first backing table for Push-Button Deploy (PL1):
+-- Adds the first backing pieces for Push-Button Deploy (PL1):
 --
 --   deploy_install_tokens — one-time-use tokens that authorise a
 --   freshly-installed Linux box to register itself with a tenant.
 --
--- Future phases of this same change add their tables here:
+--   users.is_platform_admin — flag distinguishing the new platform-wide
+--   admin role (separate from per-tenant `super_admin`) so Phase 5
+--   (Backup/Restore) and Phase 6 (Multi-Region/HA) can gate their
+--   admin-only routes without leaking into per-tenant super_admin.
+--
+-- Why two pieces in Phase 1: PL1 only needs deploy_install_tokens to
+-- ship the install flow; the is_platform_admin ALTER is shipped here
+-- too because every subsequent phase (PL2 metering, PL5 backup,
+-- PL8 health) will query the flag and we don't want Phase 5/6 to
+-- add a separate migration just for the column.
+--
+-- Future phases of this same change extend 042_platform.sql:
 --
 --   Phase 2 (PL2 — Usage Metering):
 --     usage_events + usage_daily_rollups
---
 --   Phase 3 (PL3 — Self-Service Signup):
 --     no new tables (extends existing users + tenants)
---
 --   Phase 4 (PL4 — Tenant Limits):
 --     plan_limits
---
 --   Phase 5 (PL5 — Backup/Restore):
 --     platform_backups
---
 --   Phase 6 (PL6 — Multi-Region / HA):
 --     platform_regions + platform_replicas
---
 --   Phase 7 (PL7 — Rate Limiting):
 --     no new tables (in-memory state)
---
 --   Phase 8 (PL8 — Platform Health):
 --     platform_health_samples
 --
--- All tables are idempotent (CREATE TABLE IF NOT EXISTS / CREATE
--- INDEX IF NOT EXISTS) so re-applying this file is a no-op. No
--- destructive ALTERs land here — Phase 1 ships only this one
--- new table.
+-- All DDL is idempotent (CREATE TABLE IF NOT EXISTS / CREATE
+-- INDEX IF NOT EXISTS / ALTER TABLE … ADD COLUMN IF NOT EXISTS)
+-- so re-applying this file is a no-op. No destructive ALTERs
+-- land here — Phase 1 ships only the one new table + one
+-- non-destructive ALTER.
 --
 -- Why deploy_install_tokens exists:
 --   A tenant admin clicks "+ Generate install token" in the UI
@@ -77,3 +83,21 @@ CREATE INDEX IF NOT EXISTS idx_deploy_install_tokens_tenant
 -- will scan this same partial range to garbage-collect.
 CREATE INDEX IF NOT EXISTS idx_deploy_install_tokens_expires
     ON deploy_install_tokens(expires_at) WHERE used_at IS NULL;
+
+-- =====================================================================
+-- users.is_platform_admin — platform-wide admin flag (Tier 11 role split)
+-- =====================================================================
+--
+-- Existing `users.role` carries per-tenant roles (super_admin,
+-- admin, operator, viewer). Tier 11 introduces a SEPARATE flag
+-- for the new platform-wide admin (PL5 backup, PL6 multi-region,
+-- PL8 health — all need a role that sees across tenants). The
+-- boolean lives on `users` rather than a new join table because
+-- the platform-admin surface is per-user (a single person can be
+-- platform-admin on this StackWatch instance) and we don't need
+-- audit / delegation today.
+--
+-- Idempotent ADD COLUMN IF NOT EXISTS so re-applying is a no-op.
+-- Default false — existing rows are not platform admins, by design.
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_platform_admin BOOLEAN NOT NULL DEFAULT false;
