@@ -5,6 +5,7 @@ import (
 	"github.com/stackwatch/platform/internal/auth"
 	"github.com/stackwatch/platform/internal/db"
 	"github.com/stackwatch/platform/internal/handler"
+	"github.com/stackwatch/platform/internal/platform"
 )
 
 // mountPlatformRoutes registers the Tier 11 — Platform & Commerce
@@ -27,7 +28,7 @@ import (
 //	Phase 4: Tenant Limits (PL4)             ← 4 protected routes
 //	Phase 5: Backup/Restore (PL5)            ← 5 routes (added in this commit)
 //	Phase 6: Multi-Region / HA (PL6)         ← 3 routes
-//	Phase 7: Rate Limiting (PL7)             ← middleware + 0 routes
+//	Phase 7: Rate Limiting (PL7)             ← 3 routes (added in this commit)
 //	Phase 8: Platform Health (PL8)           ← 4 routes
 //
 // All handlers honor tenant_id from the JWT — no cross-tenant data
@@ -53,7 +54,7 @@ import (
 //                                          can log the user in
 //                                          immediately)
 //   - public POST /platform/signup/resend  (ResendSignup)
-func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Pool) {
+func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Pool, rateLimiter *platform.Limiter, ratePlans *platform.PlanCache) {
 	// ---- Tier 11.1: Push-Button Deploy (Phase 1 — PL1) ----
 	//
 	// Per spec §"PL1 — Push-Button Deploy", these 3 endpoints
@@ -208,6 +209,42 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 		protected.GET("/platform/regions/health", handler.ProbeRegionsHealth(pool))
 		protected.GET("/platform/regions", handler.ListRegions(pool))
 		protected.POST("/platform/regions", handler.CreateRegion(pool))
+
+		// ---- Tier 11.7: Rate Limiting (Phase 7 — PL7) ----
+		//
+		// Per spec §"PL7 — Rate Limiting" these 3 endpoints
+		// back the admin VIEW surface for the in-process
+		// token-bucket limiter. The middleware that ENFORCES
+		// the bucket on every authenticated request lives
+		// in internal/middleware/ratelimit.go and is wired
+		// in cmd/api-gateway/routes.go (after RequireAuth
+		// so claims.TenantID is available, before the
+		// handlers so a 429 short-circuits expensive work).
+		//
+		// /me is PROTECTED (every authenticated user can
+		// see their own bucket). /global + /blocked are
+		// PROTECTED + super_admin gated — a regular admin
+		// can't see other tenants' usage or change the
+		// global caps.
+		//
+		// Storage: NONE. PL7 is in-memory only (the Limiter
+		// lives in internal/platform/ratelimit.go). A future
+		// Redis-backed adapter is a drop-in replacement for
+		// the Limiter interface; the handler shape doesn't
+		// change.
+		//
+		// Routes (1 protected + 2 super_admin):
+		//   GET  /api/v1/platform/ratelimit/me      — GetMyRateLimit
+		//   PATCH /api/v1/platform/ratelimit/global  — UpdateGlobalLimits  (super_admin)
+		//   GET  /api/v1/platform/ratelimit/blocked  — ListBlockedTenants  (super_admin)
+		//
+		// The mountPlatformRoutes signature carries the
+		// *platform.Limiter + *platform.PlanCache through
+		// from buildRouter — see main.go for the
+		// construction site.
+		protected.GET("/platform/ratelimit/me", handler.GetMyRateLimit(rateLimiter, ratePlans))
+		protected.PATCH("/platform/ratelimit/global", handler.UpdateGlobalLimits(rateLimiter, ratePlans))
+		protected.GET("/platform/ratelimit/blocked", handler.ListBlockedTenants(rateLimiter))
 	}
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints

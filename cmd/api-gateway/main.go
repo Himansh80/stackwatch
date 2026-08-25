@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/stackwatch/platform/internal/handler"
 	"github.com/stackwatch/platform/internal/auth"
 	"github.com/stackwatch/platform/internal/homelab"
@@ -43,13 +45,43 @@ func main() {
 
 	issuer := newIssuer(cfg.JWTSecret)
 
+	// Tier 11 Phase 7 — Rate Limiting (PL7) — in-memory
+	// token-bucket limiter + per-tenant plan cache. The
+	// limiter holds one bucket per tenant_id and refills
+	// at the per-plan rate (free=10/min, starter=60/min,
+	// pro=100/min, enterprise=1000/min — see
+	// platform.PlanDefaults). The plan cache is a
+	// sync.Map keyed by tenant_id; on cache miss it
+	// reads tenants.plan once and caches forever (until
+	// process restart). Both are threaded into
+	// buildRouter so the middleware + handlers share the
+	// same instances.
+	rateLimiter := platform.NewLimiter()
+	ratePlans := platform.NewPlanCache(func(tid uuid.UUID) string {
+		var plan string
+		// One query per tenant per process lifetime.
+		// On error (tenant not found, etc.) fall back
+		// to "free" — the safest default that doesn't
+		// grant a paid tier accidentally.
+		if err := pool.Pgx().QueryRow(rootCtx,
+			`SELECT COALESCE(plan, 'free') FROM tenants WHERE id = $1`,
+			tid,
+		).Scan(&plan); err != nil {
+			return platform.DefaultPlan
+		}
+		if plan == "" {
+			return platform.DefaultPlan
+		}
+		return plan
+	})
+
 	// Tier 7.4 — Synthetics Full background runner. Created here so its
 	// lifecycle is owned by main.go alongside the HTTP server; passed
 	// into buildRouter so the run-now handler can call ExecuteSync.
 	synthRunner := handler.NewSyntheticsRunner(pool, logger)
 	go synthRunner.Run(rootCtx)
 
-	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode, cfg.WebTerminalURL, synthRunner)
+	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode, cfg.WebTerminalURL, synthRunner, rateLimiter, ratePlans)
 
 	// Start the synthetics scheduler (M7 background runner).
 	sched := synthetics.NewScheduler(pool.Pgx(), 30*time.Second, logger)

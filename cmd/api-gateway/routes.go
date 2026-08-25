@@ -10,6 +10,7 @@ import (
 	"github.com/stackwatch/platform/internal/db"
 	"github.com/stackwatch/platform/internal/handler"
 	"github.com/stackwatch/platform/internal/middleware"
+	"github.com/stackwatch/platform/internal/platform"
 )
 
 // buildRouter constructs the gin engine with all middleware + routes.
@@ -27,7 +28,7 @@ import (
 //
 // To add a new protected route, edit routes_protected.go.
 // To add a new public route, edit this file directly.
-func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer, installMode, webTerminalURL string, synthRunner *handler.SyntheticsRunner) *gin.Engine {
+func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer *auth.Issuer, installMode, webTerminalURL string, synthRunner *handler.SyntheticsRunner, rateLimiter *platform.Limiter, ratePlans *platform.PlanCache) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
@@ -83,7 +84,17 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 
 	// Protected endpoints (require valid JWT). Everything inside this
 	// group is registered by mountProtectedRoutes in routes_protected.go.
-	protected := r.Group("/api/v1", handler.RequireAuth(issuer))
+	//
+	// Tier 11 Phase 7 — Rate-limit middleware is applied AFTER
+	// RequireAuth (so claims.TenantID is populated for the limiter)
+	// and BEFORE every handler (so a 429 short-circuits any
+	// expensive work without ever entering the handler). The
+	// middleware fails OPEN on routes mounted WITHOUT RequireAuth
+	// (e.g. health, signup) — those pass-through unchanged.
+	protected := r.Group("/api/v1",
+		handler.RequireAuth(issuer),
+		middleware.RateLimit(rateLimiter, ratePlans),
+	)
 	// Auth self-service lives on the protected group so RequireAuth runs
 	// before the handler reads the JWT subject from context.
 	protected.GET("/auth/me", authH.Me)
@@ -101,7 +112,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	// 3-group signature is stable across the whole tier and we
 	// don't have to touch this file again until Phase 5.
 	admin := protected.Group("/admin", handler.RequireRole("admin"))
-	mountPlatformRoutes(r.Group("/api/v1"), protected, admin, pool)
+	mountPlatformRoutes(r.Group("/api/v1"), protected, admin, pool, rateLimiter, ratePlans)
 
 	// Public CI/CD webhook receivers (no JWT — providers can't carry one).
 	// Mounted at /api/v1/cicd/webhook/{github,gitlab} on the public router.

@@ -27,3 +27,20 @@ var ErrTokenNotFound = errors.New("install token not found")
 // in its WHERE clause so this error is reserved for a future
 // code path (e.g. an admin "show me all expired tokens" view).
 var ErrTokenExpired = errors.New("install token expired")
+
+// Tier 11 Phase 7 — Rate Limiting (PL7) sentinels.
+//
+// ErrBadLimitRange is returned by Limiter.SetGlobalLimits when
+// a per-plan limit is outside the allowed 1..100000 range.
+// The handler maps it to HTTP 400 so a malformed PATCH body
+// surfaces immediately instead of silently zeroing out a
+// plan's cap.
+var ErrBadLimitRange = errors.New("rate limit must be 1..100000 requests/minute")
+
+// ErrUnknownPlan is returned by Limiter.SetGlobalLimits when
+// a PATCH body contains a plan name not in
+// AllowedPlans. Defence-in-depth — the handler also
+// allowlist-checks the body, but a future caller from
+// internal code shouldn't be able to inject arbitrary
+// bucket classes either.
+var ErrUnknownPlan = errors.New("unknown plan name (must be free|starter|pro|enterprise)")
