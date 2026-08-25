@@ -71,6 +71,16 @@ func main() {
 	calendarWorker := homelab.NewCalendarWorker(pool, homelab.WithCalendarLogger(logger))
 	calendarWorker.Start(rootCtx)
 
+	// Tier 10 Phase 5 — Download Stats background worker.
+	// Ticks every 60s, fetches every enabled download client in
+	// homelab_download_clients (across all tenants + users), and
+	// INSERTs a parsed-state row into homelab_download_snapshots.
+	// Per-client errors are logged but never abort the batch —
+	// one bad target must not skip the rest. First tick fires
+	// immediately on Start().
+	downloadsWorker := homelab.NewDownloadsWorker(pool, homelab.WithDownloadsLogger(logger))
+	downloadsWorker.Start(rootCtx)
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,

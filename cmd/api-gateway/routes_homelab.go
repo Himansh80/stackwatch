@@ -175,4 +175,31 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	// /:id/* static siblings (refresh) before the /:id patterns.
 	protected.POST("/homelab/calendars/:id/refresh", handler.RefreshHomelabCalendar(pool))
 	protected.DELETE("/homelab/calendars/:id", handler.DeleteHomelabCalendar(pool))
+
+	// ---- Tier 10.5: Download Stats (Phase 5) ----
+	//
+	// Per spec §"H5 — Download Stats", these 4 protected endpoints
+	// back the per-user download-client registry
+	// (homelab_download_clients) + the polled-state read endpoint
+	// (homelab_download_snapshots). The DownloadsWorker (started in
+	// main.go) ticks every 60s and INSERTs a snapshot row per
+	// enabled client. POST /downloads/clients fires an immediate
+	// fire-and-forget poll after create via
+	// PollClientAndInsertSnapshot so a freshly-pinned client shows
+	// stats within seconds.
+	//
+	// Routes (4 protected):
+	//   GET    /api/v1/homelab/downloads/clients      — ListHomelabDownloadClients
+	//   POST   /api/v1/homelab/downloads/clients      — CreateHomelabDownloadClient
+	//   GET    /api/v1/homelab/downloads/snapshots   — ListHomelabDownloadSnapshots
+	//   DELETE /api/v1/homelab/downloads/clients/:id  — DeleteHomelabDownloadClient
+	//
+	// Static-path siblings (/snapshots) MUST come BEFORE the /:id
+	// patterns below — Gin's radix tree matches in registration
+	// order, so /snapshots would otherwise be parsed as :id="snapshots"
+	// and the static handler would never fire.
+	protected.GET("/homelab/downloads/clients", handler.ListHomelabDownloadClients(pool))
+	protected.POST("/homelab/downloads/clients", handler.CreateHomelabDownloadClient(pool))
+	protected.GET("/homelab/downloads/snapshots", handler.ListHomelabDownloadSnapshots(pool))
+	protected.DELETE("/homelab/downloads/clients/:id", handler.DeleteHomelabDownloadClient(pool))
 }

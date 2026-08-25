@@ -445,3 +445,127 @@ CREATE INDEX IF NOT EXISTS idx_homelab_events_user_time
     ON homelab_events(user_id, starts_at);
 CREATE INDEX IF NOT EXISTS idx_homelab_events_calendar_time
     ON homelab_events(calendar_id, starts_at);
+
+-- ---------------------------------------------------------------------------
+-- homelab_download_clients — Phase 5 (H5 — Download Stats).
+--
+-- Per-user registry of download clients the user wants one-click
+-- stats for. Covers the *arr stack (Sonarr/Radarr/Lidarr/Readarr),
+-- torrent (qBittorrent) and Usenet (SABnzbd) — see
+-- allowedDownloadClientKinds in handlers_homelab_downloads_types.go
+-- for the full list.
+--
+-- Fields:
+--   name         display label (e.g. "Home Sonarr"); unique per
+--                (tenant, user) so a user can't double-pin the
+--                same name; a sibling user can
+--   kind         'sonarr' | 'radarr' | 'qbittorrent' | 'sabnzbd'
+--                | 'lidarr' | 'readarr' (worker dispatches by kind)
+--   base_url     full http(s) root URL of the client API
+--   api_key      bearer / X-Api-Key value; nullable for qBittorrent
+--                when the user relies on username+password instead
+--   username     qBittorrent login (nullable for *arr + SABnzbd)
+--   password     qBittorrent login (nullable for *arr + SABnzbd)
+--   enabled      when false, the background worker skips this client
+--                but the row is preserved so the user can re-enable
+--                without re-entering credentials
+--   last_polled_at       server timestamp of the most recent poll
+--   last_poll_status     'success' | 'error' | 'unreachable' (free-form
+--                        so future 'auth_required' / 'rate_limited'
+--                        values don't need an ALTER TABLE)
+--   last_poll_error      human-readable error string (trimmed to 200
+--                        chars by the worker); empty on success
+--
+-- Per-user (NOT per-tenant) per speckit proposal §US-8 — two users
+-- in the same tenant can each pin their own "Home Sonarr".
+--
+-- credentials are stored in plaintext — acceptable for a homelab
+-- self-hosted tool where the rows are already gated behind
+-- tenant_id + user_id; a future hardening pass can wrap these
+-- columns with pgcrypto (the *_enc bytea variants) but adds a
+-- round-trip for every poll and is out of scope for Tier 10.
+---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS homelab_download_clients (
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id          UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id            UUID NOT NULL,
+    name               TEXT NOT NULL,
+    kind               TEXT NOT NULL,
+    base_url           TEXT NOT NULL,
+    api_key            TEXT,
+    username           TEXT,
+    password           TEXT,
+    enabled            BOOLEAN NOT NULL DEFAULT true,
+    last_polled_at     TIMESTAMPTZ,
+    last_poll_status   TEXT,
+    last_poll_error    TEXT,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, user_id, name)
+);
+
+-- Powers the worker's "list all enabled clients across all
+-- tenants" tick query. Partial index — only enabled rows are
+-- scanned on each 60s tick, so disabled clients never bloat the
+-- index.
+CREATE INDEX IF NOT EXISTS idx_homelab_download_clients_user
+    ON homelab_download_clients(user_id);
+CREATE INDEX IF NOT EXISTS idx_homelab_download_clients_enabled
+    ON homelab_download_clients(tenant_id, enabled) WHERE enabled = true;
+
+-- ---------------------------------------------------------------------------
+-- homelab_download_snapshots — Phase 5 (H5 — Download Stats).
+--
+-- Append-only time-series of polled state. Every poll (60s tick
+-- from DownloadsWorker, plus the immediate fire-and-forget poll
+-- fired by POST /downloads/clients after-create) inserts one row
+-- here. Dashboard reads the latest snapshot per client to render
+-- the KPI strip + per-client stat rows.
+--
+-- Columns:
+--   queue_count           total items in the download queue
+--   queue_size_bytes      sum of bytes remaining (queue + active)
+--   download_speed_bytes_per_sec  current downstream throughput
+--   upload_speed_bytes_per_sec    current upstream throughput
+--   today_downloaded_bytes sum of bytes downloaded in the rolling
+--                           24h window (or "today" per the client API)
+--   today_uploaded_bytes   sum of bytes uploaded in the same window
+--   raw_payload           jsonb — full response body from the client
+--                         API. Kept for debug + future features
+--                         (per-torrent breakdown, history charts).
+--                         Sized at the worker's 1 MiB cap so a
+--                         pathological payload can't bloat the row.
+--   polled_at             server timestamp of the poll
+--
+-- FK ON DELETE CASCADE on client_id — removing a client wipes its
+-- snapshot history in one statement.
+--
+-- Cleanup: future phases may add retention (e.g. keep 7d); for now
+-- the table grows unboundedly but a power user with 6 clients at
+-- 60s cadence = 6 * 1440 = 8640 rows/day = ~3.15M rows/year, well
+-- within Postgres' comfort zone. A retention sweep can be added
+-- to the existing DownloadsWorker tick without schema changes.
+---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS homelab_download_snapshots (
+    id                            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id                     UUID NOT NULL,
+    user_id                       UUID NOT NULL,
+    client_id                     UUID NOT NULL REFERENCES homelab_download_clients(id) ON DELETE CASCADE,
+    queue_count                   INTEGER NOT NULL DEFAULT 0,
+    queue_size_bytes              BIGINT NOT NULL DEFAULT 0,
+    download_speed_bytes_per_sec  BIGINT NOT NULL DEFAULT 0,
+    upload_speed_bytes_per_sec    BIGINT NOT NULL DEFAULT 0,
+    today_downloaded_bytes        BIGINT NOT NULL DEFAULT 0,
+    today_uploaded_bytes          BIGINT NOT NULL DEFAULT 0,
+    raw_payload                   JSONB,
+    polled_at                     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Hottest read pattern is "latest snapshot per client" — DESC
+-- index on (client_id, polled_at) makes the dashboard's per-client
+-- stat row O(1). (user_id, polled_at) supports a future
+-- "all clients at time T" tenant-wide query.
+CREATE INDEX IF NOT EXISTS idx_homelab_download_snapshots_client_time
+    ON homelab_download_snapshots(client_id, polled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homelab_download_snapshots_user_time
+    ON homelab_download_snapshots(user_id, polled_at DESC);

@@ -7,9 +7,9 @@
  * here — every consumer pulls these shapes via type-only imports.
  */
 
-export type ServiceStatus = 'up' | 'degraded' | 'down' | 'unknown';
+export type ServiceStatus = "up" | "degraded" | "down" | "unknown";
 
-export type ServiceKind = 'http' | 'https' | 'tcp' | 'icmp';
+export type ServiceKind = "http" | "https" | "tcp" | "icmp";
 
 export interface ServiceHealth {
   status: ServiceStatus;
@@ -59,7 +59,7 @@ export type Status = ServiceStatus;
 // Phase 3 (H3 — Personal Notes + Todos) types.
 // ------------------------------------------------------------------
 
-export type TodoPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TodoPriority = "low" | "medium" | "high" | "urgent";
 
 export interface NoteRow {
   id: string;
@@ -164,4 +164,68 @@ export interface CalendarFormState {
   name: string;
   ical_url: string;
   color: string; // hex or 'default'
+}
+
+// ------------------------------------------------------------------
+// Phase 5 (H5 — Download Stats) types.
+// ------------------------------------------------------------------
+
+export type DownloadKind =
+  "sonarr" | "radarr" | "qbittorrent" | "sabnzbd" | "lidarr" | "readarr";
+
+export interface DownloadLatestSnapshot {
+  client_id: string;
+  queue_count: number;
+  queue_size_bytes: number;
+  download_speed_bytes_per_sec: number;
+  upload_speed_bytes_per_sec: number;
+  today_downloaded_bytes: number;
+  today_uploaded_bytes: number;
+  polled_at: string;
+}
+
+export interface DownloadClientRow {
+  id: string;
+  name: string;
+  kind: DownloadKind;
+  base_url: string;
+  enabled: boolean;
+  last_polled_at?: string;
+  last_poll_status?: string;
+  last_poll_error?: string;
+  latest_snapshot?: DownloadLatestSnapshot | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DownloadsResponse {
+  clients: DownloadClientRow[];
+  count: number;
+}
+
+export interface DownloadSnapshotRow {
+  id: string;
+  client_id: string;
+  queue_count: number;
+  queue_size_bytes: number;
+  download_speed_bytes_per_sec: number;
+  upload_speed_bytes_per_sec: number;
+  today_downloaded_bytes: number;
+  today_uploaded_bytes: number;
+  polled_at: string;
+}
+
+export interface DownloadSnapshotsResponse {
+  snapshots: DownloadSnapshotRow[];
+  count: number;
+  limit: number;
+}
+
+export interface DownloadClientFormState {
+  name: string;
+  kind: DownloadKind;
+  base_url: string;
+  api_key: string;
+  username: string;
+  password: string;
 }
