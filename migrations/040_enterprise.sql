@@ -201,3 +201,103 @@ CREATE TABLE IF NOT EXISTS scim_sync_log (
 -- by tenant and sorts by recency. Composite index avoids a sort.
 CREATE INDEX IF NOT EXISTS idx_scim_sync_log_tenant_time
     ON scim_sync_log(tenant_id, created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- Tier 9.3 (Phase 3) — Advanced RBAC.
+--
+-- Adds the two tables that back the custom-roles surface — one row per
+-- tenant-defined or built-in role (rbac_roles) and one row per user↔role
+-- assignment (user_role_assignments).
+--
+-- All tables are idempotent (CREATE TABLE IF NOT EXISTS / CREATE
+-- INDEX IF NOT EXISTS) so re-applying this migration is a no-op.
+--
+-- Built-in roles (Admin / Operator / Viewer / Billing) are NOT inserted
+-- here. They are LAZY-SEEDED on the first GET /api/v1/enterprise/rbac/roles
+-- call per tenant by handlers_rbac.go::seedBuiltinRolesForTenant — this
+-- avoids a slow multi-tenant up-front seed when there are many tenants.
+--
+-- Security:
+--   * permissions is a text[] of "<resource>:<verb>" tokens
+--     (e.g., 'servers:read', 'alerts:write'). The allowlist is defined
+--     in handlers_rbac_types.go::builtinPermissions — handlers reject
+--     any string not on the list at INSERT time so a hand-crafted
+--     payload can't smuggle in junk like 'admin:*' or 'system:root'.
+--   * is_builtin=true roles are READ-ONLY — the custom-role CRUD
+--     handlers in handlers_rbac.go refuse PATCH/DELETE on built-in
+--     rows. Only their name + permissions are populated; description
+--     is operator-supplied.
+--   * The UNIQUE (tenant_id, name) constraint on rbac_roles enforces
+--     "one role name per tenant" — built-in roles occupy the four
+--     names Admin / Operator / Viewer / Billing per tenant so custom
+--     roles can't collide with built-ins.
+--   * The UNIQUE (user_id, role_id) constraint on user_role_assignments
+--     makes POST idempotent (handler re-INSERT returns the existing row
+--     via ON CONFLICT DO NOTHING + RETURNING).
+-- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- rbac_roles — one row per tenant-defined role.
+--
+-- `name` is operator-chosen for custom roles; built-in tenants get
+-- the four names Admin / Operator / Viewer / Billing. UNIQUE per
+-- tenant so the same operator can have "Admin" in multiple tenants
+-- without collision (rare but legal).
+--
+-- `permissions` is the union of `<resource>:<verb>` strings granted
+-- by this role. The handler enforces membership in builtinPermissions
+-- so we never write garbage.
+--
+-- `is_builtin=true` means the row was seeded by the platform and
+-- cannot be modified or deleted by tenant admins. Built-in rows
+-- always have a non-empty permissions array.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS rbac_roles (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name         TEXT NOT NULL,
+    description  TEXT,
+    permissions  TEXT[] NOT NULL DEFAULT '{}',
+    is_builtin   BOOLEAN NOT NULL DEFAULT false,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, name)
+);
+
+-- Every query in handlers_rbac.go filters by tenant_id first.
+CREATE INDEX IF NOT EXISTS idx_rbac_roles_tenant
+    ON rbac_roles(tenant_id);
+
+-- ---------------------------------------------------------------------------
+-- user_role_assignments — many-to-many user↔role join.
+--
+-- `assigned_at` is the moment the handler bound the user to the role.
+-- We don't store an `assigned_by` for Phase 3 (no audit trail on
+-- assignment) — that's a future Tier 9.x audit-log concern and would
+-- add a column for negligible value here. The audit of "who can do
+-- what right now" is derivable from this table on its own.
+--
+-- ON DELETE CASCADE on role_id mirrors the lifecycle of rbac_roles:
+-- when a custom role is deleted, its assignments vanish with it. We
+-- do NOT cascade from users — a user deletion must be handled by the
+-- existing Tier 7 user-delete flow (which already cleans up its own
+-- rows); if it doesn't, the FK constraint will surface the bug loudly
+-- instead of silently losing audit data.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_role_assignments (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id      UUID NOT NULL,
+    role_id      UUID NOT NULL REFERENCES rbac_roles(id) ON DELETE CASCADE,
+    assigned_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, role_id)
+);
+
+-- Supports the "list my roles" / "list users with role X" lookups in
+-- the check endpoint and the user-role-assignments panel.
+CREATE INDEX IF NOT EXISTS idx_user_role_assignments_user
+    ON user_role_assignments(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_role_assignments_role
+    ON user_role_assignments(role_id);
+-- Composite (tenant_id, user_id) supports the per-tenant check query.
+CREATE INDEX IF NOT EXISTS idx_user_role_assignments_tenant_user
+    ON user_role_assignments(tenant_id, user_id);

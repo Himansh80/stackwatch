@@ -98,7 +98,38 @@ func mountEnterpriseRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.DELETE("/enterprise/scim/tokens/:id", handler.RevokeSCIMToken(pool))
 	protected.GET("/enterprise/scim/sync-log", handler.ListSCIMSyncLog(pool))
 
-	// (Phases 3-6 leave their mount-call comments as anchors for
+	// ---- Tier 9.3: Advanced RBAC (Phase 3) ----
+	// Per spec §"Story 3 — Advanced RBAC", these 6 protected endpoints
+	// let tenant admins manage custom roles and assign them to users.
+	// Built-in roles (Admin / Operator / Viewer / Billing) are
+	// lazy-seeded on first GET /rbac/roles per tenant via
+	// seedBuiltinRolesForTenant (handlers_rbac_roles.go) and are
+	// READ-ONLY — UpdateRBACRole / DeleteRBACRole return 403 on
+	// is_builtin=true rows.
+	//
+	// The check endpoint caches the union of effective permissions
+	// per (tenant_id, user_id) for 60s (effectivePermCacheTTL in
+	// handlers_rbac_types.go) so a burst of gated calls doesn't
+	// hammer the DB. Cache is invalidated by UpdateRBACRole /
+	// DeleteRBACRole / AssignRBACRole / UnassignRBACRole.
+	//
+	// Routes (6 protected):
+	//   GET    /api/v1/enterprise/rbac/roles                  — ListRBACRoles
+	//   POST   /api/v1/enterprise/rbac/roles                  — CreateRBACRole
+	//   PATCH  /api/v1/enterprise/rbac/roles/:id              — UpdateRBACRole
+	//   DELETE /api/v1/enterprise/rbac/roles/:id              — DeleteRBACRole
+	//   POST   /api/v1/enterprise/rbac/users/:user_id/roles   — AssignRBACRole
+	//   DELETE /api/v1/enterprise/rbac/users/:user_id/roles/:role_id — UnassignRBACRole
+	//   GET    /api/v1/enterprise/rbac/check                  — CheckRBACPermission
+	protected.GET("/enterprise/rbac/roles", handler.ListRBACRoles(pool))
+	protected.POST("/enterprise/rbac/roles", handler.CreateRBACRole(pool))
+	protected.PATCH("/enterprise/rbac/roles/:id", handler.UpdateRBACRole(pool))
+	protected.DELETE("/enterprise/rbac/roles/:id", handler.DeleteRBACRole(pool))
+	protected.POST("/enterprise/rbac/users/:user_id/roles", handler.AssignRBACRole(pool))
+	protected.DELETE("/enterprise/rbac/users/:user_id/roles/:role_id", handler.UnassignRBACRole(pool))
+	protected.GET("/enterprise/rbac/check", handler.CheckRBACPermission(pool))
+
+	// (Phases 4-6 leave their mount-call comments as anchors for
 	// the next subagent — no actual registration until those phases ship.)
 }
 
