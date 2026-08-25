@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stackwatch/platform/internal/handler"
+	"github.com/stackwatch/platform/internal/homelab"
 	"github.com/stackwatch/platform/internal/synthetics"
 )
 
@@ -51,6 +52,14 @@ func main() {
 	// Start the synthetics scheduler (M7 background runner).
 	sched := synthetics.NewScheduler(pool.Pgx(), 30*time.Second, logger)
 	go sched.Run(rootCtx)
+
+	// Tier 10 Phase 2 — Service Health background worker.
+	// Ticks every 60s, probes every enabled pinned service in
+	// homelab_pinned_services, INSERTs results into
+	// homelab_service_health, prunes rows older than 30 days.
+	// First tick fires immediately on Start().
+	serviceHealth := homelab.NewServiceHealthWorker(pool, homelab.WithLogger(logger))
+	serviceHealth.Start(rootCtx)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

@@ -145,3 +145,109 @@ CREATE INDEX IF NOT EXISTS idx_homelab_user_prefs_user
     ON homelab_user_prefs(user_id);
 CREATE INDEX IF NOT EXISTS idx_homelab_user_prefs_tenant
     ON homelab_user_prefs(tenant_id);
+
+-- ---------------------------------------------------------------------------
+-- homelab_pinned_services — Phase 2 (H2 — Service Status).
+--
+-- Per-user pinboard of services the user wants one-click access to
+-- (Proxmox, Jellyfin, Pi-hole, PiKVM, NAS dashboard, ...). Each
+-- pin is a (name, url, kind, icon, enabled) tuple:
+--
+--   name    — display label shown on the dashboard tile
+--   url     — full URL (http/https/tcp/icmp depending on kind)
+--   kind    — 'http' | 'https' | 'tcp' | 'icmp' (worker uses this
+--             to pick the probe implementation)
+--   icon    — emoji or short text ('🛜', '🎬', '🖥️'); optional
+--   enabled — when false, the background worker skips this pin but
+--             the row is preserved so the user can re-enable it
+--
+-- Why (tenant_id, user_id) UNIQUE on name: per the speckit proposal
+-- US-8 ("my homelab doesn't change under me when my co-founder
+-- rearranges theirs"), two users in the same tenant can each pin a
+-- service called "Proxmox" without colliding. The UNIQUE constraint
+-- is scoped to (tenant, user, name) so the same user can't double-pin
+-- "Proxmox" but a sibling user can.
+--
+-- Per-user pin count cap is enforced handler-side at 50 (see
+-- maxPinnedServicesPerUser in handlers_homelab_services.go) — matches
+-- the speckit proposal §"Risks" item 4 ("per-user pin count cap (50)").
+-- We don't use a CHECK constraint because we want the cap to evolve
+-- without ALTER TABLE.
+--
+-- Why ON DELETE CASCADE on tenant_id: removing a tenant should remove
+-- all their homelab state, including pins. user_id does NOT cascade to
+-- a user table because the homelab is intentionally decoupled from
+-- Tier 0 user identities (a deleted user in Tier 0 leaves their
+-- homelab state intact for audit / restore — Tier 0 cleanup is its
+-- own concern).
+CREATE TABLE IF NOT EXISTS homelab_pinned_services (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL,
+    name        TEXT NOT NULL,
+    url         TEXT NOT NULL,
+    kind        TEXT NOT NULL DEFAULT 'http',
+    icon        TEXT,
+    enabled     BOOLEAN NOT NULL DEFAULT true,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, user_id, name)
+);
+
+-- Supports the worker's "list all enabled pins across all users in
+-- this tenant" tick query. Partial index — only enabled rows are
+-- scanned on each 60s tick, so disabled pins never bloat the index.
+CREATE INDEX IF NOT EXISTS idx_homelab_pinned_services_user
+    ON homelab_pinned_services(user_id);
+CREATE INDEX IF NOT EXISTS idx_homelab_pinned_services_enabled
+    ON homelab_pinned_services(tenant_id, enabled) WHERE enabled = true;
+
+-- ---------------------------------------------------------------------------
+-- homelab_service_health — Phase 2 (H2 — Service Status).
+--
+-- Append-only time-series of probe results. Every probe (one-shot
+-- via POST /services/:id/probe, batch via POST /services/probe-all,
+-- and the 60s background tick) inserts one row here.
+--
+-- Columns:
+--   status        'up' | 'degraded' | 'down' | 'unknown'
+--                 (mapped from probe results: HTTP <400=up, 4xx=degraded,
+--                 5xx=down, conn refused/timeout=down, icmp-no-reply=down)
+--   latency_ms    round-trip time of the probe in milliseconds; nullable
+--                 because some probe types (e.g. icmp-no-reply) don't
+--                 have a meaningful RTT
+--   status_code   HTTP status code returned (only for http/https probes);
+--                 nullable for tcp/icmp
+--   error_message human-readable failure reason; empty string on success,
+--                 populated with the conn error / timeout message on failure
+--   checked_at    server timestamp when the probe result was recorded;
+--                 default NOW() so the worker can batch-INSERT without
+--                 supplying a timestamp
+--
+-- Cleanup: the worker prunes rows older than 30 days on every tick so
+-- the table stays bounded (a user pinning 50 services at 60s cadence
+-- = 50 * 1440 = 72,000 rows/day → 2.16M rows/30d; pruning once a day
+-- holds it at ~2.16M steady-state).
+CREATE TABLE IF NOT EXISTS homelab_service_health (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       UUID NOT NULL,
+    user_id         UUID NOT NULL,
+    service_id      UUID NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'unknown',
+    latency_ms      INTEGER,
+    status_code     INTEGER,
+    error_message   TEXT,
+    checked_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- The hottest read pattern is "latest health per service_id for
+-- user X" — DESC index on (service_id, checked_at) makes the
+-- aggregate endpoint O(1) per service. The (tenant_id) index
+-- supports the worker's tenant-wide prune query (DELETE WHERE
+-- tenant_id = $1 AND checked_at < now() - interval '30 days').
+CREATE INDEX IF NOT EXISTS idx_homelab_service_health_service_time
+    ON homelab_service_health(service_id, checked_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homelab_service_health_tenant
+    ON homelab_service_health(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_homelab_service_health_user_service
+    ON homelab_service_health(user_id, service_id, checked_at DESC);

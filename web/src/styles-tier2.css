@@ -194,3 +194,220 @@
   background: var(--surface);
   border-color: var(--surface-3);
 }
+
+/* ------------------------------------------------------------------
+   Tier 10 Phase 2 — ServiceStatusWidget (H2 — Service Status).
+   Token-only: all colors come from base.css --accent / --green /
+   --amber / --red / --surface-*. Status pill mapping:
+     up=green, degraded=amber, down=red, unknown=surface-3 (gray).
+   ------------------------------------------------------------------ */
+.homelab-services-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.homelab-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.homelab-service-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--surface-3);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.homelab-service-card:hover {
+  border-color: var(--accent);
+}
+.homelab-service-card[data-status="up"]       { border-left-color: var(--green,  #22c55e); }
+.homelab-service-card[data-status="degraded"] { border-left-color: var(--amber,  #f59e0b); }
+.homelab-service-card[data-status="down"]     { border-left-color: var(--red,    #ef4444); }
+.homelab-service-card[data-status="unknown"]  { border-left-color: var(--surface-3); }
+.homelab-service-card[data-disabled="true"]  { opacity: 0.55; }
+
+.homelab-service-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.homelab-service-card-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.homelab-service-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.homelab-service-card-url {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.homelab-service-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+.homelab-service-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.homelab-service-pill[data-status="up"]       { background: color-mix(in srgb, var(--green,  #22c55e) 15%, transparent); color: var(--green,  #22c55e); }
+.homelab-service-pill[data-status="degraded"] { background: color-mix(in srgb, var(--amber,  #f59e0b) 15%, transparent); color: var(--amber,  #f59e0b); }
+.homelab-service-pill[data-status="down"]     { background: color-mix(in srgb, var(--red,    #ef4444) 15%, transparent); color: var(--red,    #ef4444); }
+.homelab-service-pill[data-status="unknown"]  { background: var(--surface-3);                              color: var(--text-muted, #94a3b8); }
+.homelab-service-latency {
+  font-size: 10px;
+  color: var(--text-muted, #94a3b8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.homelab-service-card-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: none;
+  gap: 4px;
+}
+.homelab-service-card:hover .homelab-service-card-actions,
+.homelab-service-card:focus-within .homelab-service-card-actions {
+  display: flex;
+}
+.homelab-service-action-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--surface-3);
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.homelab-service-action-btn:hover {
+  border-color: var(--accent);
+}
+
+.homelab-services-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  border: 1px dashed var(--surface-3);
+  border-radius: 12px;
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.homelab-services-empty-title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+}
+.homelab-services-empty-hint {
+  margin: 0;
+}
+
+.homelab-services-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  padding-top: 6px;
+  border-top: 1px solid var(--surface-3);
+}
+.homelab-services-aggregate {
+  display: flex;
+  gap: 12px;
+}
+.homelab-services-aggregate-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.homelab-services-aggregate-dot::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-3);
+}
+.homelab-services-aggregate-dot[data-status="up"]::before       { background: var(--green, #22c55e); }
+.homelab-services-aggregate-dot[data-status="degraded"]::before { background: var(--amber, #f59e0b); }
+.homelab-services-aggregate-dot[data-status="down"]::before     { background: var(--red,   #ef4444); }
+
+/* Modal: reuses .sw-modal* from the top of this file. Just style
+   the form rows so the pin-form feels like a Homelab thing. */
+.homelab-pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.homelab-pin-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.homelab-pin-form-row label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.homelab-pin-form-row input,
+.homelab-pin-form-row select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--surface-3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+}
+.homelab-pin-form-row input:focus,
+.homelab-pin-form-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.homelab-pin-form-hint {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+}

@@ -63,4 +63,39 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.GET("/homelab/prefs", handler.GetHomelabPrefs(pool))
 	protected.PUT("/homelab/prefs", handler.PutHomelabPrefs(pool))
 	protected.DELETE("/homelab/prefs/layout", handler.DeleteHomelabPrefsLayout(pool))
+
+	// ---- Tier 10.2: Service Status (Phase 2) ----
+	//
+	// Per spec §"H2 — Service Status", these 8 protected endpoints
+	// back the per-user pinboard + the 60s background health probe.
+	// Handlers are split across handlers_homelab_services.go (5
+	// routes — CRUD + aggregate) and
+	// handlers_homelab_services_probe.go (3 routes — one-shot probe,
+	// history, fire-and-forget probe-all).
+	//
+	// Per-user (NOT per-tenant): every query filters by both
+	// tenant_id and user_id so a user can never probe or read
+	// another user's pins. ServiceHealthWorker (started in main.go)
+	// ticks every 60s and INSERTs results into homelab_service_health.
+	//
+	// Routes (8 protected):
+	//   GET    /api/v1/homelab/services            — ListHomelabServices
+	//   POST   /api/v1/homelab/services            — CreateHomelabService
+	//   PATCH  /api/v1/homelab/services/:id        — PatchHomelabService
+	//   DELETE /api/v1/homelab/services/:id        — DeleteHomelabService
+	//   GET    /api/v1/homelab/services/aggregate  — GetHomelabServicesAggregate
+	//   POST   /api/v1/homelab/services/:id/probe  — ProbeHomelabService
+	//   GET    /api/v1/homelab/services/:id/history — GetHomelabServiceHistory
+	//   POST   /api/v1/homelab/services/probe-all  — ProbeAllHomelabServices
+	protected.GET("/homelab/services", handler.ListHomelabServices(pool))
+	protected.POST("/homelab/services", handler.CreateHomelabService(pool))
+	protected.GET("/homelab/services/aggregate", handler.GetHomelabServicesAggregate(pool))
+	protected.POST("/homelab/services/probe-all", handler.ProbeAllHomelabServices(pool))
+	// /:id/* routes MUST come after the static-path siblings above
+	// (Gin matches in order) — otherwise /probe-all would be parsed
+	// as :id="probe-all" and the static handler would never fire.
+	protected.PATCH("/homelab/services/:id", handler.PatchHomelabService(pool))
+	protected.DELETE("/homelab/services/:id", handler.DeleteHomelabService(pool))
+	protected.POST("/homelab/services/:id/probe", handler.ProbeHomelabService(pool))
+	protected.GET("/homelab/services/:id/history", handler.GetHomelabServiceHistory(pool))
 }
