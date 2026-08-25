@@ -113,6 +113,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	// don't have to touch this file again until Phase 5.
 	admin := protected.Group("/admin", handler.RequireRole("admin"))
 	mountPlatformRoutes(r.Group("/api/v1"), protected, admin, pool, rateLimiter, ratePlans)
+	mountMobileRoutes(r.Group("/api/v1"), protected, admin, pool)
 
 	// Public CI/CD webhook receivers (no JWT — providers can't carry one).
 	// Mounted at /api/v1/cicd/webhook/{github,gitlab} on the public router.

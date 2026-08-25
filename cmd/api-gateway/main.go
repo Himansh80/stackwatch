@@ -16,6 +16,7 @@ import (
 	"github.com/stackwatch/platform/internal/handler"
 	"github.com/stackwatch/platform/internal/auth"
 	"github.com/stackwatch/platform/internal/homelab"
+	"github.com/stackwatch/platform/internal/mobile"
 	"github.com/stackwatch/platform/internal/platform"
 	"github.com/stackwatch/platform/internal/synthetics"
 )
@@ -213,7 +214,12 @@ func main() {
 		healthWorker := platform.NewCapacityForecastWorker(pool, platform.WithCapacityForecastLogger(logger))
 		healthWorker.Start(rootCtx)
 
-	server := &http.Server{
+		// Tier 13 — Mobile push dispatch worker. Phase 1 stub: logs a tick
+		// every 30s. Phase 2 fills in the actual FCM/APNs dispatch.
+		mobileDispatcher := mobile.New(pool)
+		mobileDispatcher.Start(rootCtx)
+
+		server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,
 		ReadHeaderTimeout: 10 * time.Second,
