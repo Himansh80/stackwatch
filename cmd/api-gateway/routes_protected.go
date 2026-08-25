@@ -386,22 +386,12 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	// every Tier 7 subtier has its routes mounted.
 	mountTeamRoutes(protected, pool)
 
-	// ---- Tier 8.1: Intelligence & Alerting (Phase 0 split) ----
-	// Tier 8 will add 24 routes across 5 subtiers (anomaly, predict,
-	// correlation, noise, dashboard). They live in routes_intelligence.go
-	// (mountIntelligenceRoutes) so routes_protected.go stays under the
-	// 400-LOC cap. Phase 1 of the 006 change adds the first 5
-	// (ML Anomaly Detection); the remaining 19 are spread across
-	// Phases 2-5 in subsequent commits.
+	// Tier 8 routes live in routes_intelligence.go.
 	mountIntelligenceRoutes(protected, pool)
 
-	// Tier 9: 32 routes (SSO+SCIM+RBAC+Audit+Compliance+Orgs) live in routes_enterprise.go (Phase 1 of 007 adds the first 8 SSO).
+	// Tier 9: 32 routes live in routes_enterprise.go.
 	mountEnterpriseRoutes(protected, pool)
 
-	// Tier 10: Homelab Dashboard routes (Phase 0 splits them out of
-	// routes_protected.go, which is at the 399-LOC cap). Phases 1-9
-	// add 50+ routes here — Phase 1 contributes 6 (H1 widget framework
-	// + per-user layout/prefs); future phases add services/notes/
-	// todos/calendar/downloads/media/search/rss/scheduler.
+	// Tier 10: Homelab routes in routes_homelab.go.
 	mountHomelabRoutes(protected, pool)
-	}
+}
