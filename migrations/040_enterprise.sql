@@ -357,3 +357,117 @@ CREATE TABLE IF NOT EXISTS audit_log_archive (
 -- created_at DESC) index avoids a sort + filter scan.
 CREATE INDEX IF NOT EXISTS idx_audit_log_archive_tenant_time
     ON audit_log_archive(tenant_id, created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- Tier 9.5 (Phase 5) — Compliance Reports.
+--
+-- Adds the two tables that back the compliance-report surface — one row per
+-- generated (or in-progress) report (compliance_reports) and one row per
+-- recurring schedule (compliance_schedules).
+--
+-- All CREATE statements are idempotent so re-applying the migration is a
+-- no-op. No data migration is required: reports will be generated lazily
+-- as POST /api/v1/enterprise/compliance/reports jobs complete; until then
+-- the tables are empty.
+--
+-- Report artifact storage:
+--   The PDF-equivalent artifact is written by the background goroutine
+--   in handlers_compliance.go::runReportJob to the filesystem at
+--     /opt/stackwatch/reports/{tenant_id}/{report_id}.txt
+--   and the path is stored verbatim in compliance_reports.artifact_path.
+--   We deliberately store the path (not a URL) so a future S3 swap can
+--   store a 's3://...' URL here without a schema migration. The
+--   /download endpoint refuses to serve a row whose status is not
+--   'completed'.
+--
+-- Framework allowlist:
+--   framework is one of 'soc2' | 'iso27001' | 'hipaa' | 'pci' | 'gdpr'
+--   (handlers_compliance_types.go::allowedComplianceFrameworks). The
+--   CHECK constraint mirrors that set at the DB level so a hand-crafted
+--   INSERT can't smuggle in junk like 'sox' or 'fedramp'.
+--
+-- Status lifecycle:
+--   'pending'   — row INSERTed, goroutine not yet started.
+--   'running'   — goroutine is assembling the report (counts from DB,
+--                  writing artifact file).
+--   'completed' — artifact_path + completed_at set; /download serves.
+--   'failed'    — error_message populated; /download refuses (409).
+--
+-- Scheduling:
+--   compliance_schedules is the recurring-job config — frequency is
+--   'monthly' | 'quarterly' | 'yearly' and recipients is a list of
+--   email addresses that should receive the artifact when the cron
+--   fires. Phase 5 ships the config surface but does NOT run a cron
+--   sweep — a future Tier 9.x janitor will read next_run_at, generate
+--   the report, and dispatch to recipients. For now POST creates the
+--   row and the GET lists it so operators can configure ahead of the
+--   sweep landing.
+-- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- compliance_reports — one row per generated (or in-progress) report.
+--
+-- `artifact_path` is populated only when status='completed'. When the
+-- report fails, `error_message` carries the cause and the download
+-- endpoint surfaces a 409 instead of streaming a partial file.
+--
+-- `scheduled_id` is set when the report was produced by a recurring
+-- schedule (future Tier 9.x cron); manual POST leaves it NULL. The FK
+-- is not enforced at the DB level so a missing-schedule cleanup can't
+-- cascade-delete audit-trail report rows.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS compliance_reports (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    framework     TEXT NOT NULL
+                   CHECK (framework IN ('soc2','iso27001','hipaa','pci','gdpr')),
+    period_start  TIMESTAMPTZ NOT NULL,
+    period_end    TIMESTAMPTZ NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'pending'
+                   CHECK (status IN ('pending','running','completed','failed')),
+    artifact_path TEXT,
+    scheduled_id  UUID,
+    requested_by  UUID,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at  TIMESTAMPTZ,
+    error_message TEXT
+);
+
+-- Every list-endpoint query (GET /compliance/reports) filters by tenant_id
+-- first and sorts by created_at DESC, so a composite (tenant_id,
+-- created_at DESC) index avoids a sort + filter scan.
+CREATE INDEX IF NOT EXISTS idx_compliance_reports_tenant_time
+    ON compliance_reports(tenant_id, created_at DESC);
+
+-- Supports the optional ?framework= filter on the list endpoint.
+CREATE INDEX IF NOT EXISTS idx_compliance_reports_framework
+    ON compliance_reports(tenant_id, framework);
+
+-- ---------------------------------------------------------------------------
+-- compliance_schedules — one row per recurring report schedule.
+--
+-- `frequency` is one of 'monthly' | 'quarterly' | 'yearly' (handler
+-- enforced; CHECK constraint mirrors the allowlist).
+-- `recipients` is the list of email addresses the report should be
+-- mailed to when the cron fires.
+-- `enabled=false` pauses the schedule without losing config (soft-pause).
+-- `next_run_at` is the next dispatch timestamp; the future cron sweep
+-- reads `WHERE enabled = true AND next_run_at <= now()`.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS compliance_schedules (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    framework    TEXT NOT NULL
+                  CHECK (framework IN ('soc2','iso27001','hipaa','pci','gdpr')),
+    frequency    TEXT NOT NULL
+                  CHECK (frequency IN ('monthly','quarterly','yearly')),
+    recipients   TEXT[] NOT NULL DEFAULT '{}',
+    enabled      BOOLEAN NOT NULL DEFAULT true,
+    next_run_at  TIMESTAMPTZ NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Every list-endpoint query (GET /compliance/schedules) filters by
+-- tenant_id first; a single-column index is sufficient.
+CREATE INDEX IF NOT EXISTS idx_compliance_schedules_tenant
+    ON compliance_schedules(tenant_id);

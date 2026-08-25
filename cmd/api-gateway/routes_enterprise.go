@@ -24,7 +24,7 @@ import (
 //	Phase 2: SCIM Provisioning (4 protected + 5 public)  ← added in Phase 2
 //	Phase 3: Advanced RBAC (6 routes)               ← added in Phase 3
 //	Phase 4: Audit Log Retention + Export (4 routes) ← added in Phase 4
-//	Phase 5: Compliance Reports (5 routes)
+//	Phase 5: Compliance Reports (7 routes)         ← added in Phase 5
 //	Phase 6: Enterprise Tenants + Org Settings (3 routes)
 //
 // All handlers honor tenant_id from the JWT — no cross-tenant data
@@ -164,8 +164,55 @@ func mountEnterpriseRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.GET("/enterprise/audit/archives/:id/download", handler.DownloadAuditArchive(pool))
 	protected.POST("/enterprise/audit/export", handler.ExportAuditEvents(pool))
 
-	// (Phases 5-6 leave their mount-call comments as anchors for
-	// the next subagent — no actual registration until those phases ship.)
+	// ---- Tier 9.5: Compliance Reports (Phase 5) ----
+	// Per spec §"Story 5 — Compliance Reports", these 7 protected
+	// endpoints let compliance officers generate evidence packages
+	// for SOC2 / ISO27001 / HIPAA / PCI / GDPR auditors and configure
+	// recurring schedules that future Tier 9.x cron sweeps will
+	// dispatch.
+	//
+	// Background-job design (mirrors Phase 4):
+	//   POST /compliance/reports returns 201 IMMEDIATELY with the
+	//   row id after INSERTing a status='pending' row. The
+	//   generator (runReportJob in handlers_compliance_worker.go)
+	//   flips the row to 'running', SELECTs several real-DB counts
+	//   (audit_log / anomaly_events / active users / SSO
+	//   connections) that serve as evidence sections, composes a
+	//   plain-text artifact at
+	//     /opt/stackwatch/reports/{tenant_id}/{report_id}.txt
+	//   and UPDATEs the row to status='completed' (with
+	//   artifact_path + completed_at) or 'failed' (with
+	//   error_message). Concurrent generators are capped at
+	//   complianceReportMaxParallel (4) via a buffered semaphore
+	//   (`complianceReportSem`) so a burst of 10 parallel POSTs
+	//   only spawns 4 goroutines + 6 queued submits.
+	//
+	// Schedule design (config-only this phase):
+	//   POST /compliance/schedules persists a recurring-job config
+	//   row (framework / frequency / recipients / next_run_at).
+	//   Phase 5 ships the config surface only — the actual cron
+	//   sweep that reads next_run_at, generates the report, and
+	//   dispatches to recipients is a future Tier 9.x janitor and
+	//   reads the same table unchanged.
+	//
+	// Routes (7 protected):
+	//   GET    /api/v1/enterprise/compliance/reports                 — ListComplianceReports
+	//   POST   /api/v1/enterprise/compliance/reports                 — CreateComplianceReport
+	//   GET    /api/v1/enterprise/compliance/reports/:id              — GetComplianceReport
+	//   GET    /api/v1/enterprise/compliance/reports/:id/download     — DownloadComplianceReport
+	//   GET    /api/v1/enterprise/compliance/schedules               — ListComplianceSchedules
+	//   POST   /api/v1/enterprise/compliance/schedules               — CreateComplianceSchedule
+	//   DELETE /api/v1/enterprise/compliance/schedules/:id           — DeleteComplianceSchedule
+	protected.GET("/enterprise/compliance/reports", handler.ListComplianceReports(pool))
+	protected.POST("/enterprise/compliance/reports", handler.CreateComplianceReport(pool))
+	protected.GET("/enterprise/compliance/reports/:id", handler.GetComplianceReport(pool))
+	protected.GET("/enterprise/compliance/reports/:id/download", handler.DownloadComplianceReport(pool))
+	protected.GET("/enterprise/compliance/schedules", handler.ListComplianceSchedules(pool))
+	protected.POST("/enterprise/compliance/schedules", handler.CreateComplianceSchedule(pool))
+	protected.DELETE("/enterprise/compliance/schedules/:id", handler.DeleteComplianceSchedule(pool))
+
+	// (Phase 6 leaves its mount-call comment as an anchor for the
+	// next subagent — no actual registration until that phase ships.)
 }
 
 // mountEnterprisePublicRoutes registers the PUBLIC SSO callback
