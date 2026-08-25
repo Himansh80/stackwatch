@@ -254,4 +254,44 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.GET("/homelab/search/kinds", handler.ListHomelabSearchKinds())
 	protected.GET("/homelab/search/suggestions", handler.SearchHomelabSuggestions(pool))
 	protected.GET("/homelab/search", handler.SearchHomelabGlobal(pool))
+
+	// ---- Tier 10.8: RSS / Activity Feed (Phase 8) ----
+	//
+	// Per spec §"H9 — RSS / Activity Feed", these 5 protected
+	// endpoints back the per-user RSS subscription surface
+	// (homelab_rss_feeds) + the cached-item read/mark-read
+	// surface (homelab_rss_items). Handlers live in
+	// handlers_homelab_rss.go (5 routes) + the row shapes in
+	// handlers_homelab_rss_types.go.
+	//
+	// The RssWorker (started in main.go) ticks every 5min and
+	// upserts items from every enabled feed. POST /feeds fires
+	// an immediate fire-and-forget poll after create via
+	// homelab.PollFeedAndUpsertItems (same helper the worker
+	// uses, DRY) so a freshly-pinned feed shows items within
+	// seconds rather than waiting a full tick.
+	//
+	// Routes (5 protected):
+	//   GET    /api/v1/homelab/rss/feeds            — ListHomelabRssFeeds
+	//   POST   /api/v1/homelab/rss/feeds            — CreateHomelabRssFeed
+	//   DELETE /api/v1/homelab/rss/feeds/:id        — DeleteHomelabRssFeed
+	//   GET    /api/v1/homelab/rss/items            — ListHomelabRssItems
+	//   POST   /api/v1/homelab/rss/items/:id/read   — MarkHomelabRssItemRead
+	//
+	// Static-path siblings (/rss/items) MUST come BEFORE the
+	// /:id patterns below — Gin's radix tree matches in
+	// registration order, so /items would otherwise be parsed
+	// as :id="items" and the items handler would never fire.
+	// /items/:id/read also has to land BEFORE the /feeds/:id
+	// DELETE so the DELETE pattern doesn't shadow the read
+	// pattern. (DELETE is verb-specific so this isn't strictly
+	// a runtime conflict, but keeping the static siblings
+	// grouped at the top is the same convention used by the
+	// other tiers' blocks above.)
+	protected.GET("/homelab/rss/feeds", handler.ListHomelabRssFeeds(pool))
+	protected.POST("/homelab/rss/feeds", handler.CreateHomelabRssFeed(pool))
+	protected.GET("/homelab/rss/items", handler.ListHomelabRssItems(pool))
+	// /:id/* static siblings (items/:id/read) before the /:id patterns.
+	protected.POST("/homelab/rss/items/:id/read", handler.MarkHomelabRssItemRead(pool))
+	protected.DELETE("/homelab/rss/feeds/:id", handler.DeleteHomelabRssFeed(pool))
 }

@@ -730,3 +730,97 @@ CREATE TABLE IF NOT EXISTS homelab_recent_additions (
 -- supports the widget's poster carousel render.
 CREATE INDEX IF NOT EXISTS idx_homelab_recent_additions_server_time
     ON homelab_recent_additions(server_id, added_at DESC);
+
+---------------------------------------------------------------------------
+-- homelab_rss_feeds — RSS feed subscriptions (one row per pinned feed).
+--
+-- Tier 10 Phase 8 (H9 — RSS / Activity Feed). Mirrors the homelab_calendars
+-- pattern from Phase 4: per-(tenant_id, user_id) subscriptions with a
+-- 5-minute polling cadence run by RssWorker
+-- (internal/homelab/rss.go). The frontend uses last_polled_at +
+-- last_poll_status to render a status pill + relative time on each
+-- feed card; last_poll_error is shown via tooltip when status='error'.
+--
+-- columns:
+--   id                row UUID
+--   tenant_id, user_id RBAC scope
+--   name              human-friendly label (e.g. "r/selfhosted")
+--   feed_url          RSS / Atom / JSON feed URL — validated by handler
+--                     (must be http/https parseable)
+--   category          grouping label (News/Releases/Blogs/Podcasts/Other)
+--                     — frontend uses this to filter + color the chip
+--   enabled           paused flag (false → worker skips on next tick)
+--   last_polled_at    last attempted poll timestamp
+--   last_poll_status  'success' | 'error' | '' (empty until first poll)
+--   last_poll_error   populated on failure; cleared on next success
+CREATE TABLE IF NOT EXISTS homelab_rss_feeds (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        UUID NOT NULL,
+    user_id          UUID NOT NULL,
+    name             TEXT NOT NULL,
+    feed_url         TEXT NOT NULL,
+    category         TEXT NOT NULL DEFAULT 'general',
+    enabled          BOOLEAN NOT NULL DEFAULT TRUE,
+    last_polled_at   TIMESTAMPTZ,
+    last_poll_status TEXT,
+    last_poll_error  TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, user_id, feed_url)
+);
+-- Hottest read is "all my feeds" — index on user_id keeps the
+-- per-user list query O(1). The UNIQUE above already indexes
+-- (tenant_id, user_id, feed_url) for the duplicate-check on POST.
+CREATE INDEX IF NOT EXISTS idx_homelab_rss_feeds_user
+    ON homelab_rss_feeds(user_id);
+
+---------------------------------------------------------------------------
+-- homelab_rss_items — cached RSS entries (one row per <item> per feed).
+--
+-- Persisted by RssWorker after fetching + parsing each feed with
+-- github.com/mmcdole/gofeed (Atom 1.0, RSS 2.0, JSON Feed 1.1). UNIQUE
+-- (feed_id, guid) collapses re-polls of the same entry — the handler's
+-- read endpoint surfaces read_at=null rows first so the dashboard's
+-- "Unread" badge stays correct even after many polls.
+--
+-- columns:
+--   id             row UUID
+--   tenant_id, user_id RBAC scope (denormalized for fast per-user reads)
+--   feed_id        FK ON DELETE CASCADE → homelab_rss_feeds.id
+--                  (deleting a feed purges its items in one txn)
+--   guid           upstream <guid> / <id> — unique within a feed
+--   title          <title>
+--   link           <link> (the article URL the user opens)
+--   summary        <description> or <summary> (truncated server-side)
+--   author         <author> or <dc:creator>
+--   published_at   <pubDate> / <published>
+--   read_at        when the user marked it read; null = unread
+CREATE TABLE IF NOT EXISTS homelab_rss_items (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    UUID NOT NULL,
+    user_id      UUID NOT NULL,
+    feed_id      UUID NOT NULL REFERENCES homelab_rss_feeds(id) ON DELETE CASCADE,
+    guid         TEXT NOT NULL,
+    title        TEXT NOT NULL,
+    link         TEXT NOT NULL,
+    summary      TEXT,
+    author       TEXT,
+    published_at TIMESTAMPTZ,
+    read_at      TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (feed_id, guid)
+);
+-- Hottest reads:
+--   1. "all my items, newest first"        → (user_id, published_at DESC)
+--   2. "one feed's items, newest first"   → (feed_id, published_at DESC)
+--   3. "my unread count + unread list"    → (user_id, read_at) WHERE
+--                                            read_at IS NULL — partial
+--                                            index keeps the badge query
+--                                            O(1) even with thousands of
+--                                            read items.
+CREATE INDEX IF NOT EXISTS idx_homelab_rss_items_user_published
+    ON homelab_rss_items(user_id, published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homelab_rss_items_feed
+    ON homelab_rss_items(feed_id, published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homelab_rss_items_unread
+    ON homelab_rss_items(user_id, read_at) WHERE read_at IS NULL;

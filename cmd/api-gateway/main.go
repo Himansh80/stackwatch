@@ -91,6 +91,17 @@ func main() {
 	mediaWorker := homelab.NewMediaWorker(pool, homelab.WithMediaLogger(logger))
 	mediaWorker.Start(rootCtx)
 
+	// Tier 10 Phase 8 — RSS / Activity Feed background worker.
+	// Ticks every 5min, fetches every enabled feed URL in
+	// homelab_rss_feeds (across all tenants + users), parses
+	// each one with github.com/mmcdole/gofeed, and UPSERTs the
+	// contained <item>s into homelab_rss_items. Per-feed
+	// errors are logged but never abort the batch — one bad
+	// feed must not skip the rest. First tick fires
+	// immediately on Start().
+	rssWorker := homelab.NewRssWorker(pool, homelab.WithRssLogger(logger))
+	rssWorker.Start(rootCtx)
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,
