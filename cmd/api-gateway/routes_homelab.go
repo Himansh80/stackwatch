@@ -229,4 +229,29 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.POST("/homelab/media/servers", handler.CreateHomelabMediaServer(pool))
 	protected.GET("/homelab/media/state", handler.GetHomelabMediaState(pool))
 	protected.DELETE("/homelab/media/servers/:id", handler.DeleteHomelabMediaServer(pool))
+
+	// ---- Tier 10.7: Search (Phase 7) ----
+	//
+	// Per spec §"H7 — Search", these 3 protected endpoints back
+	// the global search surface that crosses every per-user
+	// homelab sub-feature. No new tables — search reads the 13
+	// existing tables via a parameterized UNION ALL. Handlers
+	// live in handlers_homelab_search.go + the SQL-builder
+	// helpers in handlers_homelab_search_helpers.go (kept
+	// under 400 LOC each via the file split).
+	//
+	// Routes (3 protected):
+	//   GET /api/v1/homelab/search/kinds        — ListHomelabSearchKinds (static catalog)
+	//   GET /api/v1/homelab/search/suggestions  — SearchHomelabSuggestions (top-8 autocomplete)
+	//   GET /api/v1/homelab/search               — SearchHomelabGlobal (full results w/ snippet+score)
+	//
+	// Static-path siblings (/kinds, /suggestions) MUST come
+	// BEFORE the bare /search path — Gin's radix tree matches
+	// in registration order. With three distinct sub-paths
+	// (kinds / suggestions / search) there's no actual
+	// shadowing risk, but alphabetical order keeps the
+	// registration block readable for the next reviewer.
+	protected.GET("/homelab/search/kinds", handler.ListHomelabSearchKinds())
+	protected.GET("/homelab/search/suggestions", handler.SearchHomelabSuggestions(pool))
+	protected.GET("/homelab/search", handler.SearchHomelabGlobal(pool))
 }

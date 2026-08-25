@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import { useLogout } from '../lib/useLogout';
 import AppSidebar from '../components/AppSidebar';
+import GlobalSearch from '../components/homelab/GlobalSearch';
 import HomelabGrid from '../components/homelab/HomelabGrid';
 import HomelabKpiStrip from '../components/homelab/HomelabKpiStrip';
 import { motion, buttonSpring, pageEnter, useReducedMotion } from '../lib/motion';
@@ -33,8 +34,9 @@ import { motion, buttonSpring, pageEnter, useReducedMotion } from '../lib/motion
  *   - RSS        (Phase 8 — H9)
  *   - Scheduler  (Phase 9 — H10)
  *
- * Phase 7 (Search — H7) is a global search bar in the topbar, not a
- * tab — matches the proposal §US-7 ("global search bar at the top").
+ * Phase 7 (Search — H7) is a global search bar in the topbar (not a
+ * tab) — matches the proposal §US-7 ("global search bar at the top").
+ * Wired via the GlobalSearch component (imported below).
  *
  * Per-user prefs (Phase 1):
  *   - GET /prefs runs once on mount so the HomelabKpiStrip knows
@@ -168,6 +170,28 @@ export default function HomelabPage() {
     }
   }, []);
 
+  // GlobalSearch → tab navigation. Phase 7 only knows about the
+  // kinds backed by the existing 6 tables. Unknown kinds fall
+  // through to no-op (the backend shouldn't emit unknown kinds,
+  // but a defensive early-return beats a switch-throw). The
+  // services kind carries its own URL (e.g. an external Grafana
+  // link) so we open that in a new tab instead of switching.
+  const onSearchNavigate = useCallback((kind: string, _id: string, url: string) => {
+    if (kind === 'services') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const tabMap: Record<string, Tab> = {
+      notes: 'notes',
+      todos: 'notes', // todos live inside the Notes tab (placeholder copy)
+      calendars: 'calendar',
+      downloads: 'downloads',
+      media: 'media',
+    };
+    const target = tabMap[kind];
+    if (target) setTab(target);
+  }, []);
+
   const activePhaseHint = TAB_PHASE_HINTS[tab];
 
   return (
@@ -200,6 +224,13 @@ export default function HomelabPage() {
                   {prefs ? `${prefs.refresh_seconds}s refresh · ${prefs.default_landing} landing` : 'Loading…'}
                 </span>
               </span>
+            </div>
+            {/* Phase 7 — global search bar. Lives in the topbar
+                under the greeting (not a tab) so it's reachable
+                from any tab context. 300ms debounce on the backend
+                suggestions keeps the keystroke loop responsive. */}
+            <div className="dash-topbar-search">
+              <GlobalSearch onNavigate={onSearchNavigate} />
             </div>
           </div>
           <div className="dash-top-actions">
