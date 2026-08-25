@@ -471,3 +471,35 @@ CREATE TABLE IF NOT EXISTS compliance_schedules (
 -- tenant_id first; a single-column index is sufficient.
 CREATE INDEX IF NOT EXISTS idx_compliance_schedules_tenant
     ON compliance_schedules(tenant_id);
+
+-- ---------------------------------------------------------------------------
+-- Phase 6 — Enterprise Tenants + Org Settings (Tier 9.6).
+--
+-- Two ALTER TABLE statements on the existing `tenants` table that turn
+-- the flat tenant model into a 2-level org hierarchy:
+--
+--   parent_org_id   — self-reference to tenants(id). NULL = top-level
+--                     org (the tenant itself); non-NULL = sub-org owned
+--                     by another org in the same tenant. ON DELETE SET
+--                     NULL so deleting a parent doesn't cascade-kill
+--                     children (the audit trail is preserved by soft-
+--                     disabling the parent instead).
+--
+--   settings        — per-org JSONB blob for OrgSettingsForm (theme,
+--                     default_dashboard, default_landing, ...). Default
+--                     '{}' so existing rows backfill cheaply. NOT NULL
+--                     so the form never has to defend against NULL.
+--
+-- Index on parent_org_id so the GET /api/v1/enterprise/orgs tree query
+-- (which filters by tenant_id and sorts children under each parent)
+-- stays O(N) instead of becoming O(N²) once a tenant has hundreds of
+-- sub-orgs.
+--
+-- Both ALTERs use IF NOT EXISTS so re-applying this file is a no-op —
+-- safe to ship alongside the Phase 1-5 CREATE TABLE statements that
+-- already use the same idempotent pattern.
+-- ---------------------------------------------------------------------------
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS parent_org_id uuid REFERENCES tenants(id) ON DELETE SET NULL;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings jsonb NOT NULL DEFAULT '{}';
+CREATE INDEX IF NOT EXISTS idx_tenants_parent_org
+    ON tenants(parent_org_id);

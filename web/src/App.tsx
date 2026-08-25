@@ -23,6 +23,7 @@ import IncidentsPage from './pages/IncidentsPage';
 import NotebookPage from './pages/NotebookPage';
 import SharedDashboardsPage from './pages/SharedDashboardsPage';
 import IntelligencePage from './pages/IntelligencePage';
+import EnterprisePage from './pages/EnterprisePage';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
 import { useAuthState } from './lib/useAuthState';
 
@@ -62,6 +63,7 @@ export default function App() {
       <Route path="/shared" element={isLoggedIn ? <SharedDashboardsPage /> : <Navigate to="/login" replace />} />
       <Route path="/tier0" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
       <Route path="/intelligence" element={isLoggedIn ? <IntelligencePage /> : <Navigate to="/login" replace />} />
+      <Route path="/enterprise" element={isLoggedIn ? <EnterprisePage /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

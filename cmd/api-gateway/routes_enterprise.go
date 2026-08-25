@@ -25,7 +25,7 @@ import (
 //	Phase 3: Advanced RBAC (6 routes)               ← added in Phase 3
 //	Phase 4: Audit Log Retention + Export (4 routes) ← added in Phase 4
 //	Phase 5: Compliance Reports (7 routes)         ← added in Phase 5
-//	Phase 6: Enterprise Tenants + Org Settings (3 routes)
+//	Phase 6: Enterprise Tenants + Org Settings (3 routes) ← added in Phase 6 (FINAL)
 //
 // All handlers honor tenant_id from the JWT — no cross-tenant data
 // ever crosses the wire. Idempotent migrations in
@@ -211,8 +211,42 @@ func mountEnterpriseRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.POST("/enterprise/compliance/schedules", handler.CreateComplianceSchedule(pool))
 	protected.DELETE("/enterprise/compliance/schedules/:id", handler.DeleteComplianceSchedule(pool))
 
-	// (Phase 6 leaves its mount-call comment as an anchor for the
-	// next subagent — no actual registration until that phase ships.)
+	// ---- Tier 9.6: Enterprise Tenants + Org Settings (Phase 6 — FINAL) ----
+	// Per spec §"Story 6 — Enterprise Tenants + Org Settings", these
+	// 3 protected endpoints let large enterprises organize users into
+	// sub-orgs (business units / regions / teams) and configure
+	// per-org UI preferences (theme + default dashboard + default
+	// landing page).
+	//
+	// Sub-orgs are stored as additional rows in the `tenants` table
+	// sharing the same tenant_id as their parent (distinguished by
+	// parent_org_id IS NOT NULL) — see migrations/040_enterprise.sql
+	// Phase 6 ALTER TABLE statements. This keeps the per-tenant data
+	// isolation guarantee in `users.tenant_id` working unchanged.
+	//
+	// The /settings PATCH endpoint accepts an arbitrary JSON blob
+	// (validated as JSON at the handler layer); the UI's
+	// OrgSettingsForm restricts the surface to known keys (theme /
+	// default_dashboard / default_landing) but the column is open-
+	// ended so future fields can be added without a migration.
+	//
+	// Routes (3 protected):
+	//   GET    /api/v1/enterprise/orgs              — ListEnterpriseOrgs
+	//   POST   /api/v1/enterprise/orgs              — CreateEnterpriseOrg
+	//   PATCH  /api/v1/enterprise/orgs/:id/settings — UpdateEnterpriseOrgSettings
+	protected.GET("/enterprise/orgs", handler.ListEnterpriseOrgs(pool))
+	protected.POST("/enterprise/orgs", handler.CreateEnterpriseOrg(pool))
+	protected.PATCH("/enterprise/orgs/:id/settings", handler.UpdateEnterpriseOrgSettings(pool))
+
+	// ---- TIER 9 COMPLETE ----
+	// All 32 Tier 9 routes registered here in routes_enterprise.go:
+	//   Phase 1 SSO (6) + Phase 2 SCIM protected (4) + Phase 3 RBAC (7)
+	//   + Phase 4 Audit (4) + Phase 5 Compliance (7) + Phase 6 Orgs (3)
+	//   + Phase 2 PUBLIC SCIM (5) registered in mountEnterprisePublicRoutes
+	//   + Phase 1 PUBLIC SSO callbacks (3) registered in mountEnterprisePublicRoutes
+	//   = 32 enterprise routes total (29 protected + 8 public, counting
+	//   the two PUBLIC groups that share handlers with their protected
+	//   counterparts in mountEnterprisePublicRoutes).
 }
 
 // mountEnterprisePublicRoutes registers the PUBLIC SSO callback
