@@ -559,3 +559,49 @@ CREATE TABLE IF NOT EXISTS platform_region_replicas (
 -- surface this list).
 CREATE INDEX IF NOT EXISTS idx_platform_region_replicas_primary
     ON platform_region_replicas(primary_region_id) WHERE is_active = true;
+-- ============================================================================
+-- Migration 042 (continued): PL8 — Platform Health
+--
+-- platform_health_snapshots is the cached health surface for the operator
+-- dashboard. A single hourly row carries the overall UP/DEGRADED/DOWN
+-- status plus 16 KPI counts (active services, tenants, servers, alerts,
+-- db_connections, api calls/min, storage_gb_used, backup_count, etc.) and
+-- a free-form details JSONB for extension points (e.g. specific region
+-- statuses when multi-region is wired in a later phase).
+--
+-- Sizing rationale:
+--   * 1 row / hour / worker for the lifetime of the platform.
+--   * 7-day auto-prune in the CapacityForecastWorker keeps the table
+--     bounded at ~168 rows. Even with 100x growth that's <17k rows.
+--   * Index on snapshot_at DESC keeps the "latest N snapshots" query
+--     for GET /platform/health/summary hot.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS platform_health_snapshots (
+    id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    snapshot_at               timestamptz NOT NULL DEFAULT now(),
+    overall_status            text NOT NULL,
+    api_up                    boolean NOT NULL DEFAULT true,
+    db_up                     boolean NOT NULL DEFAULT true,
+    ingest_up                 boolean NOT NULL DEFAULT true,
+    alert_engine_up           boolean NOT NULL DEFAULT true,
+    ai_engine_up              boolean NOT NULL DEFAULT true,
+    web_terminal_up           boolean NOT NULL DEFAULT true,
+    total_tenants             integer NOT NULL DEFAULT 0,
+    active_tenants_24h        integer NOT NULL DEFAULT 0,
+    total_servers             integer NOT NULL DEFAULT 0,
+    servers_up                integer NOT NULL DEFAULT 0,
+    servers_stale             integer NOT NULL DEFAULT 0,
+    servers_down              integer NOT NULL DEFAULT 0,
+    open_alerts               integer NOT NULL DEFAULT 0,
+    failed_logins_24h         integer NOT NULL DEFAULT 0,
+    db_connections            integer NOT NULL DEFAULT 0,
+    api_calls_per_min_5m_avg  integer NOT NULL DEFAULT 0,
+    storage_gb_used           bigint  NOT NULL DEFAULT 0,
+    backup_count              integer NOT NULL DEFAULT 0,
+    backup_latest_at          timestamptz,
+    details                   jsonb   NOT NULL DEFAULT '{}'
+);
+
+-- "Latest N snapshots for the trend chart" — used by GET /platform/health/summary.
+CREATE INDEX IF NOT EXISTS idx_platform_health_snapshots_time
+    ON platform_health_snapshots(snapshot_at DESC);

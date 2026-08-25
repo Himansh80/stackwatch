@@ -29,7 +29,7 @@ import (
 //	Phase 5: Backup/Restore (PL5)            ← 5 routes (added in this commit)
 //	Phase 6: Multi-Region / HA (PL6)         ← 3 routes
 //	Phase 7: Rate Limiting (PL7)             ← 3 routes (added in this commit)
-//	Phase 8: Platform Health (PL8)           ← 4 routes
+//	Phase 8: Platform Health (PL8)           ← 5 routes (added in this commit)
 //
 // All handlers honor tenant_id from the JWT — no cross-tenant data
 // ever crosses the wire. Idempotent migration migrations/042_platform.sql
@@ -245,7 +245,39 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 		protected.GET("/platform/ratelimit/me", handler.GetMyRateLimit(rateLimiter, ratePlans))
 		protected.PATCH("/platform/ratelimit/global", handler.UpdateGlobalLimits(rateLimiter, ratePlans))
 		protected.GET("/platform/ratelimit/blocked", handler.ListBlockedTenants(rateLimiter))
-	}
+
+		// ---- Tier 11.8: Platform Health (Phase 8 — PL8) ----
+		//
+		// Per spec §"PL8 — Platform Health" these 5 endpoints
+		// back the operator (super_admin) dashboard. Every
+		// handler is PROTECTED + super_admin gated (a regular
+		// admin can't see platform-wide health — that would leak
+		// other tenants' infrastructure state). The cached
+		// surface itself lives in platform_health_snapshots,
+		// populated hourly by the CapacityForecastWorker
+		// (internal/platform/capacity_forecast.go) wired in
+		// main.go alongside UsageMeter / Retention /
+		// BackupScheduler.
+		//
+		// Why the router-order matters: the 5 static paths
+		// below MUST be registered BEFORE any future
+		// /platform/health/:id sibling so Gin's tree-router
+		// matches the literal suffix first. Today Phase 8 has
+		// no :id endpoint — the explicit ordering is just
+		// future-proofing.
+		//
+		// Routes (5 protected + super_admin):
+		//   GET /api/v1/platform/health/summary            — HealthSummary
+		//   GET /api/v1/platform/health/regions            — HealthRegionsSummary
+		//   GET /api/v1/platform/health/tenants/top        — HealthTopTenants
+		//   GET /api/v1/platform/health/capacity/forecast  — HealthCapacityForecast
+		//   GET /api/v1/platform/health/alerts             — HealthAlerts
+		protected.GET("/platform/health/summary", handler.HealthSummary(pool))
+		protected.GET("/platform/health/regions", handler.HealthRegionsSummary(pool))
+		protected.GET("/platform/health/tenants/top", handler.HealthTopTenants(pool))
+		protected.GET("/platform/health/capacity/forecast", handler.HealthCapacityForecast(pool))
+		protected.GET("/platform/health/alerts", handler.HealthAlerts(pool))
+		}
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints
 // (no JWT, no RequireAuth). Called from routes.go where the

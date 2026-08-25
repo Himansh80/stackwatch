@@ -197,7 +197,21 @@ func main() {
 	// are logged but never abort the batch. First tick fires
 	// immediately on Start().
 	backupSched := platform.NewBackupSchedulerWorker(pool, platform.WithBackupSchedulerLogger(logger))
-	backupSched.Start(rootCtx)
+		backupSched.Start(rootCtx)
+
+		// Tier 11 Phase 8 — Capacity Forecast background worker
+		// (PL8). Ticks every hour, walks every section (6
+		// component probes + tenants + servers + alerts + logins
+		// + db_connections + api calls + storage + backups),
+		// computes the overall_status (down/degraded/up),
+		// INSERTs a snapshot into platform_health_snapshots,
+		// and DELETEs rows older than 7 days so the table stays
+		// bounded at ~168 rows. Per-section errors are logged
+		// but never abort the batch — a missing table returns 0
+		// for that field and the snapshot still writes. First
+		// tick fires immediately on Start().
+		healthWorker := platform.NewCapacityForecastWorker(pool, platform.WithCapacityForecastLogger(logger))
+		healthWorker.Start(rootCtx)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
