@@ -1,140 +1,138 @@
-# Tier 11 — Platform & Commerce (Datadog/Stripe Parity)
+# Tier 11 — Platform & Commerce (the money phase)
 
 ## Why this tier
 
-StackWatch has monitoring, intelligence, security, and homelab — but
-no way to RUN THE BUSINESS. After Tier 11, the platform is a real
-commercial product: customers can sign up, hit their limits, get
-billed, see usage, deploy to their own infra, back up + restore, scale
-horizontally, and trust the platform to stay up.
+After 10 tiers of building infrastructure, monitoring, intelligence,
+security, and homelab, we have a great product. Now we need to **make
+money from it** — turn it into a real commercial SaaS without breaking
+the self-hosted model.
 
-This is the **business tier**. Tiers 1-10 were product. Tier 11 is
-what turns the product into a company.
+This is the **commercial platform** tier. It adds:
+1. **One-command deployment** (so non-engineers can self-host)
+2. **Usage metering** (so we can bill accurately)
+3. **Self-service signup** (so we don't manually onboard every tenant)
+4. **Tenant limits** (so free users can't run away with our infra)
+5. **Backup/restore** (so a single bug doesn't destroy 1,000 tenants)
+6. **Multi-region/HA** (so one datacenter going down doesn't take us down)
+7. **Per-tier rate limiting** (so a noisy tenant doesn't starve others)
+8. **Platform health** (so we know our platform is healthy from the inside)
 
 ## User Stories
 
-### US-1 — Push-Button Deploy (PL1)
-**As** a customer, **I want** to download a one-line install script
-that turns any Linux box into a StackWatch node (sends heartbeats +
-metrics to my account), **so that** I can monitor my homelab in <60s
-without manually configuring anything.
+### US-1 — One-Command Self-Host Deploy (PL1)
+**As** a small DevOps team / indie hacker, **I want** to run my own
+StackWatch instance with a single `curl | bash` command, **so that** I
+don't need to hire a backend engineer to deploy it.
 
-**Priority**: HIGHEST. Without it, signup has nothing to land on.
+**Priority**: HIGH. Every indie hacker is a potential paying customer.
 
-### US-2 — Usage Metering (PL2)
-**As** the platform owner, **I want** to meter every billable event
-(servers, metrics ingested, alerts fired, alerts delivered, API
-calls, GB stored, etc.) per tenant, per day, **so that** I can
-charge the right amount each month.
+### US-2 — Usage Metering + Billing (PL2)
+**As** a SaaS operator, **I want** accurate usage tracking per tenant
+(servers, alerts, dashboard panels, API calls, storage GB) **so that**
+I can bill correctly, detect abuse, and forecast capacity.
 
-**Priority**: HIGH. Without it, every plan is "free forever".
+**Priority**: HIGH. Without this, we can't charge for the platform.
 
 ### US-3 — Self-Service Signup (PL3)
-**As** a visitor, **I want** to sign up with email + password (no
-salesman call), get a tenant + default org + API key immediately,
-**so that** I can try the product in 30 seconds.
+**As** a prospective customer, **I want** to sign up for a free tier
+with just my email + password (no sales call) **so that** I can try
+the product immediately.
 
-**Priority**: HIGH. Every minute of friction = X% conversion loss.
+**Priority**: HIGH. Today every customer requires manual provisioning.
 
 ### US-4 — Tenant Limits (PL4)
-**As** the platform owner, **I want** per-plan limits (servers,
-metrics, alerts, seats) enforced at the API layer, **so that** free
-tier doesn't bankrupt me.
+**As** a SaaS operator, **I want** free tier capped at 3 servers /
+7-day retention, pro tier at 50 servers / 90-day, enterprise unlimited,
+**so that** the free tier doesn't bankrupt us and the paid tier is
+clearly differentiated.
 
-**Priority**: HIGH. Enforce QUOTA_EXCEEDED before usage happens.
+**Priority**: HIGH. Margin protection.
 
 ### US-5 — Backup/Restore (PL5)
-**As** a customer (or platform owner), **I want** full database
-backups (daily + on-demand) and a one-click restore, **so that** a
-mistake or disaster doesn't lose data.
+**As** any tenant admin, **I want** to export my full tenant config
+(servers, alerts, dashboards, homelab data) as a single .tar.gz
+**so that** I can restore to a new instance or recover from disaster.
 
-**Priority**: HIGH. Customers won't trust the product without it.
+**Priority**: HIGH. Single biggest trust-builder.
 
-### US-6 — Multi-Region / HA (PL6)
-**As** the platform owner, **I want** the option to run read replicas
-in additional regions (US, EU, APAC) with automatic failover,
-**so that** latency is low for everyone and uptime is 99.95%.
+### US-6 — Multi-Region/HA (PL6)
+**As** a SaaS operator, **I want** to deploy StackWatch across 2+ regions
+with active-active Postgres replication, **so that** an AZ outage
+doesn't take the entire platform offline.
 
-**Priority**: MEDIUM. Single-region works for v1. HA is for enterprise.
+**Priority**: MEDIUM. Required for paying customers, but most can
+tolerate one region initially.
 
 ### US-7 — Rate Limiting (PL7)
-**As** the platform owner, **I want** per-tenant + per-IP rate limits
-on every API route, with burst allowance and 429 responses,
-**so that** one runaway customer can't DoS the platform.
+**As** a SaaS operator, **I want** per-tenant rate limits based on
+plan tier (free=10 req/min, pro=60, enterprise=1000) **so that** one
+noisy tenant doesn't starve the rest.
 
-**Priority**: HIGH. Already partly done in Tier 0 (auth) — extend to
-all routes.
+**Priority**: HIGH. Required for any multi-tenant SaaS.
 
 ### US-8 — Platform Health (PL8)
-**As** the platform owner, **I want** a /admin/health dashboard that
-shows every service's status, every worker's last run, every queue's
-depth, every error rate, every cache hit rate, **so that** I know
-the platform is healthy before customers report problems.
+**As** a SaaS operator (the SUPER_ADMIN of multi-tenant instances),
+**I want** a single dashboard showing per-region health, per-tenant
+top-N, billing summary, support tickets, capacity forecasts **so that**
+I can spot trouble before customers do.
 
-**Priority**: HIGH. Operators need it. Customers trust it (status page).
+**Priority**: HIGH. Operators live and die by their dashboards.
 
 ## Scope (what's IN)
 
-- 8 DB tables + several ALTER TABLE statements
-- ~30 protected routes + 5 public/admin routes
-- 6 background workers (deploy webhook poller, backup scheduler,
-  usage rollup, HA replicator, rate limit cleaner, platform health
-  reporter)
-- Stripe + Razorpay integration (payment providers — primary: Stripe;
-  secondary: Razorpay for India)
-- Email integration (Resend / SMTP) for transactional + billing emails
-- 1 unified `AdminPage` with 8 sub-tabs
-- 1 unified `SettingsPage` (per-tenant) with billing + limits
+- 8 DB tables (1 per sub-feature, plus shared cross-cutting)
+- ~45 new routes (mostly under `/api/v1/platform/*`)
+- 1 unified `PlatformPage` with 6 tabs (Deploy, Metering, Signup,
+  Limits, Backups, Health)
+- **NEW admin role**: `platform_admin` (separate from `super_admin`
+  which is tenant-scoped). Platform admins see ALL tenants.
+- New package `internal/platform/` (alongside `internal/homelab/`)
+- Background workers for: usage aggregation (hourly), retention
+  enforcement (daily), rate-limit metric collection (1min), backup
+  scheduler (configurable), capacity forecast (daily)
+- New env var `INSTALL_MODE` (cloud | self_hosted) — auto-detect from
+  whether LICENSE_KEY is set
 
 ## Out of Scope (Tier 12+)
 
-- Public marketing site (Tier 12.4)
-- Docs (Tier 12.1-12.3)
-- Mobile app (Tier 13)
-- Multi-cloud (AWS/GCP/Azure deploy) — single-region only
+- Public marketing site (`stackwatch.io`) — Tier 12
+- Stripe integration — Tier 11.2 (covered) but Razorpay, bank transfer, etc. — Tier 12
+- Email service integration (Resend/SMTP) — already stubbed in Tier 0
+- Mobile app — Tier 13
 
 ## Risks
 
-1. **Stripe + Razorpay + Email integration** are external services
-   that can fail in production. Mitigate with retry queues + circuit
-   breakers + dev-mode that logs instead of sending.
-2. **Self-service signup** opens the platform to abuse (spammers,
-   crypto miners, etc). Mitigate with email verification + captcha +
-   per-IP rate limit on signup endpoint + DB-level rate limit.
-3. **Backup/restore** with a 4 GB database is non-trivial. Use
-   `pg_dump` + `pg_restore` + 30-day rotation + checksum verification.
-4. **Multi-region HA** is hard. v1 ships read replicas (async) but
-   NOT multi-master. Document the failover story clearly.
-5. **Usage metering** must be COMPLETE before any limit enforcement.
-   Otherwise limits are wrong and customers complain.
+1. **Self-service signup opens abuse vector** — mitigation: email
+   verification + rate limit on signup endpoint (10/day per IP).
+2. **Multi-region replication is complex** — mitigate by using a
+   managed Postgres (RDS/Neon/Supabase) for cloud mode, document
+   self-host replica setup for self-host mode.
+3. **Backup encryption** — encrypt .tar.gz with AES-256-GCM using a
+   tenant-derived key from the master key.
+4. **Capacity forecast must be cheap** — use simple linear regression
+   on raw metrics; no ML models.
+5. **Rate limiter must not lock out legit users** — soft limit (429)
+   with retry-after, no hard cutoffs.
 
-## Architectural Decisions
+## Architectural Decisions (high-level)
 
-1. **Stripe-first, Razorpay-second**: Stripe handles 80% of world
-   payments; Razorpay unlocks UPI (India) where Stripe is restricted.
-2. **Single binary** (api-gateway) hosts billing + signup + admin.
-   No new sidecar services.
-3. **Single migration file** (`042_platform.sql`) for all Tier 11 tables.
-4. **In-process rate limiter** (per-IP + per-tenant) using `sync.Map`
-   + sliding window. No external Redis dependency at this scale.
-5. **Backup via `pg_dump`** running on a cron-like schedule via a
-   background worker. Store to local disk (with rotation) AND
-   optional S3-compatible upload.
-6. **Email via Resend** (default) with SMTP fallback. Dev mode
-   returns the email content instead of sending.
-7. **Platform health** is a JSON endpoint + a Datadog-styled UI page
-   consumed by both operators and the public status page.
-8. **No new tier-11-specific public endpoints** — signup is the only
-   new public POST; everything else is admin-only.
-
-## Subscription Plans (proposed)
-
-| Plan | Price | Servers | Metrics/day | Seats | Retention |
-|------|-------|--------:|-------------|------:|----------:|
-| **Free** | $0 | 3 | 100k | 1 | 7d |
-| **Pro** | $24/mo | 25 | 10M | 5 | 30d |
-| **Business** | $99/mo | 100 | 100M | 25 | 90d |
-| **Enterprise** | Custom | Unlimited | Unlimited | Unlimited | 365d |
-
-Limits enforced server-side. Free tier requires email verification.
-Pro+ requires payment method on file.
+1. **Two install modes**: `cloud` (multi-tenant, public signup, billing)
+   and `self_hosted` (single-tenant, no signup, no billing). Detected
+   at boot from env vars.
+2. **Multi-tenant DB** (already in place — tenant_id on every table).
+3. **Per-tenant API key auth** (already in place).
+4. **One binary** (api-gateway) hosts all platform routes — no new
+   service.
+5. **New migration file** (`042_platform.sql`) for all 8+ tables.
+6. **Polling workers** in `internal/platform/`:
+   - `usage_meter` (hourly aggregation)
+   - `retention` (daily cleanup of expired data)
+   - `rate_limiter` (1min windowing)
+   - `backup_scheduler` (configurable cadence)
+   - `capacity_forecast` (daily linear regression)
+7. **Frontend**: 1 page (`PlatformPage.tsx`), 8 sections. Each <300 LOC.
+8. **No new dependencies** beyond `archive/tar` (stdlib) and
+   `compress/gzip` (stdlib) for backups.
+9. **Modular discipline**: every file <400 LOC. Split handlers by
+   domain (deploy, metering, signup, limits, backup, ratelimit,
+   health, multiregion).

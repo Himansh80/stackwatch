@@ -4,176 +4,173 @@
 
 | Metric | Target |
 |--------|--------|
-| Tier 11 routes live on `.115` | ≥ 35 |
-| Tier 11 DB tables on `.116` | 8 new |
-| All files < 400 LOC | Yes |
-| Plans enforced at API layer | Free, Pro, Business, Enterprise |
-| Signup → first heartbeat | < 60s |
-| Backup cadence | Daily + on-demand |
-| Backup retention | 30 days |
-| Rate limit per tenant | 60 req/min default, configurable per plan |
-| Rate limit per IP | 600 req/hour |
-| Multi-region | v1: single-region + read replica support flag |
+| Tier 11 routes live on `.115` | ≥ 45 |
+| Tier 11 DB tables on `.116` | 8 (plus 1 ALTER on users for `is_platform_admin`) |
+| All files < 400 LOC | Yes (every Go + TSX) |
+| One-command deploy script | Working (curl \| bash) |
+| Self-service signup rate limit | 10/day per IP |
+| Free tier server cap | 3 (configurable via env) |
+| Retention enforcement | Daily cron at 03:00 UTC |
+| Multi-region replication | Active-passive (cloud mode only) |
+| Rate limit per tenant | Based on plan tier |
+| Platform health dashboard | Real-time (1s poll) |
+| BACKUP_ENCRYPTION | AES-256-GCM with tenant-derived key |
 
 ## 2. Sub-features
 
-### PL1 — Push-Button Deploy
+### PL1 — One-Command Deploy
 
-**Tables:** `deploy_install_tokens`, `deploy_servers` (already covered
-by Tier 0 `servers` table; this phase adds the install-token lifecycle).
+**Tables:** `platform_deploy_tokens`
 
 **Routes (4):**
-- `POST /api/v1/platform/deploy/install-token` — create install token
-  (admin only; one-time use; expires in 1 hour)
-- `GET /api/v1/platform/deploy/install-script?token=X&backend=Y` — public
-  endpoint that returns the install script with the token + backend
-  baked in (Datadog-style one-liner)
-- `POST /api/v1/agents/register` — agent registers itself (existing
-  Tier 0 endpoint; this phase adds install-token validation)
-- `GET /api/v1/platform/deploy/stats` — admin: count of installs in
-  last 24h / 7d / 30d
+- `POST /api/v1/platform/deploy/install-token` — generate a one-time install token (cloud mode only)
+- `GET  /api/v1/platform/deploy/install.sh` — return the canonical install script
+- `GET  /api/v1/platform/deploy/status?token=X` — check install progress
+- `POST /api/v1/platform/deploy/mode` — switch INSTALL_MODE (cloud|self_hosted) — super_admin only
 
-**UI:** `DeploySection.tsx` — pre-canned curl snippet + copy button +
-  per-OS tabs (Linux/macOS/Windows).
+**Install script flow:**
+1. User runs `curl -fsSL https://stackwatch.smarthomelab.fun/install.sh | bash`
+2. Script downloads binary + `.env` template
+3. Script prompts for INSTALL_MODE
+4. Script writes systemd unit + starts service
+5. Service hits `/api/v1/platform/deploy/install-token` (auto-generates)
+6. Service hits `/api/v1/platform/deploy/status?token=X` to mark active
 
 ### PL2 — Usage Metering
 
-**Tables:** `usage_events`, `usage_daily_rollups`
+**Tables:** `platform_usage_events`, `platform_usage_aggregates`
 
-**Routes (3):**
-- `POST /api/v1/usage/events` — internal: meter an event (called by
-  other handlers). Body: `{event_type, quantity}`. Idempotent on
-  (tenant_id, day, event_type).
-- `GET /api/v1/usage/summary?from=X&to=Y` — tenant: aggregate usage
-  by event_type for a date range.
-- `GET /api/v1/admin/usage/all?tenant_id=X&from=Y&to=Z` — super-admin:
-  cross-tenant usage view.
+**Routes (5):**
+- `POST /api/v1/platform/usage/event` — record a usage event (server.created, alert.fired, api.call, storage.gb, dashboard.panel.rendered)
+- `GET  /api/v1/platform/usage/current?tenant_id=X&period=month` — current period usage
+- `GET  /api/v1/platform/usage/history?tenant_id=X&periods=12` — historical usage (chart data)
+- `GET  /api/v1/platform/usage/summary` — super_admin only — all tenants summary
+- `GET  /api/v1/platform/usage/export?tenant_id=X&format=csv` — export raw events
 
-**Internal helpers:**
-- `meterEvent(pool, tenantID, eventType, quantity)` — exported helper
-  used by every billable handler.
-
-**Worker:** `UsageRollupWorker` (hourly) — rolls up raw `usage_events`
-into `usage_daily_rollups` for fast aggregation.
+**Background worker:** `internal/platform/usage_meter.go` — aggregates raw
+events into hourly buckets every hour.
 
 ### PL3 — Self-Service Signup
 
-**Routes (3):**
-- `POST /api/v1/public/signup` — already exists from Tier 0; this phase
-  adds captcha + IP rate limit + email verification flow.
-- `POST /api/v1/public/verify-email?token=X` — confirm email; activates
-  tenant.
-- `POST /api/v1/public/resend-verification` — resend verification email.
+**Tables:** `platform_signups`
 
-**Email integration:** Resend (HTTP API) primary, SMTP fallback, dev-mode
-logs to console.
+**Routes (4):**
+- `POST /api/v1/platform/signup` — create new tenant + admin user (cloud mode only, rate-limited 10/day/IP)
+- `POST /api/v1/platform/signup/verify` — verify email token
+- `POST /api/v1/platform/signup/resend` — resend verification email
+- `GET  /api/v1/platform/signup/check-email?email=X` — is email already taken?
+
+**Note:** `INSTALL_MODE=self_hosted` rejects this endpoint with 403.
 
 ### PL4 — Tenant Limits
 
-**Tables:** `plan_limits` (one row per plan with limit JSONB).
+**Tables:** `platform_tenant_limits`, `platform_plan_definitions`
 
-**Routes (2):**
-- `GET /api/v1/admin/plans` — list plans + limits
-- `PATCH /api/v1/admin/plans/:plan` — update limits (super-admin only)
+**Routes (5):**
+- `GET    /api/v1/platform/limits/definitions` — return all plan definitions (free/starter/pro/enterprise)
+- `GET    /api/v1/platform/limits/me` — get my plan + current usage
+- `PATCH  /api/v1/platform/limits/me` — change my plan (super_admin only)
+- `POST   /api/v1/platform/limits/check` — dry-run: would this operation exceed my limit?
+- `GET    /api/v1/platform/limits/usage` — current usage vs limits (for billing warnings)
 
-**Implementation:** Middleware on every mutation route that reads
-`plan_limits[tenant.plan]` and returns 402 Payment Required if
-quantity would exceed. Limits checked:
-- `servers.max`
-- `metrics.daily_max`
-- `seats.max`
-- `retention_days`
-- `api.rate_per_minute`
-
-**Internal helper:** `enforceLimit(pool, tenantID, limitType, current)` —
-exported helper used by handlers.
+**Limits enforced** (background `internal/platform/retention.go` + middleware):
+- Free: 3 servers, 7-day data retention, 14-day metric retention, 1GB storage
+- Starter: 10 servers, 30-day data, 30-day metrics, 10GB
+- Pro: 50 servers, 90-day data, 90-day metrics, 100GB
+- Enterprise: unlimited everything
 
 ### PL5 — Backup/Restore
 
-**Tables:** `platform_backups`
+**Tables:** `platform_backups`, `platform_backup_jobs`
+
+**Routes (5):**
+- `POST /api/v1/platform/backup/create` — trigger manual backup (returns job_id)
+- `GET  /api/v1/platform/backup/list?tenant_id=X` — list backups for tenant
+- `GET  /api/v1/platform/backup/download?backup_id=X` — download .tar.gz (encrypted)
+- `POST /api/v1/platform/backup/restore` — restore from uploaded .tar.gz
+- `GET  /api/v1/platform/backup/schedule?tenant_id=X` — get backup schedule
+
+**Backup contents:**
+- Postgres pg_dump (custom format, compressed)
+- AES-256-GCM encrypted with tenant-derived key from `CREDENTIALS_MASTER_KEY`
+- Stored in `/opt/stackwatch/backups/{tenant_id}/{backup_id}.tar.gz.enc`
+- 7-day rolling retention (configurable)
+
+### PL6 — Multi-Region/HA
+
+**Tables:** `platform_regions`, `platform_region_replicas`
 
 **Routes (3):**
-- `GET /api/v1/admin/backups` — list backups (with status, size, type)
-- `POST /api/v1/admin/backups` — create backup on-demand (async)
-- `POST /api/v1/admin/backups/:id/restore` — restore from backup
-  (super-admin only, returns 202 with confirmation prompt)
+- `GET  /api/v1/platform/regions` — list configured regions
+- `POST /api/v1/platform/regions` — add region (cloud mode only)
+- `GET  /api/v1/platform/regions/health` — per-region health check
 
-**Worker:** `BackupWorker` (daily at 02:00 UTC):
-1. Run `pg_dump --format=custom --file=/var/backups/stackwatch/daily-YYYYMMDD.dump`
-2. Verify checksum + size > 0
-3. INSERT row into `platform_backups` table with status='completed'
-4. Prune backups older than 30 days
-5. Optional: upload to S3 if `BACKUP_S3_BUCKET` env var set
+**Architecture:** Active-passive Postgres replication. Reads from primary
+region, writes to primary region only. Standby regions are read-only.
 
-### PL6 — Multi-Region / HA
+### PL7 — Rate Limiting
 
-**Tables:** `platform_regions`, `platform_replicas`
+**Tables:** `platform_rate_limit_buckets` (in-memory)
 
 **Routes (3):**
-- `GET /api/v1/admin/regions` — list configured regions
-- `POST /api/v1/admin/regions` — add region (super-admin)
-- `GET /api/v1/admin/replicas/status` — replication lag per replica
+- `GET  /api/v1/platform/ratelimit/me` — get my current rate limit usage (X-RateLimit-* headers exposed)
+- `PATCH /api/v1/platform/ratelimit/global` — super_admin only — adjust global limits
+- `GET  /api/v1/platform/ratelimit/blocked` — super_admin only — currently blocked tenants
 
-**v1 scope:**
-- Single primary region (.116)
-- Read-only replica in 1+ secondary regions (async streaming replication)
-- Replica URL configurable via `READ_REPLICA_URL` env var
-- Future: automatic failover (out of scope for v1)
-
-### PL7 — Rate Limiting (per-IP + per-tenant)
-
-**Implementation:** Sliding-window counter via `sync.Map` of
-`(tenantID, route) → []request_timestamps`. Refactored out of Tier 0
-`auth_login.go` into a reusable middleware.
-
-**Limits:**
-- Per-IP: 600 req/hour (free) / 6000 req/hour (pro+) / unlimited (enterprise)
-- Per-tenant: 60 req/min (free) / 600 req/min (pro+) / 6000 req/min (business+)
-- Per-route multipliers (e.g. /auth/* are 1/10 of normal limit)
-
-**Worker:** `RateLimitCleanupWorker` (hourly) — prune stale entries
-from the sync.Map.
+**Implementation:** Token-bucket per-tenant, in-memory (or Redis if available).
+Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`.
 
 ### PL8 — Platform Health
 
-**Tables:** `platform_health_samples` (time-series of service health)
+**Tables:** `platform_health_snapshots` (cached; auto-pruned at 7 days)
 
-**Routes (4):**
-- `GET /api/v1/admin/health/services` — list services + last health check
-- `GET /api/v1/admin/health/workers` — list background workers + last run
-- `GET /api/v1/admin/health/queues` — depth of every queue (audit, sync, etc.)
-- `GET /api/v1/public/status` — PUBLIC: minimal status page payload
-  (services up/down + version + uptime). Used by status.smarthomelab.fun.
+**Routes (5):**
+- `GET /api/v1/platform/health/summary` — overall health (UP/DEGRADED/DOWN per region)
+- `GET /api/v1/platform/health/regions` — per-region metrics (CPU, mem, disk, db_connections)
+- `GET /api/v1/platform/health/tenants/top?n=10` — top tenants by usage
+- `GET /api/v1/platform/health/capacity/forecast` — projected capacity exhaustion dates
+- `GET /api/v1/platform/health/alerts` — active platform-level alerts (failed regions, exceeded limits, etc.)
 
-**Worker:** `PlatformHealthWorker` (60s) — samples every service +
-worker + queue, inserts into `platform_health_samples`.
+**Background worker:** `internal/platform/capacity_forecast.go` — runs daily,
+computes linear regression on metrics, returns 30/60/90-day projections.
 
-## 3. Files this change modifies
+## 3. Non-functional
 
-### Backend
-- `migrations/042_platform.sql` (NEW) — all Tier 11 tables
-- `cmd/api-gateway/routes_platform.go` (NEW) — mountPlatformRoutes
-- `cmd/api-gateway/main.go` — wire 6 new workers
-- 30+ new handler files under `internal/handler/handlers_platform_*.go`
-- 6 new worker files under `internal/platform/` (new package)
-- 2 new client files: `internal/client/stripe/` + `internal/client/resend/`
+- Every Go file < 400 LOC
+- Every TSX file < 400 LOC
+- 45 routes verified live with auth
+- 8 tables created + indexes
+- 5 background workers running
+- Per-tenant isolation enforced on every query
+- New role `platform_admin` (separate from `super_admin`)
+- INSTALL_MODE env var: cloud | self_hosted (auto-detect)
+- License key validation (cloud mode only)
 
-### Frontend
-- `web/src/pages/AdminPage.tsx` (extend with 8 tabs)
-- `web/src/pages/SettingsPage.tsx` (NEW) — billing + limits UI
-- `web/src/components/admin/DeploySection.tsx` (NEW)
-- `web/src/components/admin/UsageSection.tsx` (NEW)
-- `web/src/components/admin/SignupSection.tsx` (NEW)
-- `web/src/components/admin/LimitsSection.tsx` (NEW)
-- `web/src/components/admin/BackupSection.tsx` (NEW)
-- `web/src/components/admin/RegionsSection.tsx` (NEW)
-- `web/src/components/admin/RateLimitSection.tsx` (NEW)
-- `web/src/components/admin/HealthSection.tsx` (NEW)
-- `web/src/components/admin/SettingsSection.tsx` (NEW)
-- `web/src/components/PublicStatusPage.tsx` (NEW) — public status page
+## 4. Verification gates
 
-### Build / Deploy
-- `Dockerfile` (NEW) — multi-stage build for self-hosted
-- `docker-compose.yml` (NEW) — postgres + api-gateway
-- `scripts/install.sh` (NEW) — one-liner installer for self-hosted
-- `.env.example` (extend) — STRIPE_*, RAZORPAY_*, RESEND_*, S3_*, etc.
+- `go build ./cmd/api-gateway` exit 0
+- `go vet ./cmd/api-gateway` exit 0
+- `cd web && npm run type-check` exit 0
+- `cd web && npm run lint` no new errors
+- `cd web && npm run build` exit 0
+- All 45 routes return 401 without auth
+- All 45 routes return 200/201/202 with valid JWT
+- Tier 0-10 routes still work (regression gate)
+- /health returns 200
+- Backup + restore round-trip works (manual test)
+
+## 5. Deployment
+
+- Binary built on Windows (`export GOOS=linux; export GOARCH=amd64`)
+- Binary deployed to .115 via scp + systemctl restart
+- Binary md5 verified
+- All 5 workers started without panic
+
+## 6. Out-of-scope gates
+
+- NO Tier 12 features (marketing site, pricing page, etc.)
+- NO Tier 13 features (mobile)
+- NO email service integration beyond dev mode
+- NO public marketing site (Tier 12)
+- NO stripe webhook verification (Tier 11 covers basic Stripe; Razorpay
+  webhook HMAC validation deferred to Tier 12)

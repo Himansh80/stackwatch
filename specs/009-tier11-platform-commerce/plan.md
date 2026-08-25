@@ -1,212 +1,130 @@
 # Tier 11 Plan — Platform & Commerce
 
-## Phase 0 — Routes split + foundation (mandatory before Phase 1)
+## Phase 0 — Routes split (mandatory before Phase 1)
 
-Create `cmd/api-gateway/routes_platform.go` (~70 LOC) with stub
-`mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Pool)`.
+Why: `routes_homelab.go` is at 345 LOC; adding 45+ more Tier 11 routes
+would push it over 400. Extract `routes_platform.go` (mountPlatformRoutes)
+following the Tier 9 + Tier 10 Phase 0 pattern.
 
-Why a 3-group signature: PL1/PL3/PL8 need public endpoints (signup,
-install script, public status), PL2/PL4/PL5/PL7 need protected
-(tenant scope), PL5/PL6/PL8 need admin (super-admin scope).
+**Outcome:** `routes_platform.go` placeholder created, `routes_protected.go`
+untouched, `routes_homelab.go` unchanged.
 
-After Phase 0: `routes_protected.go` unchanged at 396 LOC, but a new
-`routes_admin.go` (extract admin routes from protected) needed if any
-admin route count >5.
+**Files:** 1 new, 1 modified (cmd/api-gateway/routes.go to call mountPlatformRoutes).
 
 ## Phase 1 — Push-Button Deploy (PL1)
 
-**Tables (1 new):**
-- `deploy_install_tokens` (id, tenant_id, token_hash, expires_at, used_at)
+**Files (estimated):**
+- `internal/handler/handlers_platform_deploy.go` (~300 LOC, 4 routes)
+- `internal/handler/handlers_platform_types.go` (~100 LOC — shared types)
+- `migrations/042_platform.sql` (initial 1 table + 1 ALTER on users)
+- `cmd/api-gateway/routes_platform.go` (~50 LOC stub + 4 routes)
 
-**Routes (3 protected + 1 public):**
-- POST /api/v1/platform/deploy/install-token (protected)
-- GET /api/v1/platform/deploy/install-script (public)
-- GET /api/v1/platform/deploy/stats (protected)
-
-**Files (~12):**
-- `internal/handler/handlers_platform_deploy.go` (~250 LOC, 3 routes)
-- `internal/handler/handlers_platform_deploy_types.go` (~80 LOC)
-- `internal/platform/deploy.go` (~150 LOC, token generator + validator)
-- `web/src/components/admin/DeploySection.tsx` (~180 LOC)
-- Plus 1-line wiring in routes_platform.go
-
-**Tables:** +1 (1 total)
+**Tables:** 1 + `is_platform_admin BOOLEAN` column on users
+**Routes:** 4
 
 ## Phase 2 — Usage Metering (PL2)
 
-**Tables (2 new):**
-- `usage_events` (id, tenant_id, event_type, quantity, ts)
-- `usage_daily_rollups` (tenant_id, day, event_type, total_quantity)
-
-**Routes (2 protected + 1 admin):**
-- POST /api/v1/usage/events (protected, internal)
-- GET /api/v1/usage/summary (protected, tenant scope)
-- GET /api/v1/admin/usage/all (admin, super-admin scope)
-
-**Files (~10):**
-- `internal/handler/handlers_platform_usage.go` (~250 LOC, 3 routes)
-- `internal/handler/handlers_platform_usage_types.go` (~80 LOC)
-- `internal/platform/usage.go` (~150 LOC, meter helper + rollup worker)
-- `internal/platform/usage_rollup.go` (~200 LOC, hourly rollup worker)
-- `web/src/components/admin/UsageSection.tsx` (~180 LOC)
+**Files:**
+- `internal/handler/handlers_platform_usage.go` (~300 LOC, 5 routes)
+- `internal/platform/usage_meter.go` (~250 LOC, hourly aggregation worker)
+- `web/src/components/platform/MeteringSection.tsx` (~200 LOC)
 
 **Tables:** +2 (3 total)
+**Routes:** +5 (9 total)
 
-## Phase 3 — Self-Service Signup + Email (PL3)
+## Phase 3 — Self-Service Signup (PL3)
 
-**No new tables** — extends existing users + tenants.
+**Files:**
+- `internal/handler/handlers_platform_signup.go` (~300 LOC, 4 routes)
+- `web/src/components/platform/SignupSection.tsx` (~150 LOC)
+- Install script at `scripts/install.sh` (~150 LOC, the curl-able file)
 
-**Routes (3 public):**
-- POST /api/v1/public/signup (already exists, extend with captcha + IP rate limit + email verification)
-- POST /api/v1/public/verify-email (new)
-- POST /api/v1/public/resend-verification (new)
-
-**Files (~15):**
-- `internal/client/resend/client.go` (~150 LOC, Resend API client)
-- `internal/client/resend/dev.go` (~50 LOC, dev-mode logger)
-- `internal/platform/signup.go` (~200 LOC, signup flow)
-- `internal/platform/email.go` (~200 LOC, email templates)
-- `internal/handler/handlers_platform_signup.go` (~200 LOC, 3 routes)
-- `internal/handler/handlers_platform_signup_types.go` (~80 LOC)
-- `internal/platform/ratelimit.go` (~200 LOC, in-process rate limiter for signup)
-- `web/src/components/admin/SignupSection.tsx` (~180 LOC)
-- Plus wiring
-
-**Tables:** +0 (3 total)
+**Tables:** +1 (4 total)
+**Routes:** +4 (13 total)
 
 ## Phase 4 — Tenant Limits (PL4)
 
-**Tables (1 new):**
-- `plan_limits` (plan, limits_jsonb, updated_at)
+**Files:**
+- `internal/handler/handlers_platform_limits.go` (~300 LOC, 5 routes)
+- `internal/platform/retention.go` (~250 LOC, daily retention worker)
+- `web/src/components/platform/LimitsSection.tsx` (~200 LOC)
 
-**Routes (2 admin):**
-- GET /api/v1/admin/plans
-- PATCH /api/v1/admin/plans/:plan
-
-**Files (~12):**
-- `internal/handler/handlers_platform_limits.go` (~200 LOC, 2 routes)
-- `internal/handler/handlers_platform_limits_types.go` (~80 LOC)
-- `internal/platform/limits.go` (~200 LOC, enforceLimit middleware)
-- `internal/platform/limits_seed.go` (~100 LOC, default plans)
-- `web/src/components/admin/LimitsSection.tsx` (~180 LOC)
-
-**Tables:** +1 (4 total)
+**Tables:** +2 (6 total)
+**Routes:** +5 (18 total)
 
 ## Phase 5 — Backup/Restore (PL5)
 
-**Tables (1 new):**
-- `platform_backups` (id, type, started_at, finished_at, status, size_bytes, path, checksum, error_message)
+**Files:**
+- `internal/handler/handlers_platform_backup.go` (~300 LOC, 5 routes)
+- `internal/handler/handlers_platform_backup_crypto.go` (~150 LOC — AES-256-GCM)
+- `internal/handler/handlers_platform_backup_restore.go` (~200 LOC — pg_restore)
+- `internal/platform/backup_scheduler.go` (~250 LOC, scheduled backup worker)
+- `web/src/components/platform/BackupSection.tsx` (~250 LOC)
 
-**Routes (3 admin):**
-- GET /api/v1/admin/backups
-- POST /api/v1/admin/backups (manual trigger)
-- POST /api/v1/admin/backups/:id/restore
+**Tables:** +2 (8 total)
+**Routes:** +5 (23 total)
 
-**Files (~10):**
-- `internal/handler/handlers_platform_backup.go` (~250 LOC, 3 routes)
-- `internal/handler/handlers_platform_backup_types.go` (~80 LOC)
-- `internal/platform/backup.go` (~250 LOC, pg_dump wrapper + restore)
-- `internal/platform/backup_worker.go` (~200 LOC, daily scheduler)
-- `web/src/components/admin/BackupSection.tsx` (~200 LOC)
+## Phase 6 — Multi-Region/HA (PL6)
 
-**Tables:** +1 (5 total)
+**Files:**
+- `internal/handler/handlers_platform_regions.go` (~250 LOC, 3 routes)
+- `web/src/components/platform/RegionsSection.tsx` (~150 LOC)
 
-## Phase 6 — Multi-Region / HA (PL6)
-
-**Tables (2 new):**
-- `platform_regions` (id, name, kind, primary_url, replica_url, is_active)
-- `platform_replicas` (id, region_id, lag_seconds, last_synced_at, status)
-
-**Routes (3 admin):**
-- GET /api/v1/admin/regions
-- POST /api/v1/admin/regions
-- GET /api/v1/admin/replicas/status
-
-**Files (~10):**
-- `internal/handler/handlers_platform_regions.go` (~200 LOC, 3 routes)
-- `internal/handler/handlers_platform_regions_types.go` (~80 LOC)
-- `internal/platform/regions.go` (~200 LOC, region config + replicator worker)
-- `web/src/components/admin/RegionsSection.tsx` (~180 LOC)
-
-**Tables:** +2 (7 total)
+**Tables:** +2 (10 total)
+**Routes:** +3 (26 total)
 
 ## Phase 7 — Rate Limiting (PL7)
 
-**No new tables** (in-memory state only).
+**Files:**
+- `internal/handler/handlers_platform_ratelimit.go` (~250 LOC, 3 routes)
+- `internal/platform/rate_limiter.go` (~300 LOC — token-bucket + tier-based limits)
+- `internal/middleware/ratelimit.go` (~100 LOC — Gin middleware)
+- `web/src/components/platform/RateLimitSection.tsx` (~150 LOC)
 
-**Files (~8):**
-- `internal/platform/ratelimit.go` (extended, was created in Phase 3)
-- `internal/platform/ratelimit_middleware.go` (~250 LOC, Gin middleware)
-- `internal/platform/ratelimit_cleanup.go` (~150 LOC, hourly cleanup worker)
-- `web/src/components/admin/RateLimitSection.tsx` (~200 LOC)
+**Tables:** +0 (10 total — in-memory bucket only)
+**Routes:** +3 (29 total)
 
-**Tables:** +0 (7 total)
-
-## Phase 8 — Platform Health (PL8)
-
-**Tables (1 new):**
-- `platform_health_samples` (id, component, kind, status, latency_ms, sampled_at)
-
-**Routes (3 admin + 1 public):**
-- GET /api/v1/admin/health/services
-- GET /api/v1/admin/health/workers
-- GET /api/v1/admin/health/queues
-- GET /api/v1/public/status
-
-**Files (~10):**
-- `internal/handler/handlers_platform_health.go` (~250 LOC, 4 routes)
-- `internal/handler/handlers_platform_health_types.go` (~80 LOC)
-- `internal/platform/health.go` (~200 LOC, sampling worker)
-- `internal/platform/health_collectors.go` (~250 LOC, per-component collectors)
-- `web/src/components/admin/HealthSection.tsx` (~200 LOC)
-- `web/src/components/PublicStatusPage.tsx` (~150 LOC)
-
-**Tables:** +1 (8 total)
-
-## Phase 9 — Settings + Admin Page + Finalize
-
-**No new tables.**
+## Phase 8 — Platform Health (PL8) + Finalize (TIER 11 COMPLETE)
 
 **Files:**
-- `web/src/pages/AdminPage.tsx` (extend with 8 tabs — add: Deploy, Usage, Signup, Limits, Backup, Regions, RateLimit, Health)
-- `web/src/pages/SettingsPage.tsx` (NEW, billing + limits UI for tenant)
-- `web/src/components/admin/SettingsSection.tsx` (NEW, billing sub-tab)
-- `web/src/App.tsx` (add `/admin` + `/settings` routes)
-- `web/src/components/AppSidebar.tsx` (add Settings link + Admin link)
+- `internal/handler/handlers_platform_health.go` (~300 LOC, 5 routes)
+- `internal/platform/capacity_forecast.go` (~250 LOC, daily forecast worker)
+- `web/src/components/platform/HealthSection.tsx` (~250 LOC)
+- `web/src/pages/PlatformPage.tsx` (~200 LOC, 6-tab unified dashboard)
+- AppSidebar: "Platform" link (super_admin only)
 - `journal-tier11-final.md`
-- Archive speckit change
+- Archive `.hermes/changes/009-tier11-platform-commerce/`
+- Final commit: `docs(tier11): TIER 11 COMPLETE marker + archive + journal`
+
+**Tables:** +1 (11 total)
+**Routes:** +5 (34 total)
 
 ## Total (estimated)
 
-- **8 DB tables**
-- **~25-30 routes** (mix of public/protected/admin)
-- **~70 files** (all < 400 LOC)
-- **6 background workers**
-- **2 new SDK clients**: Resend email + Stripe
-- **1 Dockerfile + docker-compose.yml** (for self-hosted install)
-- **.env.example extended** with 12 new env vars
+- **11 DB tables** (1 new column on users)
+- **34 routes** (revised down from 45 — merging similar endpoints)
+- **30+ files** (all <400 LOC)
+- **6 sections** + 1 unified page
+- **5 background workers** (usage_meter, retention, backup_scheduler, rate_limiter, capacity_forecast)
+- **No new deps** (stdlib only)
 
 ## Risks
 
-1. **External service integration** (Stripe, Resend) — implement
-   dev-mode stubs that log instead of send.
-2. **Signup abuse** — captcha + per-IP rate limit + email verification
-   + audit log on signup attempts.
-3. **Backup/restore** on a live DB — use `pg_dump` with `--format=custom`
-   so restore is incremental + parallel-safe.
-4. **Multi-region HA** is hard — v1 ships read-only replicas + manual
-   failover. Auto-failover is v2.
-5. **Rate limiting** must be in-memory (sync.Map) AND backed by DB
-   for cluster mode (Phase 6 future).
+1. **Self-service signup opens abuse vector** — mitigation: email
+   verification + signup rate limit (10/day per IP) + CAPTCHA (out of scope)
+2. **Multi-region replication is complex** — start with active-passive
+   only (cloud mode); document self-host replica setup for Tier 12.
+3. **Backup encryption** — use AES-256-GCM with tenant-derived key.
+4. **Capacity forecast must be cheap** — simple linear regression on raw
+   metrics; no ML models.
+5. **Rate limiter must not lock out legit users** — soft 429 with
+   `Retry-After`, no hard cutoffs.
+6. **Platform admin role separation** — `is_platform_admin` column on
+   users, distinct from `super_admin` (tenant-scoped) to prevent
+   privilege escalation bugs.
 
 ## Verifier
 
-`hermes-verify-tier11-final.py` — checks every route + every plan
-limit + every worker + every external client dev-mode.
-
-## Out of Scope
-
-- Marketing site (Tier 12)
-- Docs (Tier 12)
-- Mobile (Tier 13)
-- Auto-failover (future v2)
+`hermes-verify-tier11-final.py` — checks every route + every widget
+renders + every worker started without panic + install.sh downloads
++ signup flow + backup round-trip.
