@@ -92,6 +92,17 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	protected.POST("/auth/change-password", authH.ChangePassword)
 	mountProtectedRoutes(protected, pool, webTerminalURL, synthRunner)
 
+	// Tier 11 — Platform & Commerce (Phase 0 routes split). Three
+	// groups because PL1/PL3/PL8 need PUBLIC endpoints (signup,
+	// install-script, status page), PL2/PL4/PL7 need PROTECTED
+	// (tenant-scoped), and PL5/PL6/PL8 need ADMIN (super-admin
+	// scope). The ADMIN group is created here (currently a no-op
+	// middleware — Phase 5 will add real role gating) so the
+	// 3-group signature is stable across the whole tier and we
+	// don't have to touch this file again until Phase 5.
+	admin := protected.Group("/admin", handler.RequireRole("admin"))
+	mountPlatformRoutes(r.Group("/api/v1"), protected, admin, pool)
+
 	// Public CI/CD webhook receivers (no JWT — providers can't carry one).
 	// Mounted at /api/v1/cicd/webhook/{github,gitlab} on the public router.
 	// The handlers accept provider-native payloads and synthesize a pipeline
@@ -107,6 +118,13 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	// These 3 endpoints are the only PUBLIC Tier 9 endpoints — every
 	// other enterprise route lives behind RequireAuth.
 	mountEnterprisePublicRoutes(r, pool, issuer)
+
+	// Tier 11 PL1 — PUBLIC install-script endpoint (no JWT — the
+	// freshly-installed Linux box has no JWT yet; the install
+	// token itself IS the credential). Mirrors the SCIM
+	// pattern (handlers_scim_public.go registered in
+	// routes_enterprise.go via mountEnterprisePublicRoutes).
+	mountPlatformPublicRoutes(r, pool)
 
 	// Public container templates (no auth — public knowledge endpoint).
 	// Mounted at the end so it sits OUTSIDE the protected group; it was
