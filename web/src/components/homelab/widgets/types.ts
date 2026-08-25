@@ -229,3 +229,72 @@ export interface DownloadClientFormState {
   username: string;
   password: string;
 }
+
+// ------------------------------------------------------------------
+// Phase 6 (H6 — Media Server) types.
+// ------------------------------------------------------------------
+
+export type MediaServerKind = "plex" | "jellyfin" | "emby";
+
+export interface MediaServerRow {
+  id: string;
+  name: string;
+  kind: MediaServerKind;
+  base_url: string;
+  enabled: boolean;
+  last_polled_at?: string;
+  last_poll_status?: string;
+  last_poll_error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MediaServersResponse {
+  servers: MediaServerRow[];
+  count: number;
+}
+
+export interface MediaNowPlayingRow {
+  id: string;
+  server_id: string;
+  server_name: string;
+  server_kind: MediaServerKind;
+  session_id: string;
+  title: string;
+  user_name?: string;
+  player?: string;
+  transcoding: boolean;
+  progress_ms: number;
+  duration_ms: number;
+  polled_at: string;
+}
+
+export interface MediaRecentAdditionRow {
+  id: string;
+  server_id: string;
+  server_name: string;
+  server_kind: MediaServerKind;
+  item_id: string;
+  title: string;
+  item_kind: string; // 'movie' | 'show' | 'episode'
+  year?: number;
+  poster_url?: string;
+  added_at: string;
+  polled_at: string;
+}
+
+export interface MediaStateResponse {
+  servers: MediaServerRow[];
+  now_playing: MediaNowPlayingRow[];
+  recent_additions: MediaRecentAdditionRow[];
+  server_id?: string;
+  count_now_playing: number;
+  count_recent_added: number;
+}
+
+export interface MediaServerFormState {
+  name: string;
+  kind: MediaServerKind;
+  base_url: string;
+  api_key: string;
+}

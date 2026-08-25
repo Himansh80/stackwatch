@@ -81,6 +81,16 @@ func main() {
 	downloadsWorker := homelab.NewDownloadsWorker(pool, homelab.WithDownloadsLogger(logger))
 	downloadsWorker.Start(rootCtx)
 
+	// Tier 10 Phase 6 — Media Server background worker.
+	// Ticks every 60s, fetches every enabled media server in
+	// homelab_media_servers (across all tenants + users), and
+	// UPSERTs the parsed-state into homelab_now_playing +
+	// homelab_recent_additions. Per-server errors are logged but
+	// never abort the batch — one bad target must not skip the
+	// rest. First tick fires immediately on Start().
+	mediaWorker := homelab.NewMediaWorker(pool, homelab.WithMediaLogger(logger))
+	mediaWorker.Start(rootCtx)
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,

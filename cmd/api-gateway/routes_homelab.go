@@ -202,4 +202,31 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.POST("/homelab/downloads/clients", handler.CreateHomelabDownloadClient(pool))
 	protected.GET("/homelab/downloads/snapshots", handler.ListHomelabDownloadSnapshots(pool))
 	protected.DELETE("/homelab/downloads/clients/:id", handler.DeleteHomelabDownloadClient(pool))
+
+	// ---- Tier 10.6: Media Server (Phase 6) ----
+	//
+	// Per spec §"H6 — Media Server", these 4 protected endpoints
+	// back the per-user media-server registry
+	// (homelab_media_servers) + the polled-state read endpoint
+	// (now_playing + recent_additions). The MediaWorker (started
+	// in main.go) ticks every 60s and UPSERTs the parsed state.
+	// POST /media/servers fires an immediate fire-and-forget poll
+	// after create via PollMediaServerAndInsertState so a
+	// freshly-pinned server shows now-playing + recent additions
+	// within seconds.
+	//
+	// Routes (4 protected):
+	//   GET    /api/v1/homelab/media/servers      — ListHomelabMediaServers
+	//   POST   /api/v1/homelab/media/servers      — CreateHomelabMediaServer
+	//   GET    /api/v1/homelab/media/state        — GetHomelabMediaState
+	//   DELETE /api/v1/homelab/media/servers/:id  — DeleteHomelabMediaServer
+	//
+	// Static-path siblings (/state) MUST come BEFORE the /:id
+	// patterns below — Gin's radix tree matches in registration
+	// order, so /state would otherwise be parsed as :id="state"
+	// and the static handler would never fire.
+	protected.GET("/homelab/media/servers", handler.ListHomelabMediaServers(pool))
+	protected.POST("/homelab/media/servers", handler.CreateHomelabMediaServer(pool))
+	protected.GET("/homelab/media/state", handler.GetHomelabMediaState(pool))
+	protected.DELETE("/homelab/media/servers/:id", handler.DeleteHomelabMediaServer(pool))
 }

@@ -569,3 +569,164 @@ CREATE INDEX IF NOT EXISTS idx_homelab_download_snapshots_client_time
     ON homelab_download_snapshots(client_id, polled_at DESC);
 CREATE INDEX IF NOT EXISTS idx_homelab_download_snapshots_user_time
     ON homelab_download_snapshots(user_id, polled_at DESC);
+
+---------------------------------------------------------------------------
+-- H6 — Media Server (Phase 6)
+--
+-- Three tables back the per-user media-server registry + the polled
+-- state. homelab_media_servers is the registry row (one per pinned
+-- Plex/Jellyfin/Emby server); homelab_now_playing holds the latest
+-- active sessions; homelab_recent_additions holds the latest 10
+-- recently-added media items.
+--
+-- All three honor the (tenant_id, user_id) filter — every query in
+-- the handler package gates by both. server_id FKs cascade so a
+-- single DELETE on the server row wipes now_playing +
+-- recent_additions in one statement (no orphan rows).
+--
+-- design choices:
+--   - api_key is plain text. Media-server tokens grant read access to
+--     a user's library — no write — and the table is already locked
+--     behind per-user RBAC, so the threat model matches the rest of
+--     homelab_download_clients (api_key column, also plain text).
+--   - homelab_now_playing is a snapshot table — every poll replaces
+--     prior rows for the (server_id, session_id) tuple. session_id
+--     is the upstream server's session id (Plex session id, Jellyfin
+--     /Sessions Id, Emby /Sessions Id).
+--   - homelab_recent_additions is also a snapshot — every poll
+--     UPSERTs by (server_id, item_id). added_at is the upstream
+--     library timestamp; polled_at is when we last refreshed.
+
+---------------------------------------------------------------------------
+-- homelab_media_servers — per-user registry of pinned media servers.
+--
+-- one row per (tenant_id, user_id, name). name is the human-readable
+-- label rendered on the widget chip ("Living Room Plex", "Jellyfin
+-- Basement"). kind is 'plex' | 'jellyfin' | 'emby' — see
+-- allowedMediaServerKinds in handlers_homelab_media_types.go for
+-- the enforcement point.
+--
+-- columns:
+--   id                   row UUID
+--   tenant_id, user_id   RBAC scope (per-user, NOT per-tenant)
+--   name                 user-supplied label
+--   kind                 'plex' | 'jellyfin' | 'emby'
+--   base_url             http(s)://host:port of the server
+--   api_key              the server's auth token (Plex X-Plex-Token,
+--                        Jellyfin/Emby X-Emby-Token)
+--   enabled              defaults true; disabled servers are skipped
+--                        by both the immediate after-create poll and
+--                        the MediaWorker tick
+--   last_polled_at, last_poll_status, last_poll_error
+--                       bookkeeping for the dashboard's status pill
+--   created_at, updated_at
+CREATE TABLE IF NOT EXISTS homelab_media_servers (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id         UUID NOT NULL,
+    user_id           UUID NOT NULL,
+    name              TEXT NOT NULL,
+    kind              TEXT NOT NULL,
+    base_url          TEXT NOT NULL,
+    api_key           TEXT NOT NULL,
+    enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+    last_polled_at    TIMESTAMPTZ,
+    last_poll_status  TEXT,
+    last_poll_error   TEXT,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, user_id, name)
+);
+-- Per-user lookups dominate ("show me my servers", "validate on
+-- delete"). The (tenant_id, user_id) index supports both the
+-- ListHomelabMediaServers query and the PollMediaServerAndInsertState
+-- helper's ownership check.
+CREATE INDEX IF NOT EXISTS idx_homelab_media_servers_user
+    ON homelab_media_servers(user_id);
+
+---------------------------------------------------------------------------
+-- homelab_now_playing — active transcoding / direct-play sessions.
+--
+-- The MediaWorker polls every enabled server every 60s and UPSERTs
+-- the active sessions. Stale rows (server skipped this tick) are
+-- pruned by the DELETE at the start of each per-server poll so the
+-- dashboard only ever shows "right now" sessions.
+--
+-- columns:
+--   id                   row UUID
+--   tenant_id, user_id   RBAC scope
+--   server_id            FK ON DELETE CASCADE → homelab_media_servers.id
+--   session_id           upstream server's session id (string).
+--                        Plex session ids are hex; Jellyfin/Emby use
+--                        UUIDs — both stored as text.
+--   title                item title ("The Matrix", "S01E05 Pilot")
+--   user_name            upstream viewer's display name (may be empty
+--                        if the server doesn't expose it)
+--   player               client app name ("Plex Web", "Jellyfin
+--                        Mobile", "Emby Theater")
+--   transcoding          true when the server is transcoding the
+--                        stream (used to render the "T" badge)
+--   progress_ms          playback position (server-supplied, ms)
+--   duration_ms          total item duration (ms)
+--   polled_at            when this row was last refreshed
+CREATE TABLE IF NOT EXISTS homelab_now_playing (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    UUID NOT NULL,
+    user_id      UUID NOT NULL,
+    server_id    UUID NOT NULL REFERENCES homelab_media_servers(id) ON DELETE CASCADE,
+    session_id   TEXT NOT NULL,
+    title        TEXT NOT NULL,
+    user_name    TEXT,
+    player       TEXT,
+    transcoding  BOOLEAN NOT NULL DEFAULT FALSE,
+    progress_ms  BIGINT NOT NULL DEFAULT 0,
+    duration_ms  BIGINT NOT NULL DEFAULT 0,
+    polled_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (server_id, session_id)
+);
+-- Hottest read is "all current sessions for this server, newest
+-- first" — DESC index on (server_id, polled_at) makes it O(1) and
+-- supports the per-server prune by polled_at.
+CREATE INDEX IF NOT EXISTS idx_homelab_now_playing_server
+    ON homelab_now_playing(server_id, polled_at DESC);
+
+---------------------------------------------------------------------------
+-- homelab_recent_additions — last 10 recently added items per server.
+--
+-- Upserted on every poll by (server_id, item_id). added_at is the
+-- upstream library's timestamp; polled_at is when we last refreshed
+-- it (used by a future "added in the last hour" filter — out of
+-- scope for Phase 6).
+--
+-- columns:
+--   id                row UUID
+--   tenant_id, user_id RBAC scope
+--   server_id         FK ON DELETE CASCADE → homelab_media_servers.id
+--   item_id           upstream item rating key (Plex ratingKey,
+--                     Jellyfin/Emby Id) — string
+--   title             item title
+--   item_kind         'movie' | 'show' | 'episode' (default 'movie')
+--   year              release year (nullable for shows/episodes)
+--   poster_url        thumbnail URL returned by the upstream API
+--                     (Plex /library/metadata/<key>/thumb,
+--                      Jellyfin /Items/<id>/Images/Primary, etc.)
+--   added_at          upstream library's addedAt timestamp
+--   polled_at         when this row was last refreshed
+CREATE TABLE IF NOT EXISTS homelab_recent_additions (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID NOT NULL,
+    user_id     UUID NOT NULL,
+    server_id   UUID NOT NULL REFERENCES homelab_media_servers(id) ON DELETE CASCADE,
+    item_id     TEXT NOT NULL,
+    title       TEXT NOT NULL,
+    item_kind   TEXT NOT NULL DEFAULT 'movie',
+    year        INTEGER,
+    poster_url  TEXT,
+    added_at    TIMESTAMPTZ NOT NULL,
+    polled_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (server_id, item_id)
+);
+-- Hottest read is "most-recent additions for this server, newest
+-- first" — DESC index on (server_id, added_at) makes it O(1) and
+-- supports the widget's poster carousel render.
+CREATE INDEX IF NOT EXISTS idx_homelab_recent_additions_server_time
+    ON homelab_recent_additions(server_id, added_at DESC);
