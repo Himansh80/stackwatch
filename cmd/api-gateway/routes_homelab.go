@@ -26,7 +26,7 @@ import (
 //	Phase 6: Media Server (H6)                           ← 4 routes
 //	Phase 7: Search (H7)                                 ← 3 routes
 //	Phase 8: RSS / Activity Feed (H9)                    ← 5 routes
-//	Phase 9: Task Scheduler (H10)                        ← 5 routes
+//	Phase 9: Task Scheduler (H10)                        ← 6 routes
 //
 // All handlers honor tenant_id + user_id from the JWT — every query
 // filters by both, so layouts and preferences are scoped PER USER
@@ -294,4 +294,52 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	// /:id/* static siblings (items/:id/read) before the /:id patterns.
 	protected.POST("/homelab/rss/items/:id/read", handler.MarkHomelabRssItemRead(pool))
 	protected.DELETE("/homelab/rss/feeds/:id", handler.DeleteHomelabRssFeed(pool))
+
+	// ---- Tier 10.9: Task Scheduler (Phase 9 — FINAL) ----
+	//
+	// Per spec §"H10 — Task Scheduler", these 6 protected
+	// endpoints back the per-user scheduler surface
+	// (homelab_scheduler_jobs) + its run history
+	// (homelab_scheduler_runs). Handlers live in
+	// handlers_homelab_scheduler_jobs.go (4 routes),
+	// handlers_homelab_scheduler_jobs_modify.go (the
+	// PATCH + DELETE bodies), handlers_homelab_scheduler_runs.go
+	// (2 routes), and the shared types/validation/cron
+	// helpers split into 3 more files so every file stays
+	// under the 400-LOC cap.
+	//
+	// SECURITY-CRITICAL. Only http_get + http_post are
+	// allowed (no shell-out); URLs must be public
+	// (no private/loopback/link-local DNS); headers can't
+	// include Host/Cookie/Authorization; POST bodies are
+	// capped at 4KB; per-user job cap is 25. See
+	// handlers_homelab_scheduler_validation.go for the
+	// guardrails + handlers_homelab_scheduler_types.go
+	// for the security model docstring.
+	//
+	// The SchedulerWorker (started in main.go) ticks
+	// every 60s and dispatches due jobs to
+	// homelab.RunSchedulerJobAndInsertRun (exported so the
+	// POST /jobs/:id/run handler can trigger manual
+	// runs through the same code path — DRY).
+	//
+	// Routes (6 protected):
+	//   GET    /api/v1/homelab/scheduler/jobs            — ListHomelabSchedulerJobs
+	//   POST   /api/v1/homelab/scheduler/jobs            — CreateHomelabSchedulerJob
+	//   GET    /api/v1/homelab/scheduler/runs            — ListHomelabSchedulerRuns
+	//   POST   /api/v1/homelab/scheduler/jobs/:id/run    — RunHomelabSchedulerJobNow
+	//   PATCH  /api/v1/homelab/scheduler/jobs/:id        — PatchHomelabSchedulerJob
+	//   DELETE /api/v1/homelab/scheduler/jobs/:id        — DeleteHomelabSchedulerJob
+	//
+	// Static-path siblings (/scheduler/runs, /scheduler/jobs/:id/run)
+	// MUST come BEFORE the bare /:id patterns below —
+	// Gin's radix tree matches in registration order, so
+	// /runs would otherwise be parsed as :id="runs" of
+	// /scheduler/jobs.
+	protected.GET("/homelab/scheduler/jobs", handler.ListHomelabSchedulerJobs(pool))
+	protected.POST("/homelab/scheduler/jobs", handler.CreateHomelabSchedulerJob(pool))
+	protected.GET("/homelab/scheduler/runs", handler.ListHomelabSchedulerRuns(pool))
+	protected.POST("/homelab/scheduler/jobs/:id/run", handler.RunHomelabSchedulerJobNow(pool))
+	protected.PATCH("/homelab/scheduler/jobs/:id", handler.PatchHomelabSchedulerJob(pool))
+	protected.DELETE("/homelab/scheduler/jobs/:id", handler.DeleteHomelabSchedulerJob(pool))
 }

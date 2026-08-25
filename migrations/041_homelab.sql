@@ -824,3 +824,110 @@ CREATE INDEX IF NOT EXISTS idx_homelab_rss_items_feed
     ON homelab_rss_items(feed_id, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_homelab_rss_items_unread
     ON homelab_rss_items(user_id, read_at) WHERE read_at IS NULL;
+
+---------------------------------------------------------------------------
+-- Phase 9: Task Scheduler (H10) — security-critical.
+--
+-- A user-schedulable cron is an SSRF/RCE risk if not carefully gated
+-- (see proposal.md §"Risks"). The scheduler ONLY supports HTTP probes
+-- (no shell-out) and the handler validates URL/headers/body/schedule
+-- at every entry point. Per-user cap of 25 jobs (enforced in the
+-- handler, not as a CHECK constraint so we can change the cap without
+-- a migration).
+--
+-- homelab_scheduler_jobs — the cron-like schedule definitions.
+--
+-- columns:
+--   id             row UUID
+--   tenant_id, user_id RBAC scope (denormalized for fast per-user reads)
+--   name           user-supplied label (UNIQUE per (tenant, user))
+--   action_kind    'http_get' or 'http_post' — the only allowed kinds
+--   url            target URL (must be http/https + non-private IP)
+--   method         'GET' or 'POST' (mirrors action_kind but stored so
+--                  the worker can re-validate at runtime)
+--   headers        JSONB map of name→value (Host/Cookie/Authorization
+--                  blocked, name regex enforced)
+--   body           optional POST body (max 4KB, text/plain|json only)
+--   schedule       5-field cron expression ("min hour dom mon dow")
+--   enabled        user can pause/resume without deleting the job
+--   last_run_at    timestamp of the last worker OR manual run
+--   next_run_at    computed at insert + after every run; worker selects
+--                  WHERE enabled=true AND next_run_at <= now()
+--   last_run_status 'success' | 'failure' | 'pending' — denormalized
+--                  for the widget's status pill (avoids a subquery)
+--   last_run_error error message from the most recent run (NULL on OK)
+CREATE TABLE IF NOT EXISTS homelab_scheduler_jobs (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        UUID NOT NULL,
+    user_id          UUID NOT NULL,
+    name             TEXT NOT NULL,
+    action_kind      TEXT NOT NULL,
+    url              TEXT NOT NULL,
+    method           TEXT NOT NULL DEFAULT 'GET',
+    headers          JSONB NOT NULL DEFAULT '{}',
+    body             TEXT,
+    schedule         TEXT NOT NULL,
+    enabled          BOOLEAN NOT NULL DEFAULT TRUE,
+    last_run_at      TIMESTAMPTZ,
+    next_run_at      TIMESTAMPTZ,
+    last_run_status  TEXT,
+    last_run_error   TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, user_id, name)
+);
+-- Worker dispatch query: WHERE enabled = true AND next_run_at <= now()
+-- uses the partial index. The (user_id) index covers the per-user list.
+CREATE INDEX IF NOT EXISTS idx_homelab_scheduler_jobs_user
+    ON homelab_scheduler_jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_homelab_scheduler_jobs_due
+    ON homelab_scheduler_jobs(next_run_at) WHERE enabled = TRUE;
+
+-- homelab_scheduler_runs — append-only execution history. CAP at the
+-- per-job level by the application (we don't prune automatically —
+-- keeps the worker simple; a future "cleanup" job can drop rows > N
+-- days old if growth becomes an issue).
+--
+-- ON DELETE CASCADE on job_id means deleting a job purges its runs in
+-- one transaction. worker + handler INSERT into this table on every
+-- run attempt; the worker also UPDATEs the parent job's bookkeeping
+-- fields in the same transaction so the widget status stays in sync.
+--
+-- columns:
+--   id               row UUID
+--   tenant_id, user_id RBAC scope (denormalized)
+--   job_id           FK → homelab_scheduler_jobs.id ON DELETE CASCADE
+--   started_at       when the worker/handler picked up the run
+--   finished_at      when the HTTP request returned (NULL = still
+--                    running — defensive; in practice runs are short
+--                    and finished_at is always set)
+--   status           'success' | 'failure' — the HTTP-call status,
+--                    NOT the validation status (the handler validates
+--                    before the run, so a bad job never reaches here)
+--   http_status_code response status from the target (NULL on network
+--                    failure before a response)
+--   response_bytes   size of the response body (NULL on network error)
+--   error_message    truncated error message (NULL on success)
+--   duration_ms      wall-clock latency of the HTTP probe
+CREATE TABLE IF NOT EXISTS homelab_scheduler_runs (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id         UUID NOT NULL,
+    user_id           UUID NOT NULL,
+    job_id            UUID NOT NULL REFERENCES homelab_scheduler_jobs(id) ON DELETE CASCADE,
+    started_at        TIMESTAMPTZ NOT NULL,
+    finished_at       TIMESTAMPTZ,
+    status            TEXT NOT NULL DEFAULT 'running',
+    http_status_code  INTEGER,
+    response_bytes    INTEGER,
+    error_message     TEXT,
+    duration_ms       INTEGER
+);
+-- Hottest reads:
+--   1. "this job's recent runs"        → (job_id, started_at DESC)
+--   2. "my recent runs across jobs"     → (user_id, started_at DESC)
+-- Both reads power the per-job history modal and the global activity
+-- pane the widget shows in the empty state.
+CREATE INDEX IF NOT EXISTS idx_homelab_scheduler_runs_job_time
+    ON homelab_scheduler_runs(job_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homelab_scheduler_runs_user_time
+    ON homelab_scheduler_runs(user_id, started_at DESC);

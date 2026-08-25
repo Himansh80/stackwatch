@@ -102,6 +102,22 @@ func main() {
 	rssWorker := homelab.NewRssWorker(pool, homelab.WithRssLogger(logger))
 	rssWorker.Start(rootCtx)
 
+	// Tier 10 Phase 9 — Task Scheduler background worker
+	// (H10 — FINAL feature phase of Tier 10).
+	// SECURITY-CRITICAL: this worker dispatches user-defined
+	// HTTP probes. The guardrails (URL allowlist, header
+	// blacklist, body cap, rate limit, audit log) are
+	// enforced inside homelab.RunSchedulerJobAndInsertRun +
+	// handlers_homelab_scheduler_validation.go — not here.
+	// Ticks every 60s, fetches every enabled job in
+	// homelab_scheduler_jobs whose next_run_at <= NOW(),
+	// and runs them through the same export used by the
+	// POST /jobs/:id/run handler (DRY). Per-job errors are
+	// logged but never abort the batch. First tick fires
+	// immediately on Start().
+	schedulerWorker := homelab.NewSchedulerWorker(pool, homelab.WithSchedulerLogger(logger))
+	schedulerWorker.Start(rootCtx)
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,
