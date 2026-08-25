@@ -157,7 +157,7 @@ func ListEnterpriseOrgs(pool *db.Pool) gin.HandlerFunc {
 			includeChildren = false
 		}
 
-		q := `SELECT t.id::text, t.tenant_id::text, t.name, t.slug,
+		q := `SELECT t.id::text, t.name, t.slug,
 		            t.parent_org_id::text,
 		            COALESCE(t.settings, '{}'::jsonb),
 		            COALESCE(uc.cnt, 0) AS user_count,
@@ -170,7 +170,7 @@ func ListEnterpriseOrgs(pool *db.Pool) gin.HandlerFunc {
 		      LEFT JOIN (
 		          SELECT parent_org_id, COUNT(*)::int AS cnt FROM tenants WHERE parent_org_id IS NOT NULL GROUP BY parent_org_id
 		      ) cc ON cc.parent_org_id = t.id
-		      WHERE t.tenant_id = $1`
+		      WHERE t.id = $1`
 		if !includeChildren {
 			q += ` AND t.parent_org_id IS NULL`
 		}
@@ -191,11 +191,12 @@ func ListEnterpriseOrgs(pool *db.Pool) gin.HandlerFunc {
 				createdStr string
 				updatedStr string
 			)
-			if err := pgxRows.Scan(&r.ID, &r.TenantID, &r.Name, &r.Slug,
+			if err := pgxRows.Scan(&r.ID, &r.Name, &r.Slug,
 				&parentOrg, &r.Settings, &r.UserCount, &r.ChildCount,
 				&createdStr, &updatedStr); err != nil {
 				continue
 			}
+			r.TenantID = tenantID.String()
 			r.ParentOrgID = parentOrg
 			r.CreatedAt = createdStr
 			r.UpdatedAt = updatedStr
@@ -252,7 +253,7 @@ func CreateEnterpriseOrg(pool *db.Pool) gin.HandlerFunc {
 			}
 			var dummy int
 			err := pool.Pgx().QueryRow(c.Request.Context(),
-				`SELECT 1 FROM tenants WHERE id = $1 AND tenant_id = $2`,
+				`SELECT 1 FROM tenants WHERE id = $1 AND id = $2`,
 				parsed, tenantID,
 			).Scan(&dummy)
 			if err != nil {
@@ -260,7 +261,7 @@ func CreateEnterpriseOrg(pool *db.Pool) gin.HandlerFunc {
 				return
 			}
 			parentUUID = &parsed
-		}
+			}
 
 		normalizedSettings, err := normalizeOrgSettings(req.Settings)
 		if err != nil {
@@ -275,11 +276,11 @@ func CreateEnterpriseOrg(pool *db.Pool) gin.HandlerFunc {
 			updatedStr string
 		)
 		err = pool.Pgx().QueryRow(c.Request.Context(),
-			`INSERT INTO tenants (id, tenant_id, name, slug, parent_org_id, settings,
-			                       plan, status, created_at, updated_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, 'free', 'active', NOW(), NOW())
-			 RETURNING created_at::text, updated_at::text`,
-			newID, tenantID, strings.TrimSpace(req.Name), slug,
+			`INSERT INTO tenants (id, name, slug, parent_org_id, settings,
+		                       plan, status, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, 'free', 'active', NOW(), NOW())
+		 RETURNING created_at::text, updated_at::text`,
+			newID, strings.TrimSpace(req.Name), slug,
 			parentUUID, normalizedSettings,
 		).Scan(&createdStr, &updatedStr)
 		if err != nil {
@@ -350,7 +351,7 @@ func UpdateEnterpriseOrgSettings(pool *db.Pool) gin.HandlerFunc {
 		tag, err := pool.Pgx().Exec(c.Request.Context(),
 			`UPDATE tenants
 			    SET settings = $1, updated_at = NOW()
-			  WHERE tenant_id = $2 AND id = $3`,
+			  WHERE id = $2 AND id = $3`,
 			normalized, tenantID, orgID,
 		)
 		if err != nil {
