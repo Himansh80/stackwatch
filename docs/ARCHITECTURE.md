@@ -1,8 +1,12 @@
 # StackWatch — Architecture
 
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-25
 
-This document describes the **shipped** architecture: Tier 0, 1, 2, 3.
+This document describes the **shipped** architecture across 13 tiers
+(Tier 0–11 complete, Tier 12 docs + marketing site in progress, Tier 13
+mobile pending). Cross-references: [INSTALL.md](INSTALL.md) ·
+[USER-GUIDE.md](USER-GUIDE.md) · [TESTING.md](TESTING.md) ·
+[FAQ.md](FAQ.md) · [FEATURES.md](FEATURES.md).
 
 ---
 
@@ -322,3 +326,310 @@ See [SECURITY.md](SECURITY.md).
 - Tier 6 introduces a TSDB (likely Prometheus) — Postgres stays for
   metadata only
 - Tier 9 introduces Row-Level Security with a per-tenant `ios_rls` role
+- Tier 11 introduces the platform layer (`internal/platform/*`) for
+  plan catalog, tenant limits, usage metering, rate limiting, and the
+  4 background workers (retention, usage rollup, capacity forecast,
+  rate-limit snapshot)
+
+---
+
+## The 13 tiers (overview)
+
+Every tier adds one cohesive feature surface. The tiers are layered —
+later tiers build on earlier ones.
+
+| Tier | Name | Service type(s) added | Status |
+|------|------|-----------------------|--------|
+| 0 | Auth | identity, JWT, multi-tenant scoping | ✅ shipped |
+| 1 | Proxmox | Proxmox integration (78 endpoints) | ✅ shipped |
+| 2 | TrueNAS SCALE | JSON-RPC over WS sidecar (17 endpoints) | ✅ shipped |
+| 3 | Terminal | WebSocket ↔ SSH PTY bridge, SFTP | ✅ shipped |
+| 4 | Server Admin | Cockpit parity — services, processes, network | ✅ shipped |
+| 5 | Containers | Portainer parity — Compose, watchtower | ✅ shipped |
+| 6 | Monitoring Depth | Prometheus / Grafana / Loki / Netdata ingest | ✅ shipped |
+| 7 | Datadog parity | APM, RUM, synthetics, security, CSPM, CI | ✅ shipped |
+| 8 | Alerting | Rule engine, 11 channels, SLOs, on-call | ✅ shipped |
+| 9 | Security + Enterprise | SAML/OIDC, audit chain, RLS, SOC 2 | ✅ shipped |
+| 10 | Homelab Dashboard | Polish + Datadog UI motion | ✅ shipped |
+| 11 | Platform + Commerce | Plans, signup, metering, rate limit, multi-region | ✅ shipped |
+| 12 | Docs + GTM | This tier — polish docs, build marketing site | 🚧 in progress |
+| 13 | Mobile | React Native app, push notifications | ⏳ pending |
+
+### The 12+ service types
+
+StackWatch's api-gateway routes ~480 endpoints grouped into these
+service types:
+
+| Service type | Handlers | Examples |
+|--------------|----------|----------|
+| `auth` | login, signup, refresh, forgot, reset, change-password | `/api/v1/auth/login` |
+| `tenant` | tenant CRUD | `/api/v1/tenants` |
+| `users` | user CRUD, role assignment | `/api/v1/users` |
+| `api-keys` | API key CRUD + revoke | `/api/v1/api-keys` |
+| `proxmox` | 78 Proxmox endpoints | `/api/v1/proxmox/hosts/:id/vms` |
+| `truenas` | 17 TrueNAS endpoints | `/api/v1/truenas/hosts/:id/pools` |
+| `terminal` | connections, keys, SFTP, known-hosts | `/api/v1/terminal/connections` |
+| `admin` | server admin (Cockpit parity) | `/api/v1/admin/services` |
+| `containers` | Docker / Compose (Portainer parity) | `/api/v1/containers/stacks` |
+| `monitoring` | metrics ingestion + query | `/api/v1/metrics/ingest` |
+| `logs` | log intake + explorer | `/api/v1/logs/ingest` |
+| `traces` | APM span intake + service map | `/api/v1/traces/ingest` |
+| `rum` | RUM events + sessions | `/api/v1/rum/ingest` |
+| `synthetics` | HTTP / ping / browser checks | `/api/v1/synthetics/checks` |
+| `alerts` | rules, incidents, channels | `/api/v1/alerts/rules` |
+| `security` | CSPM, audit, SSO, SCIM | `/api/v1/security/cspm` |
+| `dashboards` | dashboard CRUD + panel CRUD | `/api/v1/dashboards` |
+| `platform` | plans, limits, metering, rate limit (Tier 11) | `/api/v1/platform/limits` |
+| `deploy` | install tokens, push-button deploy (Tier 11) | `/api/v1/platform/deploy/install-token` |
+
+That's 19 distinct service types, not 12 — the spec said "12 service
+types" referring to the observability surfaces (metrics, logs, traces,
+RUM, synthetics, alerts, dashboards, security, audit, SSO, SCIM,
+CI visibility); the rest (proxmox, truenas, terminal, etc.) are
+**integrations**, not service types. This section covers the 12
+**observability service types** and the 7 integrations.
+
+---
+
+## Data flow diagrams
+
+### Tier 0 — Authentication flow
+
+```
+Browser                                api-gateway                  Postgres
+  │                                          │                            │
+  │  POST /api/v1/auth/login                 │                            │
+  │  {email, password}                        │                            │
+  │ ────────────────────────────────────────► │                            │
+  │                                          │ SELECT id, password_hash  │
+  │                                          │   FROM users               │
+  │                                          │   WHERE email = $1         │
+  │                                          │ ────────────────────────►  │
+  │                                          │                            │
+  │                                          │ ◄────────────────────────  │
+  │                                          │ {id, hash, tenant_id, role}│
+  │                                          │                            │
+  │                                          │ bcrypt.Compare(hash, pw)   │
+  │                                          │ jwt.Sign({sub, tenant, role, exp})│
+  │                                          │                            │
+  │  200 {token, user}                       │                            │
+  │ ◄──────────────────────────────────────── │                            │
+  │                                          │                            │
+  │  GET /api/v1/auth/me                     │                            │
+  │  Authorization: Bearer <token>           │                            │
+  │ ────────────────────────────────────────► │                            │
+  │                                          │ jwt.Verify(token)          │
+  │                                          │ SELECT ... FROM users      │
+  │                                          │ ────────────────────────►  │
+  │                                          │                            │
+  │  200 {user}                              │                            │
+  │ ◄──────────────────────────────────────── │                            │
+```
+
+### Tier 1 — Proxmox host registration + VM list
+
+```
+Browser            api-gateway              service/                internal/client/        Proxmox
+  │                   │                     proxmox_service          proxmox
+  │                   │                          │                       │                       │
+  │ POST /api/v1/      │                            │                       │                       │
+  │   proxmox/hosts    │                            │                       │                       │
+  │ ─────────────────► │                            │                       │                       │
+  │                    │ INSERT INTO                │                       │                       │
+  │                    │   proxmox_hosts             │                       │                       │
+  │                    │ ─────────────►              │                       │                       │
+  │                    │                            │                       │                       │
+  │ 201 {host id}      │                            │                       │                       │
+  │ ◄───────────────── │                            │                       │                       │
+  │                    │                            │                       │                       │
+  │ GET .../vms        │                            │                       │                       │
+  │ ─────────────────► │                            │                       │                       │
+  │                    │ SELECT api_token           │                       │                       │
+  │                    │   FROM proxmox_hosts       │                       │                       │
+  │                    │ ─────────────►              │                       │                       │
+  │                    │                            │                       │                       │
+  │                    │ resolveProxmoxClient ─────►│                       │                       │
+  │                    │                            │ NewClient(base, token) │                       │
+  │                    │                            │ ────────────────────► │                       │
+  │                    │                            │                       │ GET /api2/json/.../qemu
+  │                    │                            │                       │ ────────────────────► │
+  │                    │                            │                       │                       │
+  │                    │                            │                       │ ◄──────────────────── │
+  │                    │                            │                       │ {data: [...]}         │
+  │                    │                            │ ◄──────────────────── │                       │
+  │                    │ ◄───────────────────────── │                       │                       │
+  │ 200 {vms:[...]}    │                            │                       │                       │
+  │ ◄───────────────── │                            │                       │                       │
+```
+
+### Tier 2 — TrueNAS via JSON-RPC over WebSocket
+
+```
+Browser         api-gateway          truenas-connector              TrueNAS SCALE
+  │                │                       │                          middleware
+  │                │                       │                          │
+  │                │                       │  WS upgrade               │
+  │                │                       │  GET /api/current         │
+  │                │                       │ ◄──────────────────────► │
+  │                │                       │                          │
+  │                │                       │  POST /api/current        │
+  │                │                       │  method=auth.login        │
+  │                │                       │  [api_key]                │
+  │                │                       │ ───────────────────────► │
+  │                │                       │                          │
+  │                │                       │  200 OK (cookie set)      │
+  │                │                       │ ◄─────────────────────── │
+  │                │                       │                          │
+  │ POST /pools/   │                       │                          │
+  │   list         │                       │                          │
+  │ ─────────────► │                       │                          │
+  │                │ truenas_service.       │                          │
+  │                │  resolveClient ─────► │                          │
+  │                │                       │  method=pool.query        │
+  │                │                       │  params=[]                │
+  │                │                       │ ───────────────────────► │
+  │                │                       │                          │
+  │                │                       │ ◄─────────────────────── │
+  │                │                       │  [{name:"tank", ...}]     │
+  │                │ ◄──────────────────── │                          │
+  │ 200 {pools:[]} │                      │                          │
+  │ ◄───────────── │                       │                          │
+```
+
+The WS connection is **cached per host_id** in
+`internal/service/truenas_service.go` so we don't re-login on every
+request — SCALE rate-limits login attempts and returns `EBUSY` after a
+few per minute.
+
+### Tier 3 — WebSocket terminal
+
+```
+Browser (xterm.js)        web-terminal             SSH server
+  │                            │                       │
+  │  WS upgrade                │                       │
+  │  /api/v1/ws?connection=X   │                       │
+  │ ─────────────────────────► │                       │
+  │                            │ Validate JWT +        │
+  │                            │  load credentials     │
+  │                            │                       │
+  │                            │  SSH Dial (creack)    │
+  │                            │ ────────────────────► │
+  │                            │                       │
+  │                            │  PTY allocate         │
+  │                            │  (xterm-256color)     │
+  │                            │                       │
+  │  Binary frame: "ls -la\n"  │                       │
+  │ ─────────────────────────► │                       │
+  │                            │  Write to PTY stdin   │
+  │                            │ ────────────────────► │
+  │                            │                       │
+  │                            │  Read PTY stdout      │
+  │                            │ ◄──────────────────── │
+  │  Binary frame: "total 12…" │                       │
+  │ ◄───────────────────────── │                       │
+```
+
+### Tier 6 — Metrics ingestion
+
+```
+Agent (per host)         api-gateway                Prometheus TSDB
+  │                          │                            │
+  │  POST /api/v1/metrics/   │                            │
+  │    ingest                │                            │
+  │  [{name, value, tags,    │                            │
+  │    timestamp}, ...]      │                            │
+  │ ───────────────────────► │                            │
+  │                          │  Validate + tenant scope  │
+  │                          │                            │
+  │                          │  Write to in-memory batch │
+  │                          │  (buffered, 10s flush)    │
+  │                          │                            │
+  │                          │  Remote write             │
+  │                          │ ────────────────────────► │
+  │                          │                            │
+  │                          │  204 No Content            │
+  │ ◄─────────────────────── │                            │
+```
+
+Metric retention is per-tenant (7d free, 30d starter, 90d pro, 365d
+enterprise). The RetentionWorker in `internal/platform/retention.go`
+runs every hour and drops samples older than the tenant's plan.
+
+### Tier 8 — Alert evaluation
+
+```
+Background:                                                    Where it
+RuleEvaluatorWorker                  Channel (email/Slack/etc) sends
+  │                                          │
+  │  Every 60s:                              │
+  │  SELECT rule.* FROM                      │
+  │    alert_rules WHERE                      │
+  │    enabled=true                          │
+  │ ─────►                                   │
+  │                                          │
+  │  Query Prometheus:                       │
+  │  rate(cpu{host=X}[5m])                  │
+  │ ─────►                                   │
+  │                                          │
+  │  Threshold check                         │
+  │  state: OK → ALERT                       │
+  │                                          │
+  │  If newly ALERT:                         │
+  │  INSERT INTO incidents                   │
+  │ ─────►                                   │
+  │                                          │
+  │  For each channel in                     │
+  │   rule.channels:                         │
+  │   notify(channel, msg) ─────────────────►│
+  │                                          │  Send email / Slack /
+  │                                          │  PagerDuty webhook
+```
+
+### Tier 11 — Plan + limits enforcement
+
+```
+Browser                api-gateway              platform/limits.go          Postgres
+  │                       │                          │                          │
+  │ POST /api/v1/users    │                          │                          │
+  │ ────────────────────► │                          │                          │
+  │                       │ CheckLimit("team_size")  │                          │
+  │                       │ ───────────────────────► │                          │
+  │                       │                          │ LoadEffectiveLimits     │
+  │                       │                          │   (plan + overrides)     │
+  │                       │                          │ ───────────────────────► │
+  │                       │                          │                          │
+  │                       │                          │ {max_team_members: 15,   │
+  │                       │                          │  current: 12,            │
+  │                       │                          │  ok: true}               │
+  │                       │ ◄─────────────────────── │                          │
+  │                       │                          │                          │
+  │                       │  (12 < 15, allow)        │                          │
+  │                       │                          │                          │
+  │                       │  INSERT INTO users       │                          │
+  │                       │ ──────────────────────────────────────────────────► │
+  │                       │                          │                          │
+  │ 201 {user}            │                          │                          │
+  │ ◄──────────────────── │                          │                          │
+```
+
+### Tier 11 — Multi-region replication (PL6)
+
+```
+Region A (primary)              Logical replication              Region B (standby)
+  │                                     │                                  │
+  │  WAL on primary                     │                                  │
+  │ ─────────────►                      │                                  │
+  │  Publication: stackwatch_pub       │                                  │
+  │                                     │                                  │
+  │                                     │  Apply on standby ────────────►  │
+  │                                     │                                  │
+  │                                     │                                  │  Read-only
+  │                                     │                                  │  replicas
+  │                                     │                                  │
+```
+
+Promotion: if Region A goes down, an operator runs
+`pg promote` on the standby; the api-gateway's health check detects
+the failover and routes to the promoted region.
+
+---

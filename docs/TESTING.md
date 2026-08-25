@@ -1,8 +1,44 @@
 # StackWatch — Testing
 
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-25
 
 What's testable TODAY, with concrete steps and expected outputs.
+Cross-references: [USER-GUIDE.md](USER-GUIDE.md) ·
+[INSTALL.md](INSTALL.md) · [ARCHITECTURE.md](ARCHITECTURE.md) ·
+[FAQ.md](FAQ.md) · [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+Every test below follows the format:
+
+```
+GIVEN:  <preconditions>
+WHEN:   <action>
+EXPECT: <result>
+```
+
+Each step lists `PASS` criteria inline so you can audit by hand.
+
+---
+
+## Quick smoke test (60 seconds)
+
+Run this **first**. If any of these 6 checks fail, don't bother with
+the tier-specific tests — go fix the install.
+
+| # | Command | PASS criterion |
+|---|---------|----------------|
+| 1 | `curl -sm 3 http://localhost:8080/health` | `{"db":"ok","status":"ok"}` |
+| 2 | `curl -sm 3 http://localhost:8085/healthz` | `200 OK` |
+| 3 | `curl -sm 3 http://localhost:8088/health` | `{"status":"ok"}` |
+| 4 | `psql -h <db-host> -U ios -d ios -c "SELECT count(*) FROM users;"` | ≥ 1 (the setup admin) |
+| 5 | `curl -sm 3 -X POST http://localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"you@example.com","password":"YourPass!2026Stack"}'` | `{"token":"..."}` (400+ char JWT) |
+| 6 | `curl -sm 3 -H "Authorization: Bearer ***" http://localhost:8080/api/v1/auth/me` | `{"user":{"email":"..."}}` |
+
+If 6/6 PASS, your install is healthy. Move on to the tier tests below.
+
+If any FAIL, check:
+- `journalctl -u api-gateway -n 50` (the most common failure is DB unreachable)
+- `curl -sm 3 http://localhost:8080/health` returns the actual error message
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for the full failure catalog
 
 ---
 
@@ -271,3 +307,144 @@ https://github.com/Himanshu7613/stackwatch/issues/new
 
 Include: `curl` command you ran, expected vs actual response, your
 `stackwatch version` (`curl /api/v1/setup/state` returns this).
+
+---
+
+## Tier 4 — Server admin
+
+### List systemd services
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/admin/hosts/${HOST_ID}/services"
+# EXPECT: HTTP 200, JSON {services:[{name, status, enabled}], total:N}
+```
+
+### View journald log tail
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/admin/hosts/${HOST_ID}/logs/journal?unit=sshd&lines=100"
+# EXPECT: HTTP 200, JSON {lines:[{timestamp, message}], total:N}
+```
+
+---
+
+## Tier 6 — Metrics ingestion
+
+### Ingest one sample
+
+```bash
+curl -X POST -H "Authorization: Bearer ***" -H "Content-Type: application/json" \
+  -d '{"host_id":"'"${HOST_ID}"'","metric":"cpu.user","value":42.5,"timestamp":"2026-08-25T12:00:00Z"}' \
+  "http://localhost:8080/api/v1/metrics/ingest"
+# EXPECT: HTTP 204 No Content
+```
+
+### Query the metric
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/metrics/query?metric=cpu.user&host_id=${HOST_ID}&from=1h"
+# EXPECT: HTTP 200, JSON {series:[{ts, value}], total:N}
+```
+
+---
+
+## Tier 7 — Synthetics
+
+### Create an HTTP check
+
+```bash
+curl -X POST -H "Authorization: Bearer ***" -H "Content-Type: application/json" \
+  -d '{"name":"homepage","url":"https://example.com","interval_s":60,"assert_status":200}' \
+  "http://localhost:8080/api/v1/synthetics/checks"
+# EXPECT: HTTP 201, JSON {id:..., enabled:true}
+```
+
+### View recent results
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/synthetics/checks/<id>/results?limit=10"
+# EXPECT: HTTP 200, JSON {results:[{ts, status, latency_ms}], total:N}
+```
+
+---
+
+## Tier 8 — Alerting
+
+### Create an alert rule
+
+```bash
+curl -X POST -H "Authorization: Bearer ***" -H "Content-Type: application/json" \
+  -d '{
+    "name":"high-cpu",
+    "query":"avg(cpu.user{host_id=\"'"${HOST_ID}"'\"})",
+    "threshold":"> 80",
+    "for":"5m",
+    "channels":["email-alerts"]
+  }' \
+  "http://localhost:8080/api/v1/alerts/rules"
+# EXPECT: HTTP 201, JSON {id:..., enabled:true}
+```
+
+### List incidents
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/alerts/incidents?state=firing"
+# EXPECT: HTTP 200, JSON {incidents:[...], total:N}
+```
+
+---
+
+## Tier 9 — SSO (SAML)
+
+### List SSO connections
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/security/sso/connections"
+# EXPECT: HTTP 200, JSON {connections:[...], total:N}
+```
+
+### Initiate SAML login
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/security/sso/<connection_id>/initiate"
+# EXPECT: HTTP 302 to IdP with SAMLRequest
+```
+
+---
+
+## Tier 11 — Plans + limits
+
+### List plans
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/platform/limits/definitions"
+# EXPECT: HTTP 200, JSON {plans:[{name, display_name, monthly_price_cents, ...}], total:4}
+```
+
+### Get current tenant's effective limits
+
+```bash
+curl -H "Authorization: Bearer ***" \
+  "http://localhost:8080/api/v1/platform/limits/me"
+# EXPECT: HTTP 200, JSON {plan:"free", max_servers:3, current_servers:1, ...}
+```
+
+### Try to exceed the limit (free plan)
+
+```bash
+# Already at 3/3 servers; try to add a 4th
+curl -X POST -H "Authorization: Bearer ***" -H "Content-Type: application/json" \
+  -d '{"name":"server-4","backend":"https://example.com"}' \
+  "http://localhost:8080/api/v1/servers"
+# EXPECT: HTTP 402 Payment Required, error.code="limit_exceeded"
+```
+
+---

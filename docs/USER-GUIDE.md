@@ -1,12 +1,46 @@
 # StackWatch — User Guide
 
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-25
 
 This guide covers **what is actually shipped right now**: Tier 0 (auth +
 tenants + users + api-keys), Tier 1 (Proxmox full replacement), Tier 2
-(TrueNAS SCALE 25.10 sidecar), and Tier 3 (browser SSH terminal).
+(TrueNAS SCALE 25.10 sidecar), Tier 3 (browser SSH terminal), Tier 4
+(server admin), Tier 5 (containers), Tier 6 (Datadog parity), Tier 7
+(synthetics + RUM), Tier 8 (alerting + SLOs), Tier 9 (security +
+enterprise SSO), Tier 10 (homelab polish), and Tier 11 (platform +
+commerce).
 
-Future tiers expand this guide as features ship.
+Future tiers expand this guide as features ship. Cross-references:
+[INSTALL.md](INSTALL.md) · [ARCHITECTURE.md](ARCHITECTURE.md) ·
+[FAQ.md](FAQ.md) · [TESTING.md](TESTING.md) · [PRICING.md](PRICING.md).
+
+---
+
+## Onboarding checklist (first hour)
+
+A guided tour of "everything you should do in your first 60 minutes".
+Each item is a clickable flow in the dashboard. Tick as you go.
+
+- [ ] **1. Complete the setup wizard** (`/setup` on first run)
+  → creates your first tenant + super_admin user
+- [ ] **2. Log in to the dashboard** (`/login`)
+- [ ] **3. Install the agent on your first server** (Dashboard → Servers → Add → Linux one-liner)
+  → you should see "Agent connected" within 30s
+- [ ] **4. Open the Servers page** → confirm metrics are flowing
+  (CPU, memory, disk, network)
+- [ ] **5. Open the new server's detail page** → click "Terminal" → launch a shell session
+- [ ] **6. Add a Proxmox host** (Servers → Integrations → Proxmox → paste base URL + API token)
+  → 78 endpoints populate within 5 seconds
+- [ ] **7. Create a dashboard** (Dashboards → New → add a CPU timeseries panel)
+- [ ] **8. Set up an alert rule** (Alerts → New → "if CPU > 80% for 5 min" → Email channel)
+- [ ] **9. Add a second team member** (Settings → Team → Invite)
+- [ ] **10. Browse the audit log** (Settings → Audit)
+  → confirm every action above is logged
+
+If you finish all 10 in under 60 minutes, you've validated that
+StackWatch replaces at least one tool you already pay for. See
+[PRICING.md §ROI](PRICING.md#roi-calculator-vs-datadog) to estimate
+your annual savings.
 
 ---
 
@@ -345,3 +379,158 @@ a real React frontend; right now it's a thin explorer over the API.
 ## Roadmap
 
 See [FEATURES.md](FEATURES.md) for the full Tier 0-13 roadmap.
+
+---
+
+## Per-page tour (every page in the dashboard)
+
+Every page in the StackWatch React frontend, top-down. If you only have
+5 minutes, read this section.
+
+### `/login`
+
+The login page. Email + password. JWT stored in `localStorage` (with
+a 24-hour expiry). "Forgot password" link → emails a reset token.
+
+### `/setup` (first run only)
+
+The setup wizard. Runs once on a fresh install. Walks you through:
+
+1. Choose install mode (`cloud` or `self-hosted`)
+2. Create the first tenant + super_admin user
+3. Configure the JWT secret (auto-generates if not set)
+4. Seed the default `free` plan
+
+After completion, `/setup` returns 410 Gone.
+
+### `/dashboard` (home)
+
+The Datadog-style home page. 4 KPI cards at the top (servers up /
+servers down / active alerts / events today). Below: 6 default panels
+(CPU avg, memory avg, disk usage, top talkers, recent alerts, recent
+events). Drag to reorder; click any panel to drill in.
+
+### `/servers`
+
+The inventory page. Every agent that has reported in, plus every
+Proxmox / TrueNAS host. Sortable / filterable. Click a row → server
+detail. Bulk select for tags + delete.
+
+### `/servers/:id`
+
+The server detail page. 6 tabs:
+
+- **Overview**: hostname, OS, uptime, last heartbeat
+- **Metrics**: CPU / memory / disk / network timeseries (zoomable)
+- **Processes**: top 50 by CPU + memory
+- **Logs**: tail of journald / syslog
+- **Terminal**: launches an xterm.js session over WebSocket
+- **Files**: SFTP file browser (read / write / upload / download)
+
+### `/integrations`
+
+List of every data source type StackWatch knows about. Click "Add"
+on any to start the connect flow. Status badges show whether each
+integration is connected.
+
+### `/integrations/proxmox/:id`
+
+Drill-down for a Proxmox host. 6 sub-tabs matching the Proxmox UI:
+
+- **Summary**: nodes, VMs, LXCs, storage, cluster status
+- **Virtual Machines**: list / create / start / stop / migrate
+- **LXC Containers**: list / create / start / stop
+- **Storage**: list pools, ISCSI targets, NFS exports
+- **Network**: bridges, bonds, VLANs, firewall rules
+- **Cluster**: nodes, tasks, ACME certs, users + tokens
+
+### `/integrations/truenas/:id`
+
+Drill-down for a TrueNAS host. Mirrors the TrueNAS UI:
+
+- **Storage**: pools, datasets, snapshots, scrub status
+- **Sharing**: NFS, SMB, iSCSI
+- **Data Protection**: replication tasks, cloud sync, snapshots
+- **Services**: enabled services, startup state
+- **Alerts**: TrueNAS-side alert rules
+
+### `/terminal`
+
+The browser terminal launcher. Saved connections list on the left;
+click any to open a new xterm.js panel in the main view. Tabbed
+sessions. Right-click for copy / paste. SFTP file browser in the side
+panel.
+
+### `/dashboards`
+
+List of all dashboards (system + custom). "New" button creates a
+blank dashboard; "Import" accepts JSON exports.
+
+### `/dashboards/:id`
+
+Dashboard editor. Drag panels in from the right palette (timeseries,
+top-N, pie, heatmap, log stream, single stat, table). Edit panel →
+choose metric + aggregation + grouping. Save publishes to all users.
+
+### `/alerts`
+
+Alert rules + active incidents. Two tabs:
+
+- **Rules**: list of all alert rules. Each shows owner, current state,
+  last evaluation, target channels.
+- **Incidents**: list of currently firing alerts. Acknowledge /
+  resolve / snooze.
+
+### `/synthetics`
+
+Synthetic monitors. Three sub-tabs:
+
+- **HTTP checks**: GET / POST / assertions on status / body
+- **Ping**: ICMP + traceroute
+- **Browser**: scripted Chrome runs (Puppeteer-style)
+
+### `/logs`
+
+Log explorer. Filter by service, host, severity, free-text. Timeseries
+density chart at top. Open any line in a side panel.
+
+### `/traces` (Tier 6)
+
+Distributed trace explorer. Span waterfall, flame graph, service map.
+Click any service → slowest endpoints.
+
+### `/rum` (Tier 6)
+
+Real User Monitoring. Sessions list, page-view waterfall, error
+breakdown.
+
+### `/security`
+
+Security posture. CSPM checks, audit log, SSO config, SCIM
+provisioning, API key inventory.
+
+### `/settings`
+
+Account, team, billing, theme, integrations, audit log, support.
+
+### `/settings/team`
+
+User list. Invite by email. Roles: viewer / operator / admin /
+super_admin. Per-user API key management.
+
+### `/settings/billing`
+
+Plan + payment method. Tier 11 PL1 PL3 PL4 surface — change plan,
+see usage, download invoices.
+
+### `/settings/audit`
+
+Audit log viewer. Every state-changing API call. Filter by actor,
+action, target. Export to CSV.
+
+### `/marketing`
+
+The public marketing page (Tier 12). Linked from the user dropdown
+"About" menu. Static HTML, no auth required.
+
+---
