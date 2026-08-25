@@ -101,3 +101,78 @@ CREATE INDEX IF NOT EXISTS idx_deploy_install_tokens_expires
 -- Default false — existing rows are not platform admins, by design.
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS is_platform_admin BOOLEAN NOT NULL DEFAULT false;
+
+-- =====================================================================
+-- PL2 — Usage Metering (Phase 2)
+-- =====================================================================
+--
+-- Two backing tables for the metering surface that Phase 2 (and every
+-- later phase that wants to bill) reads from:
+--
+--   platform_usage_events      — raw, immutable event log. Every time
+--                                something billable happens we INSERT
+--                                one row here. The worker (Phase 2
+--                                code lives at internal/platform/
+--                                usage_meter.go) rolls these up into
+--                                the aggregate table every hour.
+--
+--   platform_usage_aggregates  — hourly rollups keyed by (tenant,
+--                                event_kind, bucket_ts). UNIQUE
+--                                constraint means the worker's
+--                                UPSERT pattern handles out-of-order
+--                                events and crash-during-rollup
+--                                races gracefully. The DOWNSTREAM
+--                                reads (current/history/summary) ONLY
+--                                scan this table, never the raw
+--                                events, so the billing dashboard stays
+--                                fast even at millions of events/day.
+--
+-- Why immutable events: a usage event represents something that
+-- HAPPENED. Allowing UPDATE/DELETE would let an admin tamper with
+-- billing history. The handler layer enforces no-PUT/no-DELETE; the
+-- schema also omits any UPDATE policy triggers — it's just a plain
+-- append-only log. Retention is 365 days configurable (the worker
+-- prunes).
+--
+-- Why numeric(18,4) for quantity: API calls + dashboard panels are
+-- naturally integer counts, but storage.gb.hour and bandwidth may be
+-- fractional (0.001 GB is meaningful). 4 decimal places is enough
+-- for sub-cent precision without ballooning the row size.
+--
+-- Why a partial index on resource_id: most events DON'T carry a
+-- resource_id (login.success has none), so the partial index keeps
+-- lookups by resource cheap without indexing every row.
+
+CREATE TABLE IF NOT EXISTS platform_usage_events (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    uuid NOT NULL,
+    user_id      uuid,
+    event_kind   text NOT NULL,
+    quantity     numeric(18,4) NOT NULL DEFAULT 1,
+    unit         text NOT NULL DEFAULT 'count',
+    resource_id  text,
+    metadata     jsonb NOT NULL DEFAULT '{}',
+    created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_platform_usage_events_tenant_time
+    ON platform_usage_events(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_platform_usage_events_kind
+    ON platform_usage_events(event_kind, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_platform_usage_events_resource
+    ON platform_usage_events(resource_id) WHERE resource_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS platform_usage_aggregates (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    uuid NOT NULL,
+    event_kind   text NOT NULL,
+    bucket_ts    timestamptz NOT NULL,
+    sum_quantity numeric(18,4) NOT NULL DEFAULT 0,
+    count        integer NOT NULL DEFAULT 0,
+    min_quantity numeric(18,4),
+    max_quantity numeric(18,4),
+    UNIQUE (tenant_id, event_kind, bucket_ts)
+);
+
+CREATE INDEX IF NOT EXISTS idx_platform_usage_aggregates_tenant_time
+    ON platform_usage_aggregates(tenant_id, bucket_ts DESC);

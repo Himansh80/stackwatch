@@ -13,6 +13,7 @@ import (
 
 	"github.com/stackwatch/platform/internal/handler"
 	"github.com/stackwatch/platform/internal/homelab"
+	"github.com/stackwatch/platform/internal/platform"
 	"github.com/stackwatch/platform/internal/synthetics"
 )
 
@@ -117,6 +118,14 @@ func main() {
 	// immediately on Start().
 	schedulerWorker := homelab.NewSchedulerWorker(pool, homelab.WithSchedulerLogger(logger))
 	schedulerWorker.Start(rootCtx)
+
+	// Tier 11 Phase 2 — Usage Metering background worker (PL2).
+	// Ticks every hour, UPSERTs the most-recent completed
+	// (tenant_id, event_kind) bucket into platform_usage_aggregates,
+	// then prunes platform_usage_events rows older than 365 days.
+	// First tick fires immediately on Start().
+	usageMeter := platform.NewUsageMeterWorker(pool, platform.WithUsageLogger(logger))
+	usageMeter.Start(rootCtx)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

@@ -71,6 +71,26 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 	// uses for SCIM 2.0.
 	protected.POST("/platform/deploy/install-token", handler.CreateInstallToken(pool))
 	protected.GET("/platform/deploy/stats", handler.GetInstallStats(pool))
+
+	// ---- Tier 11.2: Usage Metering (Phase 2 — PL2) ----
+	//
+	// Per spec §"PL2 — Usage Metering" these 5 endpoints back the
+	// metering surface. Every handler honors tenant_id from the
+	// JWT (handlers_platform_usage*.go). The cross-tenant
+	// /summary endpoint additionally checks claims.Role ==
+	// "super_admin" so org admins can't enumerate other tenants.
+	//
+	// Routes:
+	//   POST /api/v1/platform/usage-events  — RecordUsageEvent
+	//   GET  /api/v1/platform/usage/current — GetUsageCurrent
+	//   GET  /api/v1/platform/usage/history — GetUsageHistory
+	//   GET  /api/v1/platform/usage/summary — GetUsageSummary (super_admin)
+	//   GET  /api/v1/platform/usage/export  — GetUsageExport
+	protected.POST("/platform/usage-events", handler.RecordUsageEvent(pool))
+	protected.GET("/platform/usage/current", handler.GetUsageCurrent(pool))
+	protected.GET("/platform/usage/history", handler.GetUsageHistory(pool))
+	protected.GET("/platform/usage/summary", handler.GetUsageSummary(pool))
+	protected.GET("/platform/usage/export", handler.GetUsageExport(pool))
 }
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints
