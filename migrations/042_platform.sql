@@ -352,3 +352,123 @@ CREATE TABLE IF NOT EXISTS platform_tenant_limits (
 -- tool ("how many tenants did we move to pro last month?").
 CREATE INDEX IF NOT EXISTS idx_platform_tenant_limits_plan
     ON platform_tenant_limits(plan_name);
+
+-- =====================================================================
+-- Tier 11.5: Backup / Restore (Phase 5 — PL5)
+--
+-- Per proposal.md §"Risks" §"Backup encryption":
+--   "Backup encryption — encrypt .tar.gz with AES-256-GCM using
+--    a tenant-derived key from the master key."
+--
+-- Two backing tables:
+--
+--   platform_backups     — one row per completed (or in-flight)
+--                          backup. Stores metadata + SHA-256 of
+--                          both the plaintext and the ciphertext
+--                          for tamper detection. The ENCRYPTED
+--                          blob lives on disk under
+--                          /opt/stackwatch/backups/{tenant_id}/
+--                          {backup_id}.tar.gz.enc (mode 0600) —
+--                          the row NEVER stores the ciphertext
+--                          itself, only its path + sizes + the
+--                          two checksums. Decryption key is
+--                          re-derived per request from the env
+--                          master key + the tenant_id (HKDF-
+--                          SHA256, see backup_crypto.go).
+--
+--   platform_backup_jobs — one row per tenant scheduling config.
+--                          UNIQUE on tenant_id so the
+--                          upsert-on-first-save pattern (no
+--                          separate "create schedule" endpoint)
+--                          works cleanly. The BackupSchedulerWorker
+--                          scans this table every hour and
+--                          triggers CreateBackupAndEncrypt per
+--                          due job.
+--
+-- Why we store sha256_plaintext AND sha256_ciphertext:
+--   The plaintext hash is "what we intended to back up" — a
+--   fresh hash on every restore verifies the decryption
+--   matched the original. The ciphertext hash is "what's on
+--   disk right now" — it catches a corrupted or partially-
+--   written file BEFORE we even attempt decryption (cheaper
+--   than the AES-GCM tag check). Together they form a
+--   defense-in-depth: filesystem corruption → ciphertext
+--   mismatch; bit-flip during decryption → GCM tag failure.
+--
+-- Why backup_kind defaults to 'manual':
+--   The handler POST /backup/create always sets 'manual'; the
+--   scheduler sets 'scheduled' so an operator can grep the
+--   log to see which path produced each row. The reserved
+--   word 'system' is left for a future backup-of-system-tables
+--   hook (not in PL5 scope).
+--
+-- Why expires_at + a partial index:
+--   The retention enforcement worker (see
+--   internal/platform/backup_retention.go in a follow-up
+--   phase) will DELETE expired rows and unlink the file.
+--   The partial index on expires_at WHERE NOT NULL keeps
+--   that scan cheap as we add a column for "delete when
+--   older than retention_days".
+
+CREATE TABLE IF NOT EXISTS platform_backups (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id           uuid NOT NULL,
+    created_by_user_id  uuid,
+    backup_kind         text NOT NULL DEFAULT 'manual',
+    status              text NOT NULL DEFAULT 'pending',
+    file_path           text,
+    file_size_bytes     bigint NOT NULL DEFAULT 0,
+    uncompressed_bytes  bigint NOT NULL DEFAULT 0,
+    table_count         integer NOT NULL DEFAULT 0,
+    row_count           bigint NOT NULL DEFAULT 0,
+    encryption_algo     text NOT NULL DEFAULT 'aes-256-gcm',
+    sha256_plaintext    text,
+    sha256_ciphertext   text,
+    started_at          timestamptz NOT NULL DEFAULT now(),
+    completed_at        timestamptz,
+    error_message       text,
+    expires_at          timestamptz,
+    created_at          timestamptz NOT NULL DEFAULT now()
+);
+
+-- "Show me this tenant's backups newest first" — the hot path
+-- for GET /platform/backup/list. Composite index because the
+-- dashboard renders the list on every page load.
+CREATE INDEX IF NOT EXISTS idx_platform_backups_tenant
+    ON platform_backups(tenant_id, created_at DESC);
+
+-- Partial index on in-flight rows only — the scheduler
+-- pulls "pending/running" backups to surface stuck jobs in
+-- the health dashboard (Phase 8 PL8). Far fewer rows than
+-- the full table, so the partial index stays small.
+CREATE INDEX IF NOT EXISTS idx_platform_backups_status
+    ON platform_backups(status) WHERE status IN ('pending', 'running');
+
+-- Partial index for the future retention sweep — every
+-- non-null expires_at row is a candidate for cleanup.
+CREATE INDEX IF NOT EXISTS idx_platform_backups_expires
+    ON platform_backups(expires_at) WHERE expires_at IS NOT NULL;
+
+-- platform_backup_jobs — per-tenant schedule. UNIQUE on
+-- tenant_id because every tenant can have at most one
+-- active schedule row (changing the schedule is an UPSERT,
+-- not a new row). The last_backup_id FK surfaces "last
+-- successful run" without a join across platform_backups.
+CREATE TABLE IF NOT EXISTS platform_backup_jobs (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL UNIQUE,
+    frequency       text NOT NULL DEFAULT 'daily',
+    retention_days  integer NOT NULL DEFAULT 7,
+    enabled         boolean NOT NULL DEFAULT true,
+    last_run_at     timestamptz,
+    last_run_status text,
+    last_backup_id  uuid REFERENCES platform_backups(id),
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+-- "Find all due jobs" is the BackupSchedulerWorker hot path.
+-- A composite (enabled, last_run_at NULLS FIRST) lets it
+-- pull every job that needs a run with a single index scan.
+CREATE INDEX IF NOT EXISTS idx_platform_backup_jobs_enabled
+    ON platform_backup_jobs(enabled, last_run_at NULLS FIRST);

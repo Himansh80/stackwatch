@@ -104,3 +104,12 @@ func RespondErrorWithCode(c *gin.Context, status int, code, message string) {
 func RespondCreated(c *gin.Context, body any) {
 	c.JSON(http.StatusCreated, body)
 }
+
+// RespondStatus writes a JSON body with an arbitrary success
+// status (200 < status < 300). Used for 202 Accepted (e.g.
+// fire-and-forget job submissions on the Tier 11 backup
+// surface) where RespondCreated's hard-coded 201 would
+// mislead the client about resource creation.
+func RespondStatus(c *gin.Context, status int, body any) {
+	c.JSON(status, body)
+}

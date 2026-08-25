@@ -149,6 +149,24 @@ func main() {
 	retentionWorker := platform.NewRetentionWorker(pool, platform.WithRetentionLogger(logger))
 	retentionWorker.Start(rootCtx)
 
+	// Tier 11 Phase 5 — Backup Scheduler background worker
+	// (PL5). SECURITY-CRITICAL: this worker triggers
+	// CreateBackupAndEncrypt which holds the per-tenant
+	// AES-256-GCM encryption key in memory for the duration
+	// of the encrypt pass. The key is derived inside the
+	// helper via HKDF-SHA256(masterKey, info=tenant_id) so
+	// a stolen master key does NOT auto-compromise every
+	// tenant's backups.
+	//
+	// Ticks every 1h, walks every ENABLED row in
+	// platform_backup_jobs whose frequency says it's due
+	// (daily/weekly/monthly cadence), and creates a
+	// 'scheduled' kind backup per tenant. Per-tenant errors
+	// are logged but never abort the batch. First tick fires
+	// immediately on Start().
+	backupSched := platform.NewBackupSchedulerWorker(pool, platform.WithBackupSchedulerLogger(logger))
+	backupSched.Start(rootCtx)
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,

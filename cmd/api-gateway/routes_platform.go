@@ -24,8 +24,8 @@ import (
 //	Phase 1: Push-Button Deploy (PL1)        ← 3 routes
 //	Phase 2: Usage Metering (PL2)            ← 5 routes
 //	Phase 3: Self-Service Signup (PL3)       ← 3 routes
-//	Phase 4: Tenant Limits (PL4)             ← 4 protected routes (added in this commit)
-//	Phase 5: Backup/Restore (PL5)            ← 3 routes
+//	Phase 4: Tenant Limits (PL4)             ← 4 protected routes
+//	Phase 5: Backup/Restore (PL5)            ← 5 routes (added in this commit)
 //	Phase 6: Multi-Region / HA (PL6)         ← 3 routes
 //	Phase 7: Rate Limiting (PL7)             ← middleware + 0 routes
 //	Phase 8: Platform Health (PL8)           ← 4 routes
@@ -133,6 +133,44 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 	protected.PATCH("/platform/limits/me", handler.PatchMyLimits(pool))
 	protected.POST("/platform/limits/check", handler.CheckLimit(pool))
 	protected.GET("/platform/limits/usage", handler.GetLimitsUsage(pool))
+
+	// ---- Tier 11.5: Backup / Restore (Phase 5 — PL5) ----
+	//
+	// Per spec §"PL5 — Backup/Restore". The 5 endpoints
+	// back the per-tenant manual-backup surface. Every
+	// handler enforces tenant_id isolation (claims.TenantID)
+	// and the cross-tenant restore attack vector is
+	// closed by checking row ownership BEFORE decrypting
+	// or unpacking anything.
+	//
+	// Encryption posture (per proposal.md §"Risks" §"Backup
+	// encryption"): every backup file is AES-256-GCM
+	// sealed with a HKDF-SHA256-derived per-tenant key.
+	// The decryption key is NEVER stored — only ciphertext
+	// + nonce + tag land on disk. See
+	// handlers_platform_backup_crypto.go for the layer;
+	// platform/backup_helpers.go for the per-tenant
+	// pipeline; platform/backup_scheduler.go for the
+	// hourly scheduler worker.
+	//
+	// Why the router-order matters: static paths
+	// (`/backup/create`, `/backup/list`, `/backup/restore`)
+	// MUST be registered before `/backup/:id` siblings
+	// so Gin's tree-router matches the literal suffix
+	// first. Otherwise a stray `GET /backup/create` would
+	// hit `:id="create"` and 400 on the UUID parser.
+	//
+	// Routes (5 protected):
+	//   POST /api/v1/platform/backup/create        — CreateBackup
+	//   GET  /api/v1/platform/backup/list          — ListBackups
+	//   POST /api/v1/platform/backup/restore       — RestoreBackup  (multipart upload)
+	//   GET  /api/v1/platform/backup/:id/download  — DownloadBackup (streamed ciphertext)
+	//   DELETE /api/v1/platform/backup/:id         — DeleteBackup  (unlink file + row)
+	protected.POST("/platform/backup/create", handler.CreateBackup(pool))
+	protected.GET("/platform/backup/list", handler.ListBackups(pool))
+	protected.POST("/platform/backup/restore", handler.RestoreBackup(pool))
+	protected.GET("/platform/backup/:id/download", handler.DownloadBackup(pool))
+	protected.DELETE("/platform/backup/:id", handler.DeleteBackup(pool))
 }
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints
