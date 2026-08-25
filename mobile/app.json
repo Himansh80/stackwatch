@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "StackWatch",
+    "slug": "stackwatch-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.stackwatch.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0f172a"
+      },
+      "package": "io.stackwatch.mobile",
+      "permissions": [
+        "NOTIFICATIONS",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#3b82f6"
+        }
+      ]
+    ],
+    "scheme": "stackwatch",
+    "extra": {
+      "backendUrl": "https://api.smarthomelab.fun"
+    }
+  }
+}
