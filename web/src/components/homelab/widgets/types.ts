@@ -114,3 +114,54 @@ export interface TodoFormState {
   dueDate: string; // datetime-local input value
   tagsRaw: string;
 }
+
+// ------------------------------------------------------------------
+// Phase 4 (H4 — Calendar) types.
+// ------------------------------------------------------------------
+
+export interface CalendarRow {
+  id: string;
+  name: string;
+  ical_url: string;
+  color: string;
+  enabled: boolean;
+  last_synced_at?: string;
+  last_sync_status?: string;
+  last_sync_error?: string;
+  event_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CalendarsResponse {
+  calendars: CalendarRow[];
+  count: number;
+}
+
+export interface EventRow {
+  id: string;
+  calendar_id: string;
+  uid: string;
+  summary: string;
+  description?: string;
+  location?: string;
+  starts_at: string;
+  ends_at?: string;
+  all_day: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventsResponse {
+  events: EventRow[];
+  count: number;
+  from: string;
+  to: string;
+  limit: number;
+}
+
+export interface CalendarFormState {
+  name: string;
+  ical_url: string;
+  color: string; // hex or 'default'
+}

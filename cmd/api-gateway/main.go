@@ -61,6 +61,16 @@ func main() {
 	serviceHealth := homelab.NewServiceHealthWorker(pool, homelab.WithLogger(logger))
 	serviceHealth.Start(rootCtx)
 
+	// Tier 10 Phase 4 — Calendar background worker.
+	// Ticks every 30min, fetches every enabled iCal URL in
+	// homelab_calendars (across all tenants + users), parses with
+	// github.com/arran4/golang-ical, and upserts the contained
+	// VEVENTs into homelab_events. Per-calendar errors are
+	// logged but never abort the batch — one bad feed must not
+	// skip the rest. First tick fires immediately on Start().
+	calendarWorker := homelab.NewCalendarWorker(pool, homelab.WithCalendarLogger(logger))
+	calendarWorker.Start(rootCtx)
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,

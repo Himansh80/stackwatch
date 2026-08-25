@@ -147,4 +147,32 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.POST("/homelab/todos/:id/complete", handler.CompleteHomelabTodo(pool))
 	protected.PATCH("/homelab/todos/:id", handler.PatchHomelabTodo(pool))
 	protected.DELETE("/homelab/todos/:id", handler.DeleteHomelabTodo(pool))
+
+	// ---- Tier 10.4: Calendar (Phase 4) ----
+	//
+	// Per spec §"H4 — Calendar", these 5 protected endpoints
+	// back the per-user iCal subscription surface
+	// (homelab_calendars) and the events read endpoint
+	// (homelab_events). The CalendarWorker (started in main.go)
+	// ticks every 30min and upserts VEVENTs from each enabled
+	// feed; POST /calendars fires an immediate sync after create
+	// so a freshly-pinned feed shows events within seconds.
+	//
+	// Routes (5 protected):
+	//   GET    /api/v1/homelab/calendars              — ListHomelabCalendars
+	//   POST   /api/v1/homelab/calendars              — CreateHomelabCalendar
+	//   GET    /api/v1/homelab/calendars/events       — ListHomelabCalendarEvents
+	//   POST   /api/v1/homelab/calendars/:id/refresh  — RefreshHomelabCalendar
+	//   DELETE /api/v1/homelab/calendars/:id          — DeleteHomelabCalendar
+	//
+	// Static-path siblings (/events) MUST come BEFORE the /:id
+	// patterns below — Gin's radix tree matches in registration
+	// order, so /events would otherwise be parsed as :id="events"
+	// and the static handler would never fire.
+	protected.GET("/homelab/calendars", handler.ListHomelabCalendars(pool))
+	protected.POST("/homelab/calendars", handler.CreateHomelabCalendar(pool))
+	protected.GET("/homelab/calendars/events", handler.ListHomelabCalendarEvents(pool))
+	// /:id/* static siblings (refresh) before the /:id patterns.
+	protected.POST("/homelab/calendars/:id/refresh", handler.RefreshHomelabCalendar(pool))
+	protected.DELETE("/homelab/calendars/:id", handler.DeleteHomelabCalendar(pool))
 }

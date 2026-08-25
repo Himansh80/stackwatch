@@ -14,7 +14,7 @@
 --   Phase 3 (H3 — Notes + Todos):
 --     homelab_notes + homelab_todos
 --
---   Phase 4 (H4 — Calendar):
+--   Phase 4 (H4 — Calendar) [this update]:
 --     homelab_calendars + homelab_events
 --
 --   Phase 5 (H5 — Download Stats):
@@ -31,7 +31,8 @@
 --
 -- All tables are idempotent (CREATE TABLE IF NOT EXISTS / CREATE
 -- INDEX IF NOT EXISTS) so re-applying this file is a no-op. No
--- data migration is needed for Phase 1 — the tables start empty.
+-- data migration is needed — the tables start empty (Phase 1) and
+-- Phase 4 adds only new tables (no destructive ALTERs).
 --
 -- Why homelab_* (NOT tier10_* or h1_*): future phases add their
 -- tables to this same migration under the same homelab_ prefix so
@@ -365,3 +366,82 @@ CREATE INDEX IF NOT EXISTS idx_homelab_todos_user_due
 -- NULL (completed), ordered by completed_at DESC.
 CREATE INDEX IF NOT EXISTS idx_homelab_todos_completed
     ON homelab_todos(user_id, completed_at);
+-- ---------------------------------------------------------------------------
+-- homelab_calendars — Phase 4 (H4 — Calendar).
+--
+-- Per-user iCal subscriptions. CalendarWorker (internal/homelab/calendar.go)
+-- fetches every enabled row's ical_url every 30min, parses with
+-- github.com/lukechampine/ical, upserts VEVENTs into homelab_events.
+--
+-- Fields: name (display label), ical_url (http(s) feed), color (CSS hex
+-- validated against allowedCalendarColors), enabled (skip when false),
+-- last_synced_at + last_sync_status + last_sync_error (worker bookkeeping;
+-- status is free-form so future 'rate_limited'/'auth_required' values
+-- don't need an ALTER TABLE).
+--
+-- Per-user (NOT per-tenant) per speckit proposal §US-8. No UNIQUE on
+-- (tenant_id, user_id, name): duplicate names are benign and the
+-- enabled flag is the soft-disable mechanism.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS homelab_calendars (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id          UUID NOT NULL,
+    name             TEXT NOT NULL,
+    ical_url         TEXT NOT NULL,
+    color            TEXT NOT NULL DEFAULT '#3b82f6',
+    enabled          BOOLEAN NOT NULL DEFAULT true,
+    last_synced_at   TIMESTAMPTZ,
+    last_sync_status TEXT,
+    last_sync_error  TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Worker's "list all enabled calendars across all tenants" tick.
+-- Partial index — only enabled rows are scanned; disabled calendars
+-- never bloat the index.
+CREATE INDEX IF NOT EXISTS idx_homelab_calendars_user
+    ON homelab_calendars(user_id);
+CREATE INDEX IF NOT EXISTS idx_homelab_calendars_enabled
+    ON homelab_calendars(tenant_id, enabled) WHERE enabled = true;
+
+-- ---------------------------------------------------------------------------
+-- homelab_events — Phase 4 (H4 — Calendar).
+--
+-- Cached events parsed from each calendar's iCal feed. One row per
+-- VEVENT; UNIQUE (calendar_id, uid) is the dedup key (iCal UID is
+-- publisher-stable across syncs). ON DELETE CASCADE on calendar_id
+-- so removing a calendar wipes its events in one statement.
+--
+-- Fields: uid + summary + description + location + starts_at + ends_at
+-- + all_day + raw_ical (kept for debug + future features). No rrule
+-- column — most events the publisher expands already; can be added
+-- later without breaking existing data.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS homelab_events (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    UUID NOT NULL,
+    user_id      UUID NOT NULL,
+    calendar_id  UUID NOT NULL REFERENCES homelab_calendars(id) ON DELETE CASCADE,
+    uid          TEXT NOT NULL,
+    summary      TEXT NOT NULL,
+    description  TEXT,
+    location     TEXT,
+    starts_at    TIMESTAMPTZ NOT NULL,
+    ends_at      TIMESTAMPTZ,
+    all_day      BOOLEAN NOT NULL DEFAULT false,
+    raw_ical     TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (calendar_id, uid)
+);
+
+-- Hot path: "show me my events in [from, to]" — week view + upcoming
+-- list endpoint. (user_id, starts_at) covers the common query
+-- without a JOIN; (calendar_id, starts_at) covers the worker's
+-- "events for this calendar since last sync" query.
+CREATE INDEX IF NOT EXISTS idx_homelab_events_user_time
+    ON homelab_events(user_id, starts_at);
+CREATE INDEX IF NOT EXISTS idx_homelab_events_calendar_time
+    ON homelab_events(calendar_id, starts_at);
