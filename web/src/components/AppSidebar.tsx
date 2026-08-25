@@ -12,7 +12,7 @@ import { ReactNode } from 'react';
  * handler. The sidebar itself has no internal data fetches.
  */
 interface SidebarProps {
-  active: 'dashboard' | 'billing' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm' | 'logs' | 'rum' | 'synthetics' | 'security' | 'cspm' | 'cicd' | 'database' | 'incidents' | 'notebooks' | 'shared' | 'intelligence' | 'enterprise';
+  active: 'dashboard' | 'billing' | 'homelab' | 'profile' | 'settings' | 'proxmox' | 'truenas' | 'apm' | 'logs' | 'rum' | 'synthetics' | 'security' | 'cspm' | 'cicd' | 'database' | 'incidents' | 'notebooks' | 'shared' | 'intelligence' | 'enterprise';
   onLogout: () => void;
   apiVersion?: string;
   firingAlerts?: number;
@@ -35,6 +35,7 @@ const ALL_NAV_ITEMS: Array<{
 }> = [
   { key: 'dashboard', to: '/dashboard', icon: '⌂', label: 'Overview', section: 'workspace' },
   { key: 'billing', to: '/billing', icon: '$', label: 'Billing', section: 'workspace' },
+  { key: 'homelab', to: '/homelab', icon: '◉', label: 'Homelab', section: 'workspace' },
   { key: 'profile', to: '/profile', icon: '◉', label: 'Profile', section: 'workspace' },
   { key: 'settings', to: '/settings', icon: '⚙', label: 'Settings', section: 'workspace' },
   { key: 'proxmox', to: '/proxmox', icon: '◈', label: 'Proxmox', section: 'infrastructure' },

@@ -397,4 +397,11 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 
 	// Tier 9: 32 routes (SSO+SCIM+RBAC+Audit+Compliance+Orgs) live in routes_enterprise.go (Phase 1 of 007 adds the first 8 SSO).
 	mountEnterpriseRoutes(protected, pool)
-}
+
+	// Tier 10: Homelab Dashboard routes (Phase 0 splits them out of
+	// routes_protected.go, which is at the 399-LOC cap). Phases 1-9
+	// add 50+ routes here — Phase 1 contributes 6 (H1 widget framework
+	// + per-user layout/prefs); future phases add services/notes/
+	// todos/calendar/downloads/media/search/rss/scheduler.
+	mountHomelabRoutes(protected, pool)
+	}
