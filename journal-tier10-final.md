@@ -75,7 +75,7 @@ archive + journal).
 - Tier 8 (Intelligence & Alerting): DONE
 - Tier 9 (Security & Enterprise): DONE
 - **Tier 10 (Homelab Dashboard): DONE** — TIER 10 COMPLETE 2026-08-25
-- Tier 11 (Platform & Commerce): NOT STARTED
+- **Tier 11 (Platform & Commerce): DONE** — TIER 11 COMPLETE 2026-08-25 (commit `feb92de`)
 - Tier 12 (Docs & GTM): NOT STARTED
 - Tier 13 (Mobile): NOT STARTED
 
