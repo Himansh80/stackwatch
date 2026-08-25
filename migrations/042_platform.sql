@@ -253,3 +253,102 @@ CREATE INDEX IF NOT EXISTS idx_platform_signups_email
 -- keeps it small — verified / rejected rows have NULL token.
 CREATE INDEX IF NOT EXISTS idx_platform_signups_token
     ON platform_signups(verification_token) WHERE verification_token IS NOT NULL;
+
+-- =====================================================================
+-- PL4 — Tenant Limits (Phase 4)
+-- =====================================================================
+--
+-- Two backing tables for the per-tenant plan + catalog surface:
+--
+--   platform_plan_definitions — the catalog. One row per plan (free,
+--                                starter, pro, enterprise). Seeded
+--                                on api-gateway boot from
+--                                internal/auth/seed_plans.go via
+--                                ON CONFLICT (name) DO NOTHING so
+--                                reboots are idempotent.
+--
+--                                Pricing + caps are stored as plain
+--                                columns (no JSONB) so the billing
+--                                KPI strip can render them as
+--                                integer cells without a JSON parse
+--                                on every dashboard load. Adding a
+--                                new "feature flag" column is a
+--                                non-destructive ALTER — same
+--                                idempotent rule as every other
+--                                table here.
+--
+--   platform_tenant_limits    — per-tenant plan assignment + custom
+--                                overrides + suspend state. UNIQUE
+--                                on tenant_id so the UPSERT pattern
+--                                in handlers_platform_limits.go
+--                                creates the row on first PATCH if
+--                                missing — there's no separate
+--                                "onboarding" step.
+--
+-- Why a custom_overrides JSONB column (vs. extra columns):
+--   The platform-admin surface lets a sales rep bump ONE limit
+--   on a paying customer without rewriting the plan definition.
+--   custom_overrides is a sparse map keyed by field name
+--   ("max_servers", "data_retention_days", etc.) merged ON TOP of
+--   the plan defaults at read time — see
+--   internal/platform/limits.go::EffectiveLimits. Merging (not
+--   replacing) preserves every other override the operator
+--   previously set.
+--
+-- Why suspend columns on the limits table (not on tenants):
+--   A future suspension (Phase 5+) may freeze plan UPGRADES but
+--   keep READ access; a different suspension (payment failed)
+--   freezes EVERYTHING. Modeling suspend state next to the plan
+--   keeps these semantics explicit instead of overloading the
+--   tenants.status field, which is used by Tier 0 for soft-delete.
+--
+-- trial_ends_at supports the "try Pro for 14 days" flow that
+-- PL4 spec mentions; the auto-revert-to-free logic lives in the
+-- retention worker (Phase 4 ships the column; a future polish
+-- pass adds the cron-style auto-revert).
+
+CREATE TABLE IF NOT EXISTS platform_plan_definitions (
+    id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                    text NOT NULL UNIQUE,
+    display_name            text NOT NULL,
+    monthly_price_cents     integer NOT NULL DEFAULT 0,
+    currency                text NOT NULL DEFAULT 'USD',
+    max_servers             integer NOT NULL DEFAULT 0,
+    max_alerts              integer NOT NULL DEFAULT 0,
+    max_dashboards          integer NOT NULL DEFAULT 0,
+    max_team_members        integer NOT NULL DEFAULT 0,
+    data_retention_days     integer NOT NULL DEFAULT 0,
+    metrics_retention_days  integer NOT NULL DEFAULT 0,
+    storage_gb_limit        bigint NOT NULL DEFAULT 0,
+    api_calls_per_minute    integer NOT NULL DEFAULT 0,
+    features                text[] NOT NULL DEFAULT '{}',
+    is_builtin              boolean NOT NULL DEFAULT true,
+    sort_order              integer NOT NULL DEFAULT 0,
+    created_at              timestamptz NOT NULL DEFAULT now(),
+    updated_at              timestamptz NOT NULL DEFAULT now()
+);
+
+-- "List plans in display order" is the public /limits/definitions
+-- hot path. Sort_order is the pricing-page ordering knob (free
+-- first, enterprise last) so a single composite index keeps the
+-- sort cheap even as we add bespoke plans.
+CREATE INDEX IF NOT EXISTS idx_platform_plan_definitions_sort
+    ON platform_plan_definitions(sort_order ASC, name ASC);
+
+CREATE TABLE IF NOT EXISTS platform_tenant_limits (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id           uuid NOT NULL UNIQUE,
+    plan_name           text NOT NULL,
+    custom_overrides    jsonb NOT NULL DEFAULT '{}',
+    trial_ends_at       timestamptz,
+    suspended_at        timestamptz,
+    suspend_reason      text,
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    updated_at          timestamptz NOT NULL DEFAULT now()
+);
+
+-- "Show me every tenant on plan X" — drives the Phase 8 PL8
+-- /health/tenants/top endpoint and the PL4 future migration
+-- tool ("how many tenants did we move to pro last month?").
+CREATE INDEX IF NOT EXISTS idx_platform_tenant_limits_plan
+    ON platform_tenant_limits(plan_name);

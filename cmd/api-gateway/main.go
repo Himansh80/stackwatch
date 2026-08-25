@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stackwatch/platform/internal/handler"
+	"github.com/stackwatch/platform/internal/auth"
 	"github.com/stackwatch/platform/internal/homelab"
 	"github.com/stackwatch/platform/internal/platform"
 	"github.com/stackwatch/platform/internal/synthetics"
@@ -126,6 +127,27 @@ func main() {
 	// First tick fires immediately on Start().
 	usageMeter := platform.NewUsageMeterWorker(pool, platform.WithUsageLogger(logger))
 	usageMeter.Start(rootCtx)
+
+	// Tier 11 Phase 4 — Seed built-in plan definitions (PL4).
+	// Runs once on boot BEFORE the workers / routes need the
+	// catalog. Idempotent INSERT ... ON CONFLICT (name) DO
+	// NOTHING so re-running on a populated DB is a no-op —
+	// manual edits to the catalog (e.g. a Black Friday price
+	// bump) survive gateway restarts.
+	auth.SeedBuiltinPlans(rootCtx, pool, logger)
+
+	// Tier 11 Phase 4 — Retention background worker (PL4).
+	// Ticks every 24h, walks every non-suspended tenant in
+	// platform_tenant_limits, reads their effective
+	// data_retention_days, and DELETEs rows older than the
+	// cutoff from the documented data tables (metric_points,
+	// audit_log, alert_history, notifications,
+	// platform_usage_events). Per-tenant errors are logged
+	// but never abort the batch. Suspended tenants SKIP —
+	// they have bigger problems and the operator might
+	// restore them. First tick fires immediately on Start().
+	retentionWorker := platform.NewRetentionWorker(pool, platform.WithRetentionLogger(logger))
+	retentionWorker.Start(rootCtx)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

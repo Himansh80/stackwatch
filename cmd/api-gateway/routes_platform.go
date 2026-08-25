@@ -19,12 +19,12 @@ import (
 // phase owns a separate `handlers_platform_*.go` file under
 // `internal/handler/`.
 //
-// Phases 1-8 add their routes here in this order:
+// Phase 1-8 add their routes here in this order:
 //
-//	Phase 1: Push-Button Deploy (PL1)        ← 3 routes (added in this commit)
-//	Phase 2: Usage Metering (PL2)            ← 3 routes
+//	Phase 1: Push-Button Deploy (PL1)        ← 3 routes
+//	Phase 2: Usage Metering (PL2)            ← 5 routes
 //	Phase 3: Self-Service Signup (PL3)       ← 3 routes
-//	Phase 4: Tenant Limits (PL4)             ← 2 routes
+//	Phase 4: Tenant Limits (PL4)             ← 4 protected routes (added in this commit)
 //	Phase 5: Backup/Restore (PL5)            ← 3 routes
 //	Phase 6: Multi-Region / HA (PL6)         ← 3 routes
 //	Phase 7: Rate Limiting (PL7)             ← middleware + 0 routes
@@ -102,6 +102,37 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 	protected.GET("/platform/usage/history", handler.GetUsageHistory(pool))
 	protected.GET("/platform/usage/summary", handler.GetUsageSummary(pool))
 	protected.GET("/platform/usage/export", handler.GetUsageExport(pool))
+
+	// ---- Tier 11.4: Tenant Limits (Phase 4 — PL4) ----
+	//
+	// Per spec §"PL4 — Tenant Limits" these 4 protected
+	// endpoints back the per-tenant plan + cap surface. Every
+	// handler honors tenant_id from the JWT (handlers_platform_limits*.go).
+	// PatchMyLimits additionally checks claims.Role ==
+	// "super_admin" because plan changes have billing
+	// implications — a regular admin can't upgrade themselves.
+	// The 5th PL4 endpoint (GetLimitDefinitions) is PUBLIC
+	// and registered on the public engine by
+	// mountPlatformPublicRoutes — anyone can see pricing
+	// without authenticating, which matches the pricing-page
+	// widget pattern.
+	//
+	// Routes:
+	//   GET   /api/v1/platform/limits/me     — GetMyLimits
+	//   PATCH /api/v1/platform/limits/me     — PatchMyLimits  (super_admin only)
+	//   POST  /api/v1/platform/limits/check  — CheckLimit     (dry-run)
+	//   GET   /api/v1/platform/limits/usage  — GetLimitsUsage (KPI strip)
+	//
+	// Storage (platform_plan_definitions + platform_tenant_limits)
+	// extends migrations/042_platform.sql with two new tables;
+	// idempotent CREATE TABLE IF NOT EXISTS keeps re-applying
+	// safe. The RetentionWorker (internal/platform/retention.go)
+	// runs daily to enforce the data_retention_days cap on each
+	// tenant — see main.go for its Start() wiring.
+	protected.GET("/platform/limits/me", handler.GetMyLimits(pool))
+	protected.PATCH("/platform/limits/me", handler.PatchMyLimits(pool))
+	protected.POST("/platform/limits/check", handler.CheckLimit(pool))
+	protected.GET("/platform/limits/usage", handler.GetLimitsUsage(pool))
 }
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints
@@ -125,6 +156,7 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 //
 // Future phases add here in order:
 //
+//	Phase 4 (PL4): GET  /api/v1/platform/limits/definitions (public pricing)
 //	Phase 8 (PL8): GET  /public/status (read-only status page)
 func mountPlatformPublicRoutes(r *gin.Engine, pool *db.Pool, issuer *auth.Issuer) {
 	// Tier 11 PL1 — PUBLIC install-script endpoint.
@@ -142,4 +174,12 @@ func mountPlatformPublicRoutes(r *gin.Engine, pool *db.Pool, issuer *auth.Issuer
 	r.POST("/api/v1/platform/signup", handler.CreateSignup(pool))
 	r.POST("/api/v1/platform/signup/verify", handler.VerifySignup(pool, issuer))
 	r.POST("/api/v1/platform/signup/resend", handler.ResendSignup(pool))
+
+	// Tier 11 PL4 — PUBLIC plan catalog endpoint.
+	// Pricing-page widget hits this URL with no JWT (a
+	// prospective customer can see the 4 plans before
+	// signing up). The handler reads the catalog (idempotent
+	// seeded by auth.SeedBuiltinPlans on boot) and returns
+	// the 4 rows ordered by sort_order ASC.
+	r.GET("/api/v1/platform/limits/definitions", handler.GetLimitDefinitions(pool))
 }
