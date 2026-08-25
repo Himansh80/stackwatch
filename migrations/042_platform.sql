@@ -176,3 +176,80 @@ CREATE TABLE IF NOT EXISTS platform_usage_aggregates (
 
 CREATE INDEX IF NOT EXISTS idx_platform_usage_aggregates_tenant_time
     ON platform_usage_aggregates(tenant_id, bucket_ts DESC);
+
+-- =====================================================================
+-- PL3 — Self-Service Signup (Phase 3)
+-- =====================================================================
+--
+-- One backing table for the public self-service signup flow:
+--
+--   platform_signups — pending-verification records for every
+--   /api/v1/platform/signup attempt. A row lives in one of three
+--   states:
+--
+--     'pending_verification' — created on POST /signup, awaits the
+--       email-token click. Carries verification_token (32-byte hex
+--       plaintext) until verify; bcrypt-hash-at-rest is overkill for
+--       a one-shot verification link the operator will paste within
+--       minutes (not stored credentials).
+--
+--     'verified' — POST /signup/verify matched the token, INSERTed
+--       the tenant + admin user, and set tenant_id + admin_user_id
+--       + verified_at. Subsequent /verify calls with the same token
+--       return 409 (the row is locked to its tenant).
+--
+--     'rejected' — reserved for Phase 5 (PL5 — manual moderation
+--       queue when abuse is detected); today no code path sets this.
+--
+-- Why plaintext verification_token (vs. bcrypt):
+--   The email link itself is the only path that ever reads this
+--   column (one-shot, < 24h validity), so we trade a hash for a
+--   one-row SELECT by `verification_token = $1`. The partial index
+--   on verification_token WHERE NOT NULL keeps that lookup O(1).
+--
+-- Why tenant_id + admin_user_id are nullable:
+--   The row is INSERTed BEFORE the tenant exists — POST /signup
+--   only knows the email + name + organization. /verify is what
+--   creates the tenant + user and stamps the FKs. Storing them
+--   here gives the dashboard a single source of truth ("signup
+--   attempts, including those that never completed") without a
+--   second table.
+--
+-- Status enum is text (not a Postgres enum) so a future Phase can
+-- add 'rate_limited' / 'pending_review' / 'deleted' without an
+-- ALTER TYPE — the partial indexes on (status, created_at) and
+-- (email) cover the dashboard's three common queries.
+CREATE TABLE IF NOT EXISTS platform_signups (
+    id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id          uuid,
+    admin_user_id      uuid,
+    email              text NOT NULL,
+    password_hash      text NOT NULL,
+    full_name          text NOT NULL,
+    organization_name  text NOT NULL,
+    verification_token text,
+    verified_at        timestamptz,
+    signup_ip          text,
+    signup_user_agent  text,
+    status             text NOT NULL DEFAULT 'pending_verification',
+    rejected_reason    text,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    completed_at       timestamptz
+);
+
+-- "Show me the latest N pending signups for the dashboard" — drives
+-- the PL3 super-admin widget that lands with Phase 8 (PlatformPage).
+CREATE INDEX IF NOT EXISTS idx_platform_signups_status
+    ON platform_signups(status, created_at DESC);
+
+-- "Is this email already taken / already pending?" — used by both
+-- POST /signup (to short-circuit on conflict) and the future
+-- GET /signup/check-email. Plain btree on lowercased email would
+-- be nicer; functional indexes need a migration we don't need today.
+CREATE INDEX IF NOT EXISTS idx_platform_signups_email
+    ON platform_signups(email);
+
+-- Token lookup is the /verify hot path. Partial index (NOT NULL)
+-- keeps it small — verified / rejected rows have NULL token.
+CREATE INDEX IF NOT EXISTS idx_platform_signups_token
+    ON platform_signups(verification_token) WHERE verification_token IS NOT NULL;

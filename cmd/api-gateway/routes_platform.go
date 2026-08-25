@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/stackwatch/platform/internal/auth"
 	"github.com/stackwatch/platform/internal/db"
 	"github.com/stackwatch/platform/internal/handler"
 )
@@ -42,6 +43,16 @@ import (
 // mountPlatformPublicRoutes (called from routes.go where the
 // *gin.Engine is in scope) — the public install-script URL is meant
 // to be hit by a freshly-installed Linux box with NO JWT.
+//
+// Phase 3 (this commit) adds the 3 PUBLIC PL3 routes — all sit on
+// the public engine for the same reason (a freshly-typed email
+// has no StackWatch credentials yet):
+//   - public POST /platform/signup         (CreateSignup)
+//   - public POST /platform/signup/verify  (VerifySignup — needs
+//                                          the JWT issuer so it
+//                                          can log the user in
+//                                          immediately)
+//   - public POST /platform/signup/resend  (ResendSignup)
 func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Pool) {
 	// ---- Tier 11.1: Push-Button Deploy (Phase 1 — PL1) ----
 	//
@@ -95,26 +106,40 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints
 // (no JWT, no RequireAuth). Called from routes.go where the
-// *gin.Engine is in scope. Lives in routes_platform.go because
-// every route in this tier should be discoverable from one place.
+// *gin.Engine and *auth.Issuer are in scope. Lives in routes_platform.go
+// because every route in this tier should be discoverable from one place.
 //
-// PL1 today registers exactly one PUBLIC route:
+// Why a signature with *auth.Issuer: Phase 3 /platform/signup/verify
+// needs to issue a fresh JWT so the user is logged-in immediately
+// after email verification. PL1's only public route doesn't need
+// the issuer, but threading it through now means we don't have to
+// change the call site again when PL8 lands its public status page
+// (which may also want to mint a token for an un-authenticated
+// viewer).
 //
-//	GET /api/v1/platform/deploy/install-script  — GetInstallScript
-//
-// Why a public route: a freshly-installed Linux box has no JWT yet
-// — the install token itself IS the credential. Same pattern
-// Tier 9 uses for SCIM 2.0 (handlers_scim_public.go registered
-// in routes_enterprise.go via mountEnterprisePublicRoutes).
+// PL1 (this commit) + Phase 3 (this commit) register 4 PUBLIC routes:
+//   GET  /api/v1/platform/deploy/install-script  — GetInstallScript (PL1)
+//   POST /api/v1/platform/signup                 — CreateSignup     (PL3)
+//   POST /api/v1/platform/signup/verify          — VerifySignup     (PL3)
+//   POST /api/v1/platform/signup/resend          — ResendSignup     (PL3)
 //
 // Future phases add here in order:
 //
-//	Phase 3 (PL3): POST /public/signup + verify-email + resend-verification
 //	Phase 8 (PL8): GET  /public/status (read-only status page)
-func mountPlatformPublicRoutes(r *gin.Engine, pool *db.Pool) {
+func mountPlatformPublicRoutes(r *gin.Engine, pool *db.Pool, issuer *auth.Issuer) {
 	// Tier 11 PL1 — PUBLIC install-script endpoint.
 	// The freshly-installed Linux box hits this URL with no
 	// JWT (the token IS the credential). On success the row is
 	// marked used_at = now() so replays return 410 Gone.
 	r.GET("/api/v1/platform/deploy/install-script", handler.GetInstallScript(pool))
+
+	// Tier 11 PL3 — Self-Service Signup endpoints.
+	// All three are PUBLIC because the freshly-typed email has
+	// no StackWatch credentials yet. Rate-limit (10/day/IP) is
+	// enforced inside CreateSignup (see signupAllowed) — the
+	// other two don't create new rows so they don't need a
+	// per-IP gate.
+	r.POST("/api/v1/platform/signup", handler.CreateSignup(pool))
+	r.POST("/api/v1/platform/signup/verify", handler.VerifySignup(pool, issuer))
+	r.POST("/api/v1/platform/signup/resend", handler.ResendSignup(pool))
 }

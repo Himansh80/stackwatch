@@ -119,12 +119,15 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	// other enterprise route lives behind RequireAuth.
 	mountEnterprisePublicRoutes(r, pool, issuer)
 
-	// Tier 11 PL1 — PUBLIC install-script endpoint (no JWT — the
-	// freshly-installed Linux box has no JWT yet; the install
-	// token itself IS the credential). Mirrors the SCIM
-	// pattern (handlers_scim_public.go registered in
-	// routes_enterprise.go via mountEnterprisePublicRoutes).
-	mountPlatformPublicRoutes(r, pool)
+	// Tier 11 PL1 + PL3 — PUBLIC endpoints (no JWT). PL1's
+	// /deploy/install-script is hit by a freshly-installed
+	// Linux box; PL3's /signup/verify/resend are hit by a
+	// freshly-typed email. Both carry their own credential
+	// (install token / email token) so they bypass RequireAuth.
+	// mountPlatformPublicRoutes now takes *auth.Issuer too
+	// because /signup/verify needs to mint a fresh JWT so the
+	// user is logged-in immediately after email verification.
+	mountPlatformPublicRoutes(r, pool, issuer)
 
 	// Public container templates (no auth — public knowledge endpoint).
 	// Mounted at the end so it sits OUTSIDE the protected group; it was
