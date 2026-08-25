@@ -301,3 +301,59 @@ CREATE INDEX IF NOT EXISTS idx_user_role_assignments_role
 -- Composite (tenant_id, user_id) supports the per-tenant check query.
 CREATE INDEX IF NOT EXISTS idx_user_role_assignments_tenant_user
     ON user_role_assignments(tenant_id, user_id);
+
+-- ---------------------------------------------------------------------------
+-- Tier 9.4 (Phase 4) — Audit Log Retention + Export.
+--
+-- Adds the table that backs the audit-archive surface — one row per
+-- compressed, long-term archive of audit_log events for a given
+-- (tenant_id, period).
+--
+-- All CREATE statements are idempotent so re-applying the migration
+-- is a no-op. No data migration is required: archives will be
+-- generated lazily as POST /api/v1/enterprise/audit/archive jobs
+-- complete; until then the table is empty.
+--
+-- Design:
+--   * `batch_id` is the operator-friendly identifier the UI uses
+--     when showing "Archive BATCH-2026-08-25-001.zip" — a UNIQUE
+--     text chosen by the handler (currently a ULID-like time prefix)
+--     so re-applying the same idempotency key is a no-op. We store
+--     it in plain text because the archive itself (the gzip blob)
+--     already enforces non-repudiation via the row id.
+--   * `compressed_payload` is a `bytea` populated by the handler's
+--     background goroutine (handlers_audit_archive.go::runArchiveJob)
+--     which (1) SELECTs every audit_log row for the period, (2)
+--     JSON-marshals to a deterministic array, (3) compresses with
+--     stdlib `compress/gzip`, and (4) writes the result here.
+--     `status='running'` rows have an empty payload until the
+--     goroutine finishes; the GET /archives/:id/download endpoint
+--     refuses to serve a row whose status is not 'completed'.
+--   * `size_bytes` is the on-disk size of compressed_payload; the UI
+--     uses it for the "1.2 MB" stat. Storing as `bigint` so an
+--     enterprise-scale archive (>>2 GB) is fine.
+--   * `status` is 'running' (goroutine in progress), 'completed'
+--     (gzip blob written + size populated), or 'failed' (job errored
+--     — `size_bytes` stays 0, payload stays empty).
+--   * `period_start` / `period_end` are the user-supplied bounds from
+--     the POST body. The handler enforces end > start before INSERT.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS audit_log_archive (
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id          UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    batch_id           TEXT NOT NULL UNIQUE,
+    event_count        INTEGER NOT NULL DEFAULT 0,
+    period_start       TIMESTAMPTZ NOT NULL,
+    period_end         TIMESTAMPTZ NOT NULL,
+    compressed_payload BYTEA NOT NULL DEFAULT ''::bytea,
+    size_bytes         BIGINT NOT NULL DEFAULT 0,
+    status             TEXT NOT NULL DEFAULT 'running'
+                        CHECK (status IN ('running', 'completed', 'failed')),
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Every list-endpoint query (GET /audit/archives) filters by tenant_id
+-- first and sorts by created_at DESC, so a composite (tenant_id,
+-- created_at DESC) index avoids a sort + filter scan.
+CREATE INDEX IF NOT EXISTS idx_audit_log_archive_tenant_time
+    ON audit_log_archive(tenant_id, created_at DESC);

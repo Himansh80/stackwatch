@@ -20,10 +20,10 @@ import (
 //
 // Phases 1-6 add their routes here in this order:
 //
-//	Phase 1: SSO Foundation (8 routes)             ← added in Phase 1
+//	Phase 1: SSO Foundation (8 routes)              ← added in Phase 1
 //	Phase 2: SCIM Provisioning (4 protected + 5 public)  ← added in Phase 2
-//	Phase 3: Advanced RBAC (6 routes)
-//	Phase 4: Audit Log Retention + Export (4 routes)
+//	Phase 3: Advanced RBAC (6 routes)               ← added in Phase 3
+//	Phase 4: Audit Log Retention + Export (4 routes) ← added in Phase 4
 //	Phase 5: Compliance Reports (5 routes)
 //	Phase 6: Enterprise Tenants + Org Settings (3 routes)
 //
@@ -129,7 +129,42 @@ func mountEnterpriseRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.DELETE("/enterprise/rbac/users/:user_id/roles/:role_id", handler.UnassignRBACRole(pool))
 	protected.GET("/enterprise/rbac/check", handler.CheckRBACPermission(pool))
 
-	// (Phases 4-6 leave their mount-call comments as anchors for
+	// ---- Tier 9.4: Audit Log Retention + Export (Phase 4) ----
+	// Per spec §"Story 4 — Audit Log Retention + Export", these 4
+	// protected endpoints let compliance officers archive historical
+	// audit_log events (gzip-compressed) and stream filtered exports
+	// to CSV or NDJSON for auditors.
+	//
+	// Background-job design:
+	//   POST /audit/archive returns 201 IMMEDIATELY with the row id
+	//   after INSERTing a `status='running'` row. The compression
+	//   itself happens in a goroutine spawned by
+	//   handlers_audit_archive.go::runArchiveJob, rate-limited by
+	//   a buffered semaphore (`auditArchiveSem`, size = 4) so a
+	//   burst of 10 parallel POSTs only spawns 4 concurrent workers
+	//   + 6 queued submits. The job updates the row to
+	//   status='completed' (with the gzip blob) or 'failed' when
+	//   done. The /download endpoint refuses to serve a non-
+	//   completed row so a racing download sees a 409.
+	//
+	// Streaming-export design:
+	//   POST /audit/export streams rows directly from pgx.Rows
+	//   to gin.ResponseWriter via csv.Writer (CSV) or
+	//   json.Encoder (NDJSON) so 1M-row exports don't load the
+	//   entire resultset into memory. Content-Disposition is set
+	//   before the first Write so the browser auto-downloads.
+	//
+	// Routes (4 protected):
+	//   GET    /api/v1/enterprise/audit/archives                   — ListAuditArchives
+	//   POST   /api/v1/enterprise/audit/archive                    — CreateAuditArchive
+	//   GET    /api/v1/enterprise/audit/archives/:id/download      — DownloadAuditArchive
+	//   POST   /api/v1/enterprise/audit/export                     — ExportAuditEvents
+	protected.GET("/enterprise/audit/archives", handler.ListAuditArchives(pool))
+	protected.POST("/enterprise/audit/archive", handler.CreateAuditArchive(pool))
+	protected.GET("/enterprise/audit/archives/:id/download", handler.DownloadAuditArchive(pool))
+	protected.POST("/enterprise/audit/export", handler.ExportAuditEvents(pool))
+
+	// (Phases 5-6 leave their mount-call comments as anchors for
 	// the next subagent — no actual registration until those phases ship.)
 }
 
@@ -150,7 +185,7 @@ func mountEnterprisePublicRoutes(r *gin.Engine, pool *db.Pool, issuer *auth.Issu
 
 	// --- Phase 2: PUBLIC SCIM 2.0 endpoints (Bearer token via
 	// scimAuthMiddleware). The middleware bcrypt-compares the
-	// Authorization: Bearer header against scim_tokens.token_hash
+	// Authorization: Bearer *** against scim_tokens.token_hash
 	// and stashes the resulting scimClaims in the gin context so
 	// each SCIM handler can honor tenant_id + scopes. ---
 	scimGroup := r.Group("/scim/v2", handler.SCIMAuth(pool))
