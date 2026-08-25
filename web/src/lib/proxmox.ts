@@ -114,3 +114,28 @@ export function formatDate(value: unknown): string {
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 }
+
+/**
+ * formatUptime — convert Proxmox uptime (seconds, number) into a human
+ * string like "3d 4h", "5m", "12s". Returns "—" for missing/zero.
+ */
+export function formatUptime(value: unknown): string {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  const days = Math.floor(n / 86400);
+  const hours = Math.floor((n % 86400) / 3600);
+  const minutes = Math.floor((n % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${Math.floor(n)}s`;
+}
+
+/**
+ * readString — coerce any unknown value to a trimmed string.
+ * Returns '' for null/undefined.
+ */
+export function readString(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}

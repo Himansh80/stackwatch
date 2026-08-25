@@ -27,6 +27,7 @@ import EnterprisePage from './pages/EnterprisePage';
 import HomelabPage from './pages/HomelabPage';
 import PlatformPage from './pages/PlatformPage';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
+import ProxmoxVmListPage from './components/proxmox/ProxmoxVmListPage';
 import { useAuthState } from './lib/useAuthState';
 
 export default function App() {
@@ -49,6 +50,7 @@ export default function App() {
       <Route path="/billing" element={isLoggedIn ? <BillingPage /> : <Navigate to="/login" replace />} />
       <Route path="/settings" element={isLoggedIn ? <SettingsPage /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox" element={isLoggedIn ? <ProxmoxWorkspace /> : <Navigate to="/login" replace />} />
+      <Route path="/proxmox-vms" element={isLoggedIn ? <ProxmoxVmListPage /> : <Navigate to="/login" replace />} />
       <Route path="/truenas" element={isLoggedIn ? <TrueNASWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/apm" element={isLoggedIn ? <ApmPage /> : <Navigate to="/login" replace />} />
       <Route path="/apm/service" element={isLoggedIn ? <ApmServicePage /> : <Navigate to="/login" replace />} />
