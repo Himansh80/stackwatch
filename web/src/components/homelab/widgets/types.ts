@@ -54,3 +54,63 @@ export interface PinFormState {
 // Re-exported under a `Status` alias for places that read the
 // shape without wanting to type out "ServiceStatus" everywhere.
 export type Status = ServiceStatus;
+
+// ------------------------------------------------------------------
+// Phase 3 (H3 — Personal Notes + Todos) types.
+// ------------------------------------------------------------------
+
+export type TodoPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface NoteRow {
+  id: string;
+  title: string;
+  body: string;
+  tags: string[];
+  pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotesResponse {
+  notes: NoteRow[];
+  count: number;
+}
+
+export interface NoteFormState {
+  title: string;
+  body: string;
+  tagsRaw: string; // comma-separated, split on submit
+  pinned: boolean;
+}
+
+export interface TodoRow {
+  id: string;
+  title: string;
+  description?: string | null;
+  priority: TodoPriority;
+  due_date?: string | null;
+  completed_at?: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TodosResponse {
+  todos: TodoRow[];
+  count: number;
+}
+
+export interface DueSoonResponse {
+  todos: TodoRow[];
+  count: number;
+  overdue_count: number;
+  window_days: number;
+}
+
+export interface TodoFormState {
+  title: string;
+  description: string;
+  priority: TodoPriority;
+  dueDate: string; // datetime-local input value
+  tagsRaw: string;
+}

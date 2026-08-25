@@ -251,3 +251,117 @@ CREATE INDEX IF NOT EXISTS idx_homelab_service_health_tenant
     ON homelab_service_health(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_homelab_service_health_user_service
     ON homelab_service_health(user_id, service_id, checked_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- homelab_notes — Phase 3 (H3 — Personal Notes + Todos).
+--
+-- Markdown notes that the user keeps for their homelab. Notes are
+-- UNIQUE on (tenant_id, user_id) so layouts and preferences are
+-- uniquely scoped PER USER. A user changing their notes in tenant A
+-- does not affect another user in the same tenant — this is critical
+-- for multi-user homelabs (US-8 in the speckit proposal: "my homelab
+-- doesn't change under me when my co-founder rearranges theirs").
+--
+-- Per-user (not per-tenant) design:
+--   The notes table is UNIQUE on (tenant_id, user_id) so notes are
+--   uniquely scoped PER USER. ON DELETE CASCADE on tenant_id keeps the
+--   per-user invariants intact when a tenant is removed.
+--
+-- Why text[] for tags:
+--   tags uses text[] instead of JSONB because it's a simple,
+--   fixed-shape list of tag strings ('homelab', 'urgent', 'todo',
+--   ...). text[] supports fast "is X tagged" lookups via the && /
+--   @> operators when filtering by tag in GET /homelab/notes.
+--
+-- Fields:
+--   title    — display label shown on the dashboard tile
+--   body     — Markdown body (rendered on click in the UI; the
+--              backend stores raw text and lets the frontend render
+--              it however it wants)
+--   tags     — text[] of tag strings
+--   pinned   — when true, the note floats to the top of the list
+--   updated_at — server timestamp; the UI uses it for relative
+--                timestamps ("2 hours ago")
+--
+-- GET /api/v1/homelab/notes returns the caller's notes with optional
+-- filters: ?pinned=true&tag=X&limit=50. PATCH replaces any subset of
+-- the fields. DELETE removes the note.
+---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS homelab_notes (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL,
+    title       TEXT NOT NULL,
+    body        TEXT NOT NULL DEFAULT '',
+    tags        TEXT[] NOT NULL DEFAULT '{}',
+    pinned      BOOLEAN NOT NULL DEFAULT false,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Supports the "list my notes" query — cheap O(N) scan where N is
+-- the user's notes (typically <100). user_id alone is enough; the
+-- tenant_id is filtered alongside it in the WHERE clause.
+CREATE INDEX IF NOT EXISTS idx_homelab_notes_user
+    ON homelab_notes(user_id);
+
+-- Supports the "filter by tag" query — GIN index on the text[]
+-- column lets Postgres use the && / @> operators for fast "tagged
+-- with X" lookups.
+CREATE INDEX IF NOT EXISTS idx_homelab_notes_tags
+    ON homelab_notes USING GIN(tags);
+
+-- ---------------------------------------------------------------------------
+-- homelab_todos — Phase 3 (H3 — Personal Notes + Todos).
+--
+-- Todos the user wants to track for their homelab (buy new SSD for
+-- NAS, schedule maintenance window, etc.). Per-user (NOT per-tenant)
+-- — same US-8 reasoning as notes.
+--
+-- Fields:
+--   title       — display label
+--   description — optional long-form description (Markdown allowed
+--                 but not required)
+--   priority    — 'low' | 'medium' | 'high' | 'urgent'
+--                 (validated handler-side via allowedTodoPriorities
+--                 whitelist; no CHECK constraint so the enum can
+--                 evolve without ALTER TABLE)
+--   due_date    — optional timestamptz (when the todo is due). NULL
+--                 means no deadline.
+--   completed_at — nullable timestamptz. NULL = not done; non-null =
+--                 done at that timestamp. Powers the "show me my
+--                 completed todos" filter (?completed=true|false).
+--   tags        — text[] of tag strings (same as notes)
+--
+-- Indexes:
+--   (user_id, due_date) — powers the "todos due soon" KPI strip
+--                         (GET /homelab/todos/due-soon filters
+--                         WHERE due_date BETWEEN now AND now+7d).
+--   (user_id, completed_at) — powers the "filter by completed"
+--                             filter. The handler filters by both
+--                             user_id and completed_at in one query.
+---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS homelab_todos (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL,
+    title       TEXT NOT NULL,
+    description TEXT,
+    priority    TEXT NOT NULL DEFAULT 'medium',
+    due_date    TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    tags        TEXT[] NOT NULL DEFAULT '{}',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Powers the "due soon" endpoint (next 7 days) — DESC index so the
+-- handler can ORDER BY due_date ASC LIMIT 50 cheaply.
+CREATE INDEX IF NOT EXISTS idx_homelab_todos_user_due
+    ON homelab_todos(user_id, due_date);
+
+-- Powers the "completed vs active" filter — the handler queries
+-- WHERE completed_at IS NULL (active) or WHERE completed_at IS NOT
+-- NULL (completed), ordered by completed_at DESC.
+CREATE INDEX IF NOT EXISTS idx_homelab_todos_completed
+    ON homelab_todos(user_id, completed_at);

@@ -20,7 +20,7 @@ import (
 //
 //	Phase 1: Widget Framework + Page shell (H1)         ← 6 routes
 //	Phase 2: Service Status (H2)                         ← 8 routes
-//	Phase 3: Notes + Todos (H3)                          ← 10 routes
+//	Phase 3: Notes + Todos (H3)                          ← 12 routes
 //	Phase 4: Calendar (H4)                               ← 5 routes
 //	Phase 5: Download Stats (H5)                         ← 4 routes
 //	Phase 6: Media Server (H6)                           ← 4 routes
@@ -98,4 +98,53 @@ func mountHomelabRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.DELETE("/homelab/services/:id", handler.DeleteHomelabService(pool))
 	protected.POST("/homelab/services/:id/probe", handler.ProbeHomelabService(pool))
 	protected.GET("/homelab/services/:id/history", handler.GetHomelabServiceHistory(pool))
+
+	// ---- Tier 10.3: Notes + Todos (Phase 3) ----
+	//
+	// Per spec §"H3 — Personal Notes + Todos", these 12 protected
+	// endpoints back the per-user note + todo surfaces. Handlers
+	// split across:
+	//   - handlers_homelab_notes.go      (2 routes — list, create)
+	//   - handlers_homelab_notes_extra.go (4 routes — get, search, patch, delete)
+	//   - handlers_homelab_todos.go       (2 routes — list, create)
+	//   - handlers_homelab_todos_extra.go (4 routes — patch, delete, complete, due-soon)
+	//
+	// Notes are Markdown bodies with text[] tags + a pinned flag;
+	// todos have priority (low|medium|high|urgent) + optional due
+	// date + completion timestamp. Every query is filtered by both
+	// tenant_id AND user_id so a user can never see another user's
+	// notes/todos.
+	//
+	// Routes (12 protected):
+	//   GET    /api/v1/homelab/notes              — ListHomelabNotes
+	//   POST   /api/v1/homelab/notes              — CreateHomelabNote
+	//   GET    /api/v1/homelab/notes/:id          — GetHomelabNote
+	//   GET    /api/v1/homelab/notes/search       — SearchHomelabNotes
+	//   PATCH  /api/v1/homelab/notes/:id          — PatchHomelabNote
+	//   DELETE /api/v1/homelab/notes/:id          — DeleteHomelabNote
+	//   GET    /api/v1/homelab/todos              — ListHomelabTodos
+	//   POST   /api/v1/homelab/todos              — CreateHomelabTodo
+	//   GET    /api/v1/homelab/todos/due-soon     — ListDueSoonHomelabTodos
+	//   PATCH  /api/v1/homelab/todos/:id          — PatchHomelabTodo
+	//   DELETE /api/v1/homelab/todos/:id          — DeleteHomelabTodo
+	//   POST   /api/v1/homelab/todos/:id/complete — CompleteHomelabTodo
+	//
+	// Static-path siblings (search, due-soon, complete) MUST be
+	// registered BEFORE the /:id patterns below — Gin's radix tree
+	// matches in registration order, so /due-soon would otherwise
+	// be parsed as :id="due-soon".
+	protected.GET("/homelab/notes", handler.ListHomelabNotes(pool))
+	protected.POST("/homelab/notes", handler.CreateHomelabNote(pool))
+	protected.GET("/homelab/notes/search", handler.SearchHomelabNotes(pool))
+	protected.GET("/homelab/notes/:id", handler.GetHomelabNote(pool))
+	protected.PATCH("/homelab/notes/:id", handler.PatchHomelabNote(pool))
+	protected.DELETE("/homelab/notes/:id", handler.DeleteHomelabNote(pool))
+
+	protected.GET("/homelab/todos", handler.ListHomelabTodos(pool))
+	protected.POST("/homelab/todos", handler.CreateHomelabTodo(pool))
+	protected.GET("/homelab/todos/due-soon", handler.ListDueSoonHomelabTodos(pool))
+	// /:id/* static siblings (complete) before the /:id patterns.
+	protected.POST("/homelab/todos/:id/complete", handler.CompleteHomelabTodo(pool))
+	protected.PATCH("/homelab/todos/:id", handler.PatchHomelabTodo(pool))
+	protected.DELETE("/homelab/todos/:id", handler.DeleteHomelabTodo(pool))
 }
