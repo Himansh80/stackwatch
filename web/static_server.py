@@ -54,6 +54,15 @@ class StackWatchHandler(SimpleHTTPRequestHandler):
         if candidate.is_file():
             super().do_GET()
             return
+        # Serve index.html for directory requests (e.g. /marketing/ → /marketing/index.html).
+        # This preserves SPA fallback for app routes (no index.html → /index.html).
+        if candidate.is_dir():
+            index = candidate / "index.html"
+            if index.is_file():
+                # Rewrite self.path to the explicit index.html URL so simpleHTTP serves it
+                self.path = "/" + str(index.relative_to(Path(self.directory))).replace(os.sep, "/")
+                super().do_GET()
+                return
         # Vite's BrowserRouter needs the shell on deep links.
         self.path = "/index.html"
         super().do_GET()
