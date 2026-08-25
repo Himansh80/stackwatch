@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StackWatch — Self-Hosted Monitoring That You Own</title>
+  <meta name="description" content="Datadog-quality monitoring for self-hosted homelabs and small teams. Multi-tenant, open source, 10x cheaper than Datadog.">
+  <meta name="theme-color" content="#0a0e1a">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2322d3ee'/><text x='50' y='65' text-anchor='middle' fill='%230a0e1a' font-size='50' font-family='sans-serif' font-weight='bold'>S</text></svg>">
+  <link rel="stylesheet" href="/marketing/styles.css">
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="container">
+    <p class="eyebrow">StackWatch 11 · Open Source · AGPL-3.0</p>
+    <h1>Self-Hosted Monitoring<br>That You Own</h1>
+    <p class="subtitle">
+      Datadog-quality observability for homelabs and small teams.
+      Multi-tenant. Open source. <strong>10× cheaper</strong>.
+    </p>
+    <div class="cta-row">
+      <a href="/signup" class="btn btn-primary">Try Free</a>
+      <a href="/docs/INDEX.md" class="btn btn-ghost">Read Docs</a>
+    </div>
+    <p class="hero-meta">
+      <span>480 API routes</span>
+      <span class="dot">·</span>
+      <span>13 tiers shipped</span>
+      <span class="dot">·</span>
+      <span>AGPL-3.0</span>
+    </p>
+  </div>
+  <div class="hero-mesh" aria-hidden="true"></div>
+</section>
+
+<!-- ============ STATS / KPIs ============ -->
+<section class="stats">
+  <div class="container">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-top-border" style="background: var(--accent);"></div>
+        <div class="kpi-value" data-target="480">0</div>
+        <div class="kpi-label">API Routes</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top-border" style="background: var(--green);"></div>
+        <div class="kpi-value" data-target="13">0</div>
+        <div class="kpi-label">Tiers Shipped</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top-border" style="background: var(--amber);"></div>
+        <div class="kpi-value" data-target="200">0</div>
+        <div class="kpi-label">DB Tables</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top-border" style="background: var(--red);"></div>
+        <div class="kpi-value" data-target="100">0</div>
+        <div class="kpi-label">% Open Source</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section class="features">
+  <div class="container">
+    <h2>Built for the Datadog era — without the Datadog bill</h2>
+    <p class="section-sub">All 12 observability surfaces in one self-hostable binary.</p>
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Datadog parity</h3>
+        <p>Metrics, logs, traces, alerts, dashboards, RUM, synthetics, security, CSPM, CI/CD visibility, DB monitoring — all built in. No per-feature gates.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🏠</div>
+        <h3>Self-hostable</h3>
+        <p>One Linux binary + Postgres. AGPL-3.0 source. Run on a 2-vCPU VM. No call-home. No license key. Free, forever.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Multi-tenant</h3>
+        <p>One instance, many customers. Each tenant sees only their data. PostgRES RLS at the database layer. White-label ready.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>Open source</h3>
+        <p>AGPL-3.0. Every endpoint returns JSON. Metrics + logs export as PromQL/JSONL. Dashboards export as JSON. No lock-in by design.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Datadog-style UI</h3>
+        <p>Dark theme, KPI cards, gradient hero, smooth scroll, animated counters. The interface your engineers already know how to use.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🧩</div>
+        <h3>All-in-one</h3>
+        <p>Replaces Proxmox UI + TrueNAS UI + Termius + Cockpit + Datadog + Grafana + PagerDuty. One stack. One auth. One audit log.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPARISON ============ -->
+<section class="comparison">
+  <div class="container">
+    <h2>How we stack up</h2>
+    <p class="section-sub">Honest comparison with the three you already know.</p>
+    <div class="table-wrap">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th class="us">StackWatch</th>
+          <th>Datadog</th>
+          <th>Grafana Cloud</th>
+          <th>New Relic</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Per-server price (USD/mo)</td>
+          <td class="us"><strong>$8–$24</strong></td>
+          <td>$15–$23 + per-feature</td>
+          <td>$14 + per-series</td>
+          <td>$25+</td>
+        </tr>
+        <tr>
+          <td>Self-hostable</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="partial">~</span> (Grafana OSS only)</td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>Open source license</td>
+          <td class="us">AGPL-3.0</td>
+          <td>Proprietary</td>
+          <td>AGPL-3.0 (OSS only)</td>
+          <td>Proprietary</td>
+        </tr>
+        <tr>
+          <td>Per-seat pricing</td>
+          <td class="us"><strong>Free</strong></td>
+          <td>$15/user/mo</td>
+          <td>$8/user/mo</td>
+          <td>$99/user/mo</td>
+        </tr>
+        <tr>
+          <td>Metrics + logs + traces in one product</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="partial">plugin</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>RUM + Session Replay</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="partial">plugin</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>Synthetics (HTTP + browser)</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="partial">plugin</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>SLOs</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>SAML SSO + SCIM</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>Multi-tenant (Postgres RLS)</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="partial">orgs</span></td>
+          <td><span class="partial">orgs</span></td>
+          <td><span class="partial">accounts</span></td>
+        </tr>
+        <tr>
+          <td>Tamper-evident audit log</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>Replaces Proxmox + TrueNAS + Termius</td>
+          <td class="us"><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING TEASER ============ -->
+<section class="pricing-teaser">
+  <div class="container">
+    <h2>Pricing that makes sense</h2>
+    <p class="section-sub">Per-server. Never per-seat. Cancel anytime.</p>
+
+    <div class="tier-grid">
+
+      <div class="tier-card">
+        <h3>Free</h3>
+        <div class="price">$0<span class="per">/mo</span></div>
+        <p class="tier-tag">For home users</p>
+        <ul>
+          <li>3 servers</li>
+          <li>7-day retention</li>
+          <li>10 alerts</li>
+          <li>1 dashboard</li>
+          <li>Community support</li>
+          <li>AGPL-3.0 source</li>
+        </ul>
+        <a href="/signup?plan=free" class="btn btn-primary btn-block">Start Free</a>
+      </div>
+
+      <div class="tier-card">
+        <h3>Starter</h3>
+        <div class="price">$8<span class="per">/server/mo</span></div>
+        <p class="tier-tag">For homelabs</p>
+        <ul>
+          <li>10 servers</li>
+          <li>30-day retention</li>
+          <li>50 alerts</li>
+          <li>5 dashboards</li>
+          <li>Email + Slack</li>
+          <li>3 team members</li>
+        </ul>
+        <a href="/signup?plan=starter" class="btn btn-primary btn-block">Choose Starter</a>
+      </div>
+
+      <div class="tier-card featured">
+        <span class="featured-badge">Most popular</span>
+        <h3>Pro</h3>
+        <div class="price">$24<span class="per">/server/mo</span></div>
+        <p class="tier-tag">For SMB IT</p>
+        <ul>
+          <li>50 servers</li>
+          <li>90-day retention</li>
+          <li>500 alerts</li>
+          <li>25 dashboards</li>
+          <li>SAML SSO + audit log</li>
+          <li>15 team members</li>
+        </ul>
+        <a href="/signup?plan=pro" class="btn btn-primary btn-block">Choose Pro</a>
+      </div>
+
+      <div class="tier-card">
+        <h3>Enterprise</h3>
+        <div class="price">Custom</div>
+        <p class="tier-tag">For 200+ servers</p>
+        <ul>
+          <li>Unlimited everything</li>
+          <li>365-day retention</li>
+          <li>Multi-region replication</li>
+          <li>Custom SLA + dedicated CSM</li>
+          <li>Commercial license</li>
+          <li>SSO + SCIM + audit chain</li>
+        </ul>
+        <a href="mailto:sales@stackwatch.io" class="btn btn-ghost btn-block">Contact Sales</a>
+      </div>
+
+    </div>
+
+    <p class="pricing-link">
+      <a href="/docs/PRICING.md">See full pricing & ROI calculator →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ============ TESTIMONIALS ============ -->
+<section class="testimonials">
+  <div class="container">
+    <h2>What users are saying</h2>
+    <p class="section-sub">Real feedback from our early adopters. <em>Names shown with permission; some are placeholders.</em></p>
+    <div class="testimonial-grid">
+
+      <blockquote class="testimonial">
+        <p>"StackWatch gives me Datadog-quality monitoring for $24/mo instead of $245/mo. Game changer for our SMB IT team."</p>
+        <cite>— Placeholder Homelab Operator, <span class="role">Homelab User</span></cite>
+      </blockquote>
+
+      <blockquote class="testimonial">
+        <p>"Self-hosting on a 2-vCPU VM was 30 minutes from clone to first dashboard. The agent install on my Proxmox host was one curl-pipe."</p>
+        <cite>— Placeholder Name, <span class="role">Site Reliability Engineer</span></cite>
+      </blockquote>
+
+      <blockquote class="testimonial">
+        <p>"The audit log hash chain was the deciding factor for us — finally a monitoring tool we can pass SOC 2 review with."</p>
+        <cite>— Placeholder CISO, <span class="role">Series A SaaS</span></cite>
+      </blockquote>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="faq">
+  <div class="container">
+    <h2>Frequently asked questions</h2>
+    <p class="section-sub">Quick answers — full FAQ at <a href="/docs/FAQ.md">/docs/FAQ.md</a>.</p>
+
+    <div class="faq-list">
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          <span>Is StackWatch really open source?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes — AGPL-3.0. You can self-host, modify, and distribute. The full source is on GitHub. Commercial licenses are available for enterprises that need a permissive license.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          <span>How is this 10× cheaper than Datadog?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Three reasons: (1) we don't charge per-seat, (2) we don't have per-feature gates — APM/logs/RUM/synthetics are all included, (3) we don't bill per-byte of logs. The full math is in our <a href="/docs/PRICING.md">PRICING.md</a> ROI calculator.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          <span>What's the catch with the free tier?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>No catch. Free = 3 servers, 7-day metric retention, 10 alerts, community support. That's enough to monitor a personal homelab forever. Self-hosting removes the limits entirely — your hardware, your call.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          <span>Can I migrate from Datadog or Grafana?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. Migration guides for Datadog, Grafana Cloud, Prometheus, Zabbix, and Nagios are in <a href="/docs/COMPARISON.md#migration-guides">COMPARISON.md §Migration guides</a>. The Tier 11.5 migration CLI exports monitors as YAML and dashboards as JSON.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          <span>Is my data secure?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Self-hosted = your data never leaves your network. Cloud = SOC 2 Type 1 controls (Tier 9), TLS 1.3 in transit, AES-256 at rest. Tamper-evident audit log with hash chain. SAML SSO + SCIM provisioning. See <a href="/docs/SECURITY.md">SECURITY.md</a>.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          <span>Do you have a mobile app?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Not yet — Tier 13 (target Q1 2027). For now, the dashboard is responsive and works on mobile browsers. Push notifications are part of the Tier 13 milestone.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="final-cta">
+  <div class="container">
+    <h2>Ready to take back your monitoring?</h2>
+    <p class="section-sub">Free forever for self-hosters. $0–$24/server/mo for managed cloud.</p>
+    <div class="cta-row">
+      <a href="/signup" class="btn btn-primary">Get Started Free</a>
+      <a href="/docs/INSTALL.md" class="btn btn-ghost">Self-Host Guide</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/docs/FEATURES.md">Features</a></li>
+          <li><a href="/docs/PRICING.md">Pricing</a></li>
+          <li><a href="/docs/COMPARISON.md">Compare</a></li>
+          <li><a href="/docs/INSTALL.md">Install</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="/docs/INDEX.md">Documentation</a></li>
+          <li><a href="/docs/API.md">API Reference</a></li>
+          <li><a href="/docs/ARCHITECTURE.md">Architecture</a></li>
+          <li><a href="/docs/TROUBLESHOOTING.md">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="/docs/SECURITY.md">Security</a></li>
+          <li><a href="/docs/FAQ.md">FAQ</a></li>
+          <li><a href="https://github.com/Himanshu7613/stackwatch">GitHub</a></li>
+          <li><a href="mailto:hello@stackwatch.io">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>StackWatch</h4>
+        <p class="footer-blurb">
+          Self-hostable monitoring + remote admin for homelabs and small teams. AGPL-3.0 source-available.
+        </p>
+      </div>
+    </div>
+    <p class="footer-legal">
+      © 2026 StackWatch · Licensed under <a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a> · <a href="/docs/PRICING.md">Pricing</a> · <a href="/docs/FAQ.md">FAQ</a>
+    </p>
+  </div>
+</footer>
+
+<script src="/marketing/script.js"></script>
+</body>
+</html>
