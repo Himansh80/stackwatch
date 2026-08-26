@@ -1,0 +1,18 @@
+/* Tier 14 Phase 14.8 — Network management (node firewall + IPSets + aliases + SDN) */
+
+/* All styles inherit from proxmox.css + proxmox-detail.css + proxmox-detail-tables.css.
+   This file is for any network-section specific tweaks. */
+
+.px-network-table tbody tr td ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.px-network-table tbody tr td ul li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.06);
+}
+.px-network-table tbody tr td ul li:last-child { border-bottom: none; }

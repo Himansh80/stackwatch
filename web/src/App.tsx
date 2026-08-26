@@ -35,6 +35,10 @@ import ProxmoxLxcCreatePage from './components/proxmox/ProxmoxLxcCreatePage';
 import ProxmoxVmCreatePage from './components/proxmox/ProxmoxVmCreatePage';
 import ProxmoxNodeDashboard from './components/proxmox/ProxmoxNodeDashboard';
 import ProxmoxStorageContentPage from './components/proxmox/ProxmoxStorageContentPage';
+import ProxmoxNodeFirewall from './components/proxmox/ProxmoxNodeFirewall';
+import ProxmoxIpsetManager from './components/proxmox/ProxmoxIpsetManager';
+import ProxmoxAliasManager from './components/proxmox/ProxmoxAliasManager';
+import ProxmoxSdnZones from './components/proxmox/ProxmoxSdnZones';
 import { useAuthState } from './lib/useAuthState';
 
 export default function App() {
@@ -65,6 +69,10 @@ export default function App() {
       <Route path="/proxmox-vms/new" element={isLoggedIn ? <ProxmoxVmCreatePage /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox/nodes/:hostId/:node" element={isLoggedIn ? <ProxmoxNodeDashboard /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox/storage/:hostId/:node/:storage" element={isLoggedIn ? <ProxmoxStorageContentPage /> : <Navigate to="/login" replace />} />
+      <Route path="/proxmox/nodes/:hostId/:node/firewall" element={isLoggedIn ? <ProxmoxNodeFirewall /> : <Navigate to="/login" replace />} />
+      <Route path="/proxmox/ipsets" element={isLoggedIn ? <ProxmoxIpsetManager /> : <Navigate to="/login" replace />} />
+      <Route path="/proxmox/aliases" element={isLoggedIn ? <ProxmoxAliasManager /> : <Navigate to="/login" replace />} />
+      <Route path="/proxmox/sdn/zones" element={isLoggedIn ? <ProxmoxSdnZones /> : <Navigate to="/login" replace />} />
       <Route path="/truenas" element={isLoggedIn ? <TrueNASWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/apm" element={isLoggedIn ? <ApmPage /> : <Navigate to="/login" replace />} />
       <Route path="/apm/service" element={isLoggedIn ? <ApmServicePage /> : <Navigate to="/login" replace />} />
