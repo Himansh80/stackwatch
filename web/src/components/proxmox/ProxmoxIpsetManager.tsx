@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 
 interface IPset {
   name: string;
@@ -86,7 +87,8 @@ export default function ProxmoxIpsetManager() {
   }
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="IPsets" subtitle="Manage IPset collections">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="px-detail-breadcrumb">
         <Link to="/proxmox">Proxmox</Link>
         <span className="px-detail-sep">›</span>
@@ -230,5 +232,6 @@ export default function ProxmoxIpsetManager() {
         </motion.div>
       )}
     </motion.div>
+    </ProxmoxShell>
   );
 }

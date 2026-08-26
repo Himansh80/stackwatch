@@ -9,6 +9,7 @@ import ProxmoxFilterBar, { type StatusFilter } from './ProxmoxFilterBar';
 import ProxmoxVmTable from './ProxmoxVmTable';
 import ProxmoxEmptyState from './ProxmoxEmptyState';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import type { ProxmoxResource } from '../../lib/proxmox';
 import { readString } from '../../lib/proxmox';
 
@@ -132,7 +133,8 @@ export default function ProxmoxLxcListPage() {
   }
 
   return (
-    <motion.div
+    <ProxmoxShell title="LXC Containers" subtitle="Browse LXC containers on this Proxmox host">
+      <motion.div
       className="px-vm-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -165,5 +167,6 @@ export default function ProxmoxLxcListPage() {
         }
       />
     </motion.div>
+    </ProxmoxShell>
   );
 }

@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 
 interface BackupJob {
   id: string;
@@ -164,7 +165,8 @@ function BackupJobDialog({ hostId, onClose, onCreated }: { hostId: string; onClo
   }
 
   return (
-    <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
+    <ProxmoxShell title="Backup jobs" subtitle="Schedule + run backups">
+      <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
       <motion.div className="px-confirm-dialog px-form-wide" initial={{ scale: 0.95 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
         <h3>Create backup job</h3>
         <div className="px-form-grid">
@@ -200,5 +202,6 @@ function BackupJobDialog({ hostId, onClose, onCreated }: { hostId: string; onClo
         </div>
       </motion.div>
     </motion.div>
+    </ProxmoxShell>
   );
 }

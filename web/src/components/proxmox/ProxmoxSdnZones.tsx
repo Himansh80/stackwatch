@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 
 interface SdnZone {
   zone: string;
@@ -38,7 +39,8 @@ export default function ProxmoxSdnZones() {
   useEffect(() => { void load(); }, [load]);
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="SDN zones" subtitle="Software-defined networking zones">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="px-detail-breadcrumb">
         <Link to="/proxmox">Proxmox</Link>
         <span className="px-detail-sep">›</span>
@@ -92,5 +94,6 @@ export default function ProxmoxSdnZones() {
         </table>
       )}
     </motion.div>
+    </ProxmoxShell>
   );
 }

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import ProxmoxHostSelector from './ProxmoxHostSelector';
 import { readString } from '../../lib/proxmox';
 
@@ -183,7 +184,8 @@ function CreateTokenDialog({ hostId, userid, onClose, onIssued }: { hostId: stri
   }
 
   return (
-    <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
+    <ProxmoxShell title="User tokens" subtitle="API tokens for this user">
+      <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
       <motion.div className="px-confirm-dialog" initial={{ scale: 0.95 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
         <h3>Create API token</h3>
         <div className="px-form-field">
@@ -211,5 +213,6 @@ function CreateTokenDialog({ hostId, userid, onClose, onIssued }: { hostId: stri
         </div>
       </motion.div>
     </motion.div>
+    </ProxmoxShell>
   );
 }

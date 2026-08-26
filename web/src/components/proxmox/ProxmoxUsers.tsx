@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import ProxmoxHostSelector from './ProxmoxHostSelector';
 import { readString } from '../../lib/proxmox';
 
@@ -228,7 +229,8 @@ function UserDialog({ hostId, user, onClose, onSaved }: { hostId: string; user: 
 
 function ConfirmDelete({ name, onClose, onConfirm }: { name: string; onClose: () => void; onConfirm: () => void }) {
   return (
-    <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
+    <ProxmoxShell title="Access & Tokens" subtitle="Manage Proxmox users and API tokens">
+      <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
       <motion.div className="px-confirm-dialog" initial={{ scale: 0.95 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
         <h3>Delete user?</h3>
         <p>This will permanently delete user <code>{name}</code> and revoke all their tokens.</p>
@@ -238,5 +240,6 @@ function ConfirmDelete({ name, onClose, onConfirm }: { name: string; onClose: ()
         </div>
       </motion.div>
     </motion.div>
+    </ProxmoxShell>
   );
 }

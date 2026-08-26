@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 
 interface Alias {
   name: string;
@@ -65,7 +66,8 @@ export default function ProxmoxAliasManager() {
   }
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="Aliases" subtitle="Manage network aliases">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="px-detail-breadcrumb">
         <Link to="/proxmox">Proxmox</Link>
         <span className="px-detail-sep">›</span>
@@ -150,5 +152,6 @@ export default function ProxmoxAliasManager() {
         </motion.div>
       )}
     </motion.div>
+    </ProxmoxShell>
   );
 }

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import ProxmoxFirewallRuleDialog, { type FirewallRule } from './ProxmoxFirewallRuleDialog';
 
 export default function ProxmoxNodeFirewall() {
@@ -74,7 +75,8 @@ export default function ProxmoxNodeFirewall() {
   }
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="Node firewall" subtitle="Manage firewall rules on this node">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="px-detail-breadcrumb">
         <Link to="/proxmox">Proxmox</Link>
         <span className="px-detail-sep">›</span>
@@ -159,5 +161,6 @@ export default function ProxmoxNodeFirewall() {
         </motion.div>
       )}
     </motion.div>
+    </ProxmoxShell>
   );
 }

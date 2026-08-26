@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import ProxmoxHostSelector from './ProxmoxHostSelector';
 import ProxmoxLxcCreateStep1Template from './ProxmoxLxcCreateStep1Template';
 import type { Template } from './ProxmoxLxcTemplatePicker';
@@ -112,7 +113,8 @@ export default function ProxmoxLxcCreatePage() {
   }
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="Create LXC" subtitle="4-step wizard to provision a new container">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="px-wizard-header">
         <h2>Create LXC container</h2>
         <p>on {hostId.slice(0, 8)} / {node}</p>
@@ -182,6 +184,7 @@ export default function ProxmoxLxcCreatePage() {
         )}
       </div>
     </motion.div>
+    </ProxmoxShell>
   );
 }
 

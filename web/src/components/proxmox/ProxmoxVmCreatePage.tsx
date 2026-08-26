@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import ProxmoxHostSelector from './ProxmoxHostSelector';
 import ProxmoxVmCreateStep1Iso, { type Iso } from './ProxmoxVmCreateStep1Iso';
 import ProxmoxVmCreateStep2Hardware from './ProxmoxVmCreateStep2Hardware';
@@ -158,7 +159,8 @@ export default function ProxmoxVmCreatePage() {
   }
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="Create VM" subtitle="4-step wizard to provision a new VM">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="px-wizard-header">
         <h2>Create VM</h2>
         <p>on {hostId.slice(0, 8)} / {node}</p>
@@ -228,5 +230,6 @@ export default function ProxmoxVmCreatePage() {
         )}
       </div>
     </motion.div>
+    </ProxmoxShell>
   );
 }

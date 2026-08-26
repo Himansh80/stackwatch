@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 
 interface Task {
   upid: string;
@@ -115,7 +116,8 @@ export default function ProxmoxTasksPanel() {
   });
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="Tasks" subtitle="Cluster task log">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <h1 className="px-detail-name">Cluster tasks</h1>
       <div className="px-detail-meta">
         <span><strong>Total</strong> {tasks.length}</span>
@@ -198,5 +200,6 @@ export default function ProxmoxTasksPanel() {
         </table>
       )}
     </motion.div>
+    </ProxmoxShell>
   );
 }

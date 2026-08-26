@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import ProxmoxDetailHeader from './ProxmoxDetailHeader';
 import ProxmoxDetailTabs, { type DetailTab } from './ProxmoxDetailTabs';
 import ProxmoxDetailSummary from './ProxmoxDetailSummary';
@@ -240,7 +241,8 @@ export default function ProxmoxVmDetailPage() {
   }
 
   return (
-    <motion.div
+    <ProxmoxShell title="VM detail" subtitle="View and manage this virtual machine">
+      <motion.div
       className="px-vm-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -279,5 +281,6 @@ export default function ProxmoxVmDetailPage() {
         />
       )}
     </motion.div>
+    </ProxmoxShell>
   );
 }

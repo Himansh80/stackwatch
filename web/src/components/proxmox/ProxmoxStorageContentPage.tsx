@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import { formatBytes } from '../../lib/proxmox';
 
 interface StorageContent {
@@ -103,7 +104,8 @@ export default function ProxmoxStorageContentPage() {
   }
 
   return (
-    <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <ProxmoxShell title="Storage content" subtitle="Browse files in this storage">
+      <motion.div className="px-vm-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="px-detail-breadcrumb">
         <Link to="/proxmox">Proxmox</Link>
         <span className="px-detail-sep">›</span>
@@ -222,5 +224,6 @@ export default function ProxmoxStorageContentPage() {
         </motion.div>
       )}
     </motion.div>
+    </ProxmoxShell>
   );
 }

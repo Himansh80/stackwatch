@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import ProxmoxShell from './ProxmoxShell';
 import ProxmoxHostSelector from './ProxmoxHostSelector';
 
 interface Pool {
@@ -170,7 +171,8 @@ function CreatePoolDialog({ hostId, onClose, onCreated }: { hostId: string; onCl
   }
 
   return (
-    <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
+    <ProxmoxShell title="Pools" subtitle="Resource pools for grouping">
+      <motion.div className="px-confirm-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose}>
       <motion.div className="px-confirm-dialog" initial={{ scale: 0.95 }} animate={{ scale: 1 }} onClick={(e) => e.stopPropagation()}>
         <h3>Create pool</h3>
         <div className="px-form-field">
@@ -188,5 +190,6 @@ function CreatePoolDialog({ hostId, onClose, onCreated }: { hostId: string; onCl
         </div>
       </motion.div>
     </motion.div>
+    </ProxmoxShell>
   );
 }
