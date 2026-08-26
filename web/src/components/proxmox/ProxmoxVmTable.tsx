@@ -4,6 +4,7 @@
  * On <768px viewport, renders as a card list instead of a table.
  */
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import type { ProxmoxResource } from '../../lib/proxmox';
 import {
   formatBytes,
@@ -20,6 +21,8 @@ interface Props {
   onAction: (resource: ProxmoxResource, action: 'start' | 'shutdown' | 'stop' | 'reboot') => void;
   onRowClick?: (resource: ProxmoxResource) => void;
   emptyHint?: string;
+  /** Host id to construct detail URL when clicking a row */
+  hostId?: string;
 }
 
 function statusAccent(status: string): 'green' | 'slate' | 'amber' | 'red' {
@@ -40,7 +43,18 @@ function deriveIp(row: ProxmoxResource): string {
   return '—';
 }
 
-export default function ProxmoxVmTable({ rows, busy, onAction, onRowClick, emptyHint }: Props) {
+export default function ProxmoxVmTable({ rows, busy, onAction, onRowClick, emptyHint, hostId }: Props) {
+  const navigate = useNavigate();
+
+  const handleRowClick = (row: ProxmoxResource) => {
+    if (onRowClick) {
+      onRowClick(row);
+      return;
+    }
+    if (hostId && row.node && row.vmid !== undefined) {
+      navigate(`/proxmox-vms/${hostId}/${encodeURIComponent(String(row.node))}/${row.vmid}`);
+    }
+  };
   if (rows.length === 0) {
     return (
       <div className="px-vm-empty">
@@ -81,7 +95,7 @@ export default function ProxmoxVmTable({ rows, busy, onAction, onRowClick, empty
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: idx * 0.015 }}
                   whileHover={{ backgroundColor: 'rgba(148, 163, 184, 0.06)' }}
-                  onClick={() => onRowClick?.(row)}
+                  onClick={() => handleRowClick(row)}
                   className={onRowClick ? 'px-vm-row-clickable' : ''}
                 >
                   <td>
@@ -129,7 +143,7 @@ export default function ProxmoxVmTable({ rows, busy, onAction, onRowClick, empty
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18, delay: idx * 0.015 }}
               className={`px-vm-card px-vm-card-${accent}`}
-              onClick={() => onRowClick?.(row)}
+              onClick={() => handleRowClick(row)}
             >
               <div className="px-vm-card-head">
                 <span className={`px-status px-status-${accent}`}>{status || 'unknown'}</span>

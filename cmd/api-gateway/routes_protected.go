@@ -66,6 +66,8 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	protected.POST("/proxmox/hosts/:id/nodes/:node/qemu", proxmoxH.CreateVM)
 	protected.DELETE("/proxmox/hosts/:id/nodes/:node/qemu/:vmid", proxmoxH.DeleteVM)
 	protected.POST("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/status/:action", proxmoxH.VMStatusAction)
+	// Tier 14.2: VM QEMU guest agent (network interfaces for VM detail page)
+	protected.GET("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/agent/network-get-interfaces", proxmoxH.GetVMNetworkInterfaces)
 	protected.GET("/proxmox/hosts/:id/nodes/:node/tasks/:upid", proxmoxH.TaskStatus)
 	// Tier 1.3: LXC lifecycle
 	protected.POST("/proxmox/hosts/:id/nodes/:node/lxc", proxmoxH.CreateLXC)

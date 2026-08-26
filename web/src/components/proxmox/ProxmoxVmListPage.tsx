@@ -184,6 +184,7 @@ export default function ProxmoxVmListPage({ initialHostId }: Props) {
         rows={filtered}
         busy={busy}
         onAction={onAction}
+        hostId={hostId}
         emptyHint={
           resources.length === 0
             ? loading

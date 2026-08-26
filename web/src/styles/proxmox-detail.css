@@ -1,0 +1,212 @@
+/* Tier 14 Phase 14.2 — VM Detail Page
+   Datadog-style: dark theme, header with breadcrumb + actions, tab nav, tab panes.
+*/
+
+/* Page shell — reuses px-vm-page from proxmox.css (defined globally) */
+
+/* ─────────── Header ─────────── */
+.px-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 24px;
+  background: var(--px-surface);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius);
+}
+.px-detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--px-muted);
+}
+.px-detail-breadcrumb a {
+  color: var(--px-muted);
+  text-decoration: none;
+  transition: color 120ms ease-out;
+}
+.px-detail-breadcrumb a:hover { color: var(--px-accent); }
+.px-detail-sep { color: var(--px-border); }
+
+.px-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.px-detail-name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--px-text);
+}
+
+.px-detail-meta {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--px-muted);
+}
+.px-detail-meta strong {
+  color: var(--px-text);
+  font-weight: 500;
+  margin-right: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─────────── Action bar ─────────── */
+.px-detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.px-action {
+  background: var(--px-surface-2);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-sm);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--px-text);
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.px-action:hover:not(:disabled) { background: var(--px-border); }
+.px-action:disabled { opacity: 0.4; cursor: not-allowed; }
+.px-action-start:hover:not(:disabled)   { background: rgba(16, 185, 129, 0.18); border-color: var(--px-green); color: var(--px-green); }
+.px-action-shutdown:hover:not(:disabled){ background: rgba(245, 158, 11, 0.18); border-color: var(--px-amber); color: var(--px-amber); }
+.px-action-reboot:hover:not(:disabled)  { background: rgba(59, 130, 246, 0.18); border-color: var(--px-accent); color: var(--px-accent); }
+.px-action-migrate:hover:not(:disabled) { background: rgba(168, 85, 247, 0.18); border-color: #a855f7; color: #c084fc; }
+.px-action-delete:hover:not(:disabled)   { background: rgba(239, 68, 68, 0.18); border-color: var(--px-red); color: var(--px-red); }
+
+/* ─────────── Confirm dialog ─────────── */
+.px-confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.px-confirm-dialog {
+  background: var(--px-surface);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius);
+  padding: 24px;
+  max-width: 440px;
+  width: 90%;
+}
+.px-confirm-dialog h3 { margin: 0 0 12px; font-size: 16px; }
+.px-confirm-dialog p  { margin: 0 0 12px; color: var(--px-text); font-size: 14px; line-height: 1.5; }
+.px-confirm-dialog code {
+  background: var(--px-surface-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12.5px;
+}
+.px-confirm-warn { color: var(--px-amber); font-size: 13px; }
+.px-confirm-input {
+  width: 100%;
+  background: var(--px-surface-2);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-sm);
+  padding: 8px 10px;
+  color: var(--px-text);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  margin: 8px 0;
+}
+.px-confirm-input:focus { outline: 2px solid var(--px-red); border-color: var(--px-red); }
+.px-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+/* ─────────── Tabs ─────────── */
+.px-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--px-surface);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius);
+  padding: 6px;
+  overflow-x: auto;
+}
+.px-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--px-radius-sm);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--px-muted);
+  white-space: nowrap;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.px-tab:hover { color: var(--px-text); background: var(--px-surface-2); }
+.px-tab-active {
+  background: var(--px-accent);
+  color: white;
+  font-weight: 600;
+}
+.px-tab-icon { font-size: 14px; }
+
+/* Mobile tabs dropdown */
+.px-tabs-mobile { display: none; }
+.px-tabs-mobile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--px-surface);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--px-text);
+  cursor: pointer;
+}
+.px-tabs-mobile-caret { margin-left: auto; transition: transform 150ms ease-out; }
+.px-tabs-mobile-open { transform: rotate(180deg); }
+.px-tabs-mobile-menu {
+  margin-top: 4px;
+  background: var(--px-surface);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius);
+  overflow: hidden;
+}
+.px-tabs-mobile-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--px-text);
+  cursor: pointer;
+}
+.px-tabs-mobile-item:hover { background: var(--px-surface-2); }
+.px-tabs-mobile-active {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--px-accent);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .px-hide-mobile { display: none; }
+  .px-show-mobile { display: block; }
+}
+@media (min-width: 769px) {
+  .px-show-mobile { display: none; }
+}
+
+/* ─────────── Tab pane ─────────── */

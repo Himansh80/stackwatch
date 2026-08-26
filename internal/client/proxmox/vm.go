@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // VMStatus constants for the status/* endpoints.
@@ -318,4 +319,36 @@ func (c *Client) UpdateVMConfig(ctx context.Context, node string, vmid int, spec
 		return "", err
 	}
 	return c.doTask(req)
+}
+
+// VMNetworkInterface describes one interface inside a VM (from QEMU guest agent).
+type VMNetworkInterface struct {
+	Name          string   `json:"name"`
+	HardwareAddr  string   `json:"hardware-address,omitempty"`
+	IPAddresses   []struct {
+		IPAddress    string `json:"ip-address"`
+		IPAddressType string `json:"ip-address-type"`
+		Prefix       int    `json:"prefix"`
+	} `json:"ip-addresses"`
+	MTU   int    `json:"mtu,omitempty"`
+	Stats struct {
+		RXBytes int64 `json:"rx-bytes"`
+		TXBytes int64 `json:"tx-bytes"`
+	} `json:"stats,omitempty"`
+}
+
+// GetVMNetworkInterfaces returns VM network interfaces via QEMU guest agent.
+// Returns (nil, nil) if agent is not running (HTTP 500 from Proxmox).
+func (c *Client) GetVMNetworkInterfaces(ctx context.Context, node string, vmid int) ([]VMNetworkInterface, error) {
+	path := fmt.Sprintf("/nodes/%s/qemu/%d/agent/network-get-interfaces",
+		url.PathEscape(node), vmid)
+	var out []VMNetworkInterface
+	if err := c.get(ctx, path, &out); err != nil {
+		// Detect "agent not running" (500 with specific message).
+		if strings.Contains(strings.ToLower(err.Error()), "guest agent is not running") {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return out, nil
 }
