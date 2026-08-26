@@ -52,16 +52,25 @@ Zero new endpoints. Uses existing Tier 1:
 
 ## Operational notes this session
 
-### TEST WORKFLOW RULE (locked 2026-08-26, user directive)
+### TEST WORKFLOW RULE (locked 2026-08-26, user directive — applies to EVERY tier)
 
 User said: "we will do like this we test during the phase 14 build like now and at the end you will give me the full detailed test for the entire phase 14 complete test end to end from A to Z ok note it down and we strictly follow it ok"
 
-Strict workflow for ALL of Tier 14 (going forward):
+Then said: "we will do this for every phase ok"
+
+**Scope:** Applies to EVERY phase of EVERY tier going forward (not just Tier 14). Whenever we work in speckit phases (proposal → spec → plan → tasks → checklist → build → archive), this test workflow applies.
+
+Strict workflow per phase:
 1. **During each phase** — build, user tests, fix, ship (current pattern — keep it).
 2. **At the end of every phase** — deliver a **detailed A-to-Z test plan for that phase ONLY**. User runs through it manually.
-3. **When ALL of Tier 14 is complete** — deliver the **FULL end-to-end A-to-Z test for the entire Tier 14** (every feature across every phase). This is the final acceptance gate.
+3. **When ALL phases of a tier are complete** — deliver the **FULL end-to-end A-to-Z test for the entire tier** (every feature across every phase). Final acceptance gate.
 
-No exceptions. NEVER skip the per-phase test plan at the end of each phase. NEVER combine all phases into one mega-test (do per-phase as built, mega-test only when Tier 14 is 100% done).
+No exceptions. NEVER skip the per-phase test plan at the end of each phase. NEVER combine all phases into one mega-test (do per-phase as built, mega-test only when the whole tier is 100% done).
+
+Pattern is repeating:
+- Tier14 phase → Tier14 mega-test
+- Tier15 phase → Tier15 mega-test
+- TierN phase → TierN mega-test
 
 Test plan format (mandatory):
 - Numbered test cases
