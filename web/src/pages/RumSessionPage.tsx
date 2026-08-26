@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
 import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import {
   VitalsTab,
   InteractionsTab,
@@ -100,31 +99,6 @@ export default function RumSessionPage() {
   };
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="rum"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'apm', 'logs', 'rum']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">RUM session</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">
-                {header?.first_url
-                  ? header.first_url.slice(0, 64)
-                  : (loading ? 'Loading…' : sessionId.slice(0, 12))}
-              </strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {sessionId.slice(0, 16)}…
-                </span>
-              </span>
-            </div>
-          </div>
-        </header>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? (
             <div className="dash-error" role="alert">{error}</div>
@@ -178,8 +152,6 @@ export default function RumSessionPage() {
             )}
           </section>
         </motion.div>
-      </main>
-    </div>
   );
 }
 
