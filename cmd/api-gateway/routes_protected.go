@@ -68,6 +68,19 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	protected.POST("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/status/:action", proxmoxH.VMStatusAction)
 	// Tier 14.2: VM QEMU guest agent (network interfaces for VM detail page)
 	protected.GET("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/agent/network-get-interfaces", proxmoxH.GetVMNetworkInterfaces)
+	// Tier 14.3: VM snapshot CRUD
+	protected.GET("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/snapshot", proxmoxH.ListVMSnapshots)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/snapshot", proxmoxH.CreateVMSnapshot)
+	protected.DELETE("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/snapshot", proxmoxH.DeleteVMSnapshot)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/snapshot/:snapname/rollback", proxmoxH.RollbackVMSnapshot)
+	// Tier 14.3: VM firewall CRUD
+	protected.GET("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/firewall/rules", proxmoxH.ListVMFirewallRules)
+	protected.POST("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/firewall/rules", proxmoxH.CreateVMFirewallRule)
+	protected.PUT("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/firewall/rules/:pos", proxmoxH.UpdateVMFirewallRule)
+	protected.DELETE("/proxmox/hosts/:id/nodes/:node/qemu/:vmid/firewall/rules/:pos", proxmoxH.DeleteVMFirewallRule)
+	// Tier 14.3: VNC ticket + WebSocket proxy
+	protected.POST("/proxmox/hosts/:id/vnc-ticket", proxmoxH.IssueVNCTicket)
+	protected.GET("/proxmox/hosts/:id/vnc-ws", proxmoxH.ProxyVNCWebSocket)
 	protected.GET("/proxmox/hosts/:id/nodes/:node/tasks/:upid", proxmoxH.TaskStatus)
 	// Tier 1.3: LXC lifecycle
 	protected.POST("/proxmox/hosts/:id/nodes/:node/lxc", proxmoxH.CreateLXC)

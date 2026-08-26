@@ -8,6 +8,8 @@ import './styles-tier2.css';
 import './styles/proxmox.css';
 import './styles/proxmox-detail.css';
 import './styles/proxmox-detail-tables.css';
+import './styles/proxmox-detail-dialogs.css';
+import './styles/proxmox-console.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

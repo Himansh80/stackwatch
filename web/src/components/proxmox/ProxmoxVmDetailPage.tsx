@@ -19,7 +19,9 @@ import ProxmoxDetailNetwork from './ProxmoxDetailNetwork';
 import ProxmoxDetailConsole from './ProxmoxDetailConsole';
 import ProxmoxDetailSnapshots from './ProxmoxDetailSnapshots';
 import ProxmoxDetailFirewall from './ProxmoxDetailFirewall';
+import ProxmoxDetailMigrateDialog from './ProxmoxDetailMigrateDialog';
 import type { ProxmoxResource } from '../../lib/proxmox';
+import { readString } from '../../lib/proxmox';
 import type { NetworkInterfacesResponse } from './lib/proxmox-vm-types';
 
 const REFRESH_MS = 5000;
@@ -44,6 +46,7 @@ export default function ProxmoxVmDetailPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [migrateOpen, setMigrateOpen] = useState(false);
 
   // Sync hash <-> tab
   useEffect(() => {
@@ -158,9 +161,28 @@ export default function ProxmoxVmDetailPage() {
   );
 
   const onMigrateClick = useCallback(() => {
-    setNotice('Migrate ships in Phase 14.3.');
-    setTimeout(() => setNotice(''), 3000);
+    setMigrateOpen(true);
   }, []);
+
+  const onMigrate = useCallback(async (target: string, online: boolean, withLocalStorage: boolean) => {
+    if (!hostId || !node) return;
+    setBusy(true);
+    setError('');
+    try {
+      const kind = readString(vm?.type).toLowerCase().includes('lxc') ? 'lxc' : 'qemu';
+      await api(
+        'POST',
+        `/api/v1/proxmox/hosts/${hostId}/nodes/${encodeURIComponent(node)}/${kind}/${vmidNum}/migrate`,
+        { target, online: online ? 1 : 0, with_local_disks: withLocalStorage ? 1 : 0 },
+      );
+      setNotice(`Migrate to ${target} started.`);
+      setTimeout(() => setNotice(''), 4000);
+    } catch (cause) {
+      throw cause instanceof Error ? cause : new Error('Migrate failed.');
+    } finally {
+      setBusy(false);
+    }
+  }, [hostId, node, vmidNum, vm?.type]);
 
   const tabContent = useMemo(() => {
     if (!vm) return null;
@@ -184,11 +206,11 @@ export default function ProxmoxVmDetailPage() {
           />
         );
       case 'console':
-        return <ProxmoxDetailConsole />;
+        return <ProxmoxDetailConsole hostId={hostId} node={node} vmid={vmidNum} />;
       case 'snapshots':
-        return <ProxmoxDetailSnapshots snapshots={[]} loading={false} />;
+        return <ProxmoxDetailSnapshots hostId={hostId} node={node} vmid={vmidNum} />;
       case 'firewall':
-        return <ProxmoxDetailFirewall rules={[]} loading={false} />;
+        return <ProxmoxDetailFirewall hostId={hostId} node={node} vmid={vmidNum} />;
       default:
         return null;
     }
@@ -244,6 +266,18 @@ export default function ProxmoxVmDetailPage() {
       )}
       {error && <div className="px-error">⚠ {error}</div>}
       {tabContent}
+
+      {vm && (
+        <ProxmoxDetailMigrateDialog
+          open={migrateOpen}
+          hostId={hostId}
+          vmid={vmidNum}
+          currentNode={node}
+          running={readString(vm.status).toLowerCase() === 'running'}
+          onClose={() => setMigrateOpen(false)}
+          onMigrate={onMigrate}
+        />
+      )}
     </motion.div>
   );
 }

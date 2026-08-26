@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -257,4 +258,152 @@ func (h *ProxmoxHandler) DeleteIPset(c *gin.Context) {
 		return
 	}
 	kernel.RespondOK(c, gin.H{"deleted": true, "name": name})
+}
+
+
+// ListVMFirewallRules — GET /proxmox/hosts/:id/nodes/:node/qemu/:vmid/firewall/rules
+func (h *ProxmoxHandler) ListVMFirewallRules(c *gin.Context) {
+	host, ok := h.fetchHostCreds(c, lookupID(c))
+	if !ok {
+		kernel.RespondError(c, kernel.ErrNotFound)
+		return
+	}
+	node := c.Param("node")
+	vmid, err := strconv.Atoi(c.Param("vmid"))
+	if err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
+	rules, err := cli.ListVMFirewallRules(c.Request.Context(), node, vmid)
+	if err != nil {
+		respondProxmoxError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"rules": rules})
+}
+
+// VMFirewallRuleRequest is the body for POST/PUT .../firewall/rules.
+type VMFirewallRuleRequest struct {
+	Type       string `json:"type"`
+	Action     string `json:"action" binding:"required"`
+	Enable     int    `json:"enable"`
+	Source     string `json:"source"`
+	Dest       string `json:"dest"`
+	Proto      string `json:"proto"`
+	DestPort   string `json:"dport"`
+	SourcePort string `json:"sport"`
+	Iface      string `json:"iface"`
+	Comment    string `json:"comment"`
+	Macro      string `json:"macro"`
+	Log        string `json:"log"`
+}
+
+// CreateVMFirewallRule — POST .../firewall/rules
+func (h *ProxmoxHandler) CreateVMFirewallRule(c *gin.Context) {
+	host, ok := h.fetchHostCreds(c, lookupID(c))
+	if !ok {
+		kernel.RespondError(c, kernel.ErrNotFound)
+		return
+	}
+	node := c.Param("node")
+	vmid, err := strconv.Atoi(c.Param("vmid"))
+	if err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	var req VMFirewallRuleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
+	upid, err := cli.CreateVMFirewallRule(c.Request.Context(), node, vmid, proxmox.FirewallRuleSpec{
+		Type:       req.Type,
+		Action:     req.Action,
+		Enable:     req.Enable,
+		Source:     req.Source,
+		Dest:       req.Dest,
+		Proto:      req.Proto,
+		DestPort:   req.DestPort,
+		SourcePort: req.SourcePort,
+		Iface:      req.Iface,
+		Comment:    req.Comment,
+		Macro:      req.Macro,
+		Log:        req.Log,
+	})
+	if err != nil {
+		respondProxmoxError(c, err)
+		return
+	}
+	c.JSON(http.StatusAccepted, gin.H{"upid": upid})
+}
+
+// UpdateVMFirewallRule — PUT .../firewall/rules/:pos
+func (h *ProxmoxHandler) UpdateVMFirewallRule(c *gin.Context) {
+	host, ok := h.fetchHostCreds(c, lookupID(c))
+	if !ok {
+		kernel.RespondError(c, kernel.ErrNotFound)
+		return
+	}
+	node := c.Param("node")
+	vmid, err := strconv.Atoi(c.Param("vmid"))
+	if err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	pos, err := strconv.Atoi(c.Param("pos"))
+	if err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	var req VMFirewallRuleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	fields := map[string]string{
+		"type": req.Type, "action": req.Action, "source": req.Source, "dest": req.Dest,
+		"proto": req.Proto, "dport": req.DestPort, "sport": req.SourcePort,
+		"iface": req.Iface, "comment": req.Comment, "macro": req.Macro, "log": req.Log,
+	}
+	if req.Enable > 0 {
+		fields["enable"] = "1"
+	} else {
+		fields["enable"] = "0"
+	}
+	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
+	upid, err := cli.UpdateVMFirewallRule(c.Request.Context(), node, vmid, pos, fields)
+	if err != nil {
+		respondProxmoxError(c, err)
+		return
+	}
+	c.JSON(http.StatusAccepted, gin.H{"upid": upid})
+}
+
+// DeleteVMFirewallRule — DELETE .../firewall/rules/:pos
+func (h *ProxmoxHandler) DeleteVMFirewallRule(c *gin.Context) {
+	host, ok := h.fetchHostCreds(c, lookupID(c))
+	if !ok {
+		kernel.RespondError(c, kernel.ErrNotFound)
+		return
+	}
+	node := c.Param("node")
+	vmid, err := strconv.Atoi(c.Param("vmid"))
+	if err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	pos, err := strconv.Atoi(c.Param("pos"))
+	if err != nil {
+		kernel.RespondError(c, kernel.ErrBadRequest)
+		return
+	}
+	cli := proxmox.NewClient(host.BaseURL, host.APIToken, host.VerifyTLS)
+	upid, err := cli.DeleteVMFirewallRule(c.Request.Context(), node, vmid, pos)
+	if err != nil {
+		respondProxmoxError(c, err)
+		return
+	}
+	c.JSON(http.StatusAccepted, gin.H{"upid": upid})
 }

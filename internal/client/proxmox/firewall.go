@@ -3,6 +3,7 @@ package proxmox
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -183,4 +184,99 @@ func (c *Client) AddIPsetEntry(ctx context.Context, name, cidr, comment string, 
 		return "", err
 	}
 	return "", nil
+}
+
+
+// VMSnapshot rule helpers are in snapshots.go (same Tier 14.3 phase).
+// Below: VM-level firewall CRUD (Proxmox path: /nodes/{node}/qemu/{vmid}/firewall/rules).
+
+// ListVMFirewallRules returns the firewall rules for a specific VM.
+func (c *Client) ListVMFirewallRules(ctx context.Context, node string, vmid int) ([]FirewallRule, error) {
+	path := fmt.Sprintf("/nodes/%s/qemu/%d/firewall/rules", url.PathEscape(node), vmid)
+	var out []FirewallRule
+	if err := c.get(ctx, path, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// CreateVMFirewallRule appends a rule to the VM's firewall chain.
+func (c *Client) CreateVMFirewallRule(ctx context.Context, node string, vmid int, spec FirewallRuleSpec) (string, error) {
+	path := fmt.Sprintf("/nodes/%s/qemu/%d/firewall/rules", url.PathEscape(node), vmid)
+	form := buildFirewallForm(spec)
+	return c.postFormPath(ctx, path, form)
+}
+
+// UpdateVMFirewallRule replaces a rule at the given position.
+func (c *Client) UpdateVMFirewallRule(ctx context.Context, node string, vmid, pos int, fields map[string]string) (string, error) {
+	path := fmt.Sprintf("/nodes/%s/qemu/%d/firewall/rules/%d", url.PathEscape(node), vmid, pos)
+	form := url.Values{}
+	for k, v := range fields {
+		form.Set(k, v)
+	}
+	return c.postFormPath(ctx, path, form)
+}
+
+// DeleteVMFirewallRule removes a rule at the given position.
+func (c *Client) DeleteVMFirewallRule(ctx context.Context, node string, vmid, pos int) (string, error) {
+	path := fmt.Sprintf("/nodes/%s/qemu/%d/firewall/rules/%d", url.PathEscape(node), vmid, pos)
+	u := c.baseURL + "/api2/json" + path
+	req, err := http.NewRequestWithContext(ctx, "DELETE", u, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", c.apiToken)
+	req.Header.Set("Accept", "application/json")
+	return c.doTask(req)
+}
+
+// postFormPath is a tiny shim that mirrors postForm but returns a string UPID
+// rather than erroring. Used for endpoints that always return a task.
+func (c *Client) postFormPath(ctx context.Context, path string, form url.Values) (string, error) {
+	u := c.baseURL + "/api2/json" + path
+	req, err := newFormRequestWithContext(ctx, "POST", u, form, c.apiToken)
+	if err != nil {
+		return "", err
+	}
+	return c.doTask(req)
+}
+
+// buildFirewallForm converts a FirewallRuleSpec into url.Values, omitting empty fields.
+func buildFirewallForm(spec FirewallRuleSpec) url.Values {
+	form := url.Values{}
+	if spec.Type != "" {
+		form.Set("type", spec.Type)
+	}
+	if spec.Action != "" {
+		form.Set("action", spec.Action)
+	}
+	form.Set("enable", "1")
+	if spec.Source != "" {
+		form.Set("source", spec.Source)
+	}
+	if spec.Dest != "" {
+		form.Set("dest", spec.Dest)
+	}
+	if spec.Proto != "" {
+		form.Set("proto", spec.Proto)
+	}
+	if spec.DestPort != "" {
+		form.Set("dport", spec.DestPort)
+	}
+	if spec.SourcePort != "" {
+		form.Set("sport", spec.SourcePort)
+	}
+	if spec.Iface != "" {
+		form.Set("iface", spec.Iface)
+	}
+	if spec.Comment != "" {
+		form.Set("comment", spec.Comment)
+	}
+	if spec.Macro != "" {
+		form.Set("macro", spec.Macro)
+	}
+	if spec.Log != "" {
+		form.Set("log", spec.Log)
+	}
+	return form
 }

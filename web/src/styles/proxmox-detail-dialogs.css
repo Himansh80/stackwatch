@@ -1,0 +1,105 @@
+/* Tier 14 Phase 14.3 — Dialog styles (snapshot/firewall/migrate) + tab toolbars */
+
+.px-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+.px-form-field label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--px-muted);
+  font-weight: 500;
+}
+.px-form-field input[type="text"],
+.px-form-field input[type="number"],
+.px-form-field textarea {
+  background: var(--px-surface-2);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-sm);
+  padding: 8px 10px;
+  color: var(--px-text);
+  font-size: 13px;
+  width: 100%;
+  font-family: inherit;
+}
+.px-form-field textarea { font-family: inherit; min-height: 60px; resize: vertical; }
+
+.px-form-select {
+  background: var(--px-surface-2);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-sm);
+  padding: 8px 10px;
+  color: var(--px-text);
+  font-size: 13px;
+  width: 100%;
+}
+
+.px-form-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.px-form-toggle label {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  color: var(--px-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.px-form-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--px-accent);
+}
+
+.px-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.px-form-full { grid-column: 1 / -1; }
+
+.px-confirm-textarea {
+  background: var(--px-surface-2);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-sm);
+  padding: 8px 10px;
+  color: var(--px-text);
+  font-size: 13px;
+  width: 100%;
+  font-family: inherit;
+  min-height: 50px;
+  resize: vertical;
+}
+
+.px-form-wide {
+  max-width: 560px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.px-btn-danger-text {
+  color: var(--px-red);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.px-btn-danger-text:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--px-red);
+}
+
+.px-tab-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .px-form-grid { grid-template-columns: 1fr; }
+}
