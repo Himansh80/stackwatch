@@ -17,10 +17,11 @@ interface SidebarProps {
   apiVersion?: string;
   firingAlerts?: number;
   /**
-   * Which nav items to show. Defaults to all. Pages that want a
-   * stripped-down sidebar pass a subset. E.g. the Dashboard page
-   * removes Profile + Settings since they're reachable from the
-   * avatar menu.
+   * Deprecated: the global sidebar always shows every nav item. Kept
+   * on the interface for backward compat with the old call sites but
+   * no longer filters the list. Remove once all page-level callers
+   * are updated.
+   * @deprecated
    */
   show?: ReadonlyArray<SidebarProps['active']>;
   userMenuSlot?: ReactNode;
@@ -66,12 +67,15 @@ export default function AppSidebar({
   onLogout,
   apiVersion,
   firingAlerts,
-  show,
 }: SidebarProps) {
-  // Default: show every nav item. Pass `show` to filter.
-  const visible = show
-    ? ALL_NAV_ITEMS.filter((i) => show.includes(i.key))
-    : ALL_NAV_ITEMS;
+  // The global sidebar always shows every nav item. Tier-14 Proxmox
+  // pages render their own (px-) sidebar via ProxmoxShell, so the global
+  // one should never shrink on a per-page basis. The legacy `show` prop
+  // is ignored — kept on the interface for backward compat with old call
+  // sites that still pass it.
+  const _unusedShow: ReadonlyArray<SidebarProps['active']> | undefined = undefined;
+  void _unusedShow;
+  const visible = ALL_NAV_ITEMS;
   const workspaceItems = visible.filter((i) => i.section === 'workspace');
   const infraItems = visible.filter((i) => i.section === 'infrastructure');
   const observabilityItems = visible.filter((i) => i.section === 'observability');
