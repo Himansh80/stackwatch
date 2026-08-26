@@ -13,6 +13,7 @@ import ProxmoxEmptyState from './ProxmoxEmptyState';
 import { api } from '../../lib/api';
 import type { ProxmoxResource } from '../../lib/proxmox';
 import { readString } from '../../lib/proxmox';
+import ProxmoxShell from './ProxmoxShell';
 
 const REFRESH_MS = 5000;
 
@@ -132,72 +133,86 @@ export default function ProxmoxVmListPage({ initialHostId }: Props) {
   );
 
   // Show empty states
-  if (!hostId && !loading) {
+    if (!hostId && !loading) {
+      return (
+        <ProxmoxShell title="VMs" subtitle="Pick a Proxmox host to see its VMs and LXC containers">
+          <ProxmoxHostSelector selected="" onChange={setHostId} />
+          <ProxmoxEmptyState kind="no-hosts" />
+        </ProxmoxShell>
+      );
+    }
+
+    if (error && resources.length === 0) {
+      return (
+        <ProxmoxShell title="VMs" subtitle="Pick a Proxmox host to see its VMs and LXC containers">
+          <ProxmoxHostSelector selected={hostId} onChange={setHostId} />
+          <ProxmoxEmptyState kind="error" message={error} />
+          <button type="button" className="px-btn px-btn-quiet" onClick={() => void load()}>
+            Retry
+          </button>
+        </ProxmoxShell>
+      );
+    }
+
     return (
-      <div className="px-vm-page">
-        <ProxmoxHostSelector selected="" onChange={setHostId} />
-        <ProxmoxEmptyState kind="no-hosts" />
-      </div>
-    );
-  }
-
-  if (error && resources.length === 0) {
-    return (
-      <div className="px-vm-page">
-        <ProxmoxHostSelector selected={hostId} onChange={setHostId} />
-        <ProxmoxEmptyState kind="error" message={error} />
-        <button type="button" className="px-btn px-btn-quiet" onClick={() => void load()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <motion.div
-      className="px-vm-page"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-    >
-      <ProxmoxHostSelector selected={hostId} onChange={setHostId} />
-
-      <ProxmoxKpiStrip resources={resources} loading={loading} />
-
-      <ProxmoxFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        status={status}
-        onStatusChange={setStatus}
-        counts={counts}
-      />
-
-      {notice && (
-        <motion.div
-          className="px-notice"
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-        >
-          ✓ {notice}
-        </motion.div>
-      )}
-
-      {error && <div className="px-error">⚠ {error}</div>}
-
-      <ProxmoxVmTable
-        rows={filtered}
-        busy={busy}
-        onAction={onAction}
-        hostId={hostId}
-        emptyHint={
-          resources.length === 0
-            ? loading
-              ? 'Loading live resources…'
-              : 'No VMs or containers on this host yet.'
-            : undefined
+      <ProxmoxShell
+        title="VMs"
+        subtitle="Browse all VMs and LXC containers on this Proxmox host"
+        actions={
+          <button
+            type="button"
+            className="px-btn px-btn-primary"
+            onClick={() => (window.location.href = '/proxmox-vms/new')}
+          >
+            + Create VM
+          </button>
         }
-      />
-    </motion.div>
-  );
-}
+      >
+        <motion.div
+          className="px-vm-page"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+        <ProxmoxHostSelector selected={hostId} onChange={setHostId} />
+
+        <ProxmoxKpiStrip resources={resources} loading={loading} />
+
+        <ProxmoxFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          onStatusChange={setStatus}
+          counts={counts}
+        />
+
+        {notice && (
+          <motion.div
+            className="px-notice"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            ✓ {notice}
+          </motion.div>
+        )}
+
+        {error && <div className="px-error">⚠ {error}</div>}
+
+        <ProxmoxVmTable
+          rows={filtered}
+          busy={busy}
+          onAction={onAction}
+          hostId={hostId}
+          emptyHint={
+            resources.length === 0
+              ? loading
+                ? 'Loading live resources…'
+                : 'No VMs or containers on this host yet.'
+              : undefined
+          }
+        />
+        </motion.div>
+      </ProxmoxShell>
+    );
+  }
