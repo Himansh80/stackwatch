@@ -61,6 +61,9 @@ func RequireAuth(issuer *auth.Issuer) gin.HandlerFunc {
 		// also set the auth-package context key so auth.ClaimsFromContext works
 		c.Set(authCtxKey, claims)
 		setTenantInContext(c, claims)
+		// Also stash the role so the rate-limit middleware can
+		// bypass super_admin / platform_admin (Aug 2026).
+		c.Set("auth.role", claims.Role)
 		c.Next()
 	}
 }

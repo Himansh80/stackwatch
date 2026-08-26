@@ -47,8 +47,12 @@ import (
 // plan catalog is even read at boot. Matches
 // auth.builtinPlans[*].APICallsPerMinute so a tenant's
 // plan badge and their bucket cap stay aligned.
+//
+// Free tier bumped 10 → 60 in Aug 2026: a single user
+// loading the Proxmox VM list alone fires 6 parallel
+// requests, so 10/min was unusable in practice.
 var PlanDefaults = map[string]int{
-	"free":       10,
+	"free":       60,
 	"starter":    60,
 	"pro":        100,
 	"enterprise": 1000,

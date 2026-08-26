@@ -99,6 +99,23 @@ func RateLimit(limiter Limiter, plans PlanResolver) gin.HandlerFunc {
 			return
 		}
 
+		// Super-admin / platform_admin bypass (Aug 2026).
+		// The free plan cap (60/min even after the bump)
+		// is for end-user tenants; operator accounts must
+		// never get throttled. Look up role via the
+		// context-stored claims (auth.role). Accept
+		// super_admin, platform_admin, AND 'admin'
+		// (legacy super-admin role name).
+		if role, ok := c.Get("auth.role"); ok {
+			if rs, ok := role.(string); ok && (rs == "super_admin" || rs == "platform_admin" || rs == "admin") {
+				c.Header("X-RateLimit-Limit", "unlimited")
+				c.Header("X-RateLimit-Remaining", "unlimited")
+				c.Header("X-RateLimit-Reset", "0")
+				c.Next()
+				return
+			}
+		}
+
 		// Resolve the plan name. The PlanResolver caches
 		// after the first DB read so subsequent requests
 		// are O(1).
