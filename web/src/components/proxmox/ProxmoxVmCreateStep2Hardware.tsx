@@ -29,7 +29,7 @@ export default function ProxmoxVmCreateStep2Hardware({ hostId, node, spec, onCha
       try {
         const data = await api<{ storage?: Storage[] } | Storage[]>(
           'GET',
-          `/api/v1/proxmox/hosts/${hostId}/nodes/${encodeURIComponent(node)}/storage`,
+          `/api/v1/proxmox/hosts/${hostId}/storage`,
         );
         const list = Array.isArray(data) ? data : data.storage ?? [];
         const imgStorages = list

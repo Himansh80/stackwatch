@@ -59,7 +59,7 @@ export default function ProxmoxVmDetailPage() {
     try {
       const data = await api<{ resources?: ProxmoxResource[] } | ProxmoxResource[]>(
         'GET',
-        `/api/v1/proxmox/hosts/${hostId}/qemu`,
+        `/api/v1/proxmox/hosts/${hostId}/vms`,
       );
       const list = Array.isArray(data) ? data : data.resources ?? [];
       const found = list.find((r) => Number(r.vmid) === vmidNum);

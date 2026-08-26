@@ -43,7 +43,7 @@ export default function ProxmoxStorageContentPage() {
       // Get storage info
       const storagesResp = await api<{ storage?: Storage[] } | Storage[]>(
         'GET',
-        `/api/v1/proxmox/hosts/${hostId}/nodes/${encodeURIComponent(node)}/storage`,
+        `/api/v1/proxmox/hosts/${hostId}/storage`,
       );
       const list = Array.isArray(storagesResp) ? storagesResp : storagesResp.storage ?? [];
       const found = list.find((s) => s.storage === storage);

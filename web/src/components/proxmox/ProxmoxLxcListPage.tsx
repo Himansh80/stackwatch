@@ -31,7 +31,7 @@ export default function ProxmoxLxcListPage() {
     try {
       const data = await api<{ resources?: ProxmoxResource[] } | ProxmoxResource[]>(
         'GET',
-        `/api/v1/proxmox/hosts/${hostId}/qemu`,
+        `/api/v1/proxmox/hosts/${hostId}/vms`,
       );
       const list = Array.isArray(data) ? data : data.resources ?? [];
       // Filter to LXC only

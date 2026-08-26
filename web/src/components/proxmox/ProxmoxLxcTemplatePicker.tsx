@@ -40,7 +40,7 @@ export default function ProxmoxLxcTemplatePicker({ hostId, node, selected, onCha
         // Get all storages on this node that support vztmpl
         const storagesResp = await api<{ storage?: Storage[] } | Storage[]>(
           'GET',
-          `/api/v1/proxmox/hosts/${hostId}/nodes/${encodeURIComponent(node)}/storage`,
+          `/api/v1/proxmox/hosts/${hostId}/storage`,
         );
         const storages = Array.isArray(storagesResp) ? storagesResp : storagesResp.storage ?? [];
         const vztmplStorages = storages.filter((s) => readString(s.content).includes('vztmpl'));
