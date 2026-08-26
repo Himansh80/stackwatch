@@ -12,6 +12,7 @@ import './styles/proxmox-detail-dialogs.css';
 import './styles/proxmox-console.css';
 import './styles/proxmox-wizard.css';
 import './styles/proxmox-vm-wizard.css';
+import './styles/proxmox-node.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

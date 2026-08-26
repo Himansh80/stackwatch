@@ -1,0 +1,20 @@
+/* Tier 14 Phase 14.7 — Node dashboard + storage content styles */
+
+.px-node-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1024px) {
+  .px-node-grid { grid-template-columns: 1fr; }
+}
+
+.px-node-grid .px-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.px-mr-4 { margin-right: 4px; }

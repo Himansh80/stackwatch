@@ -33,6 +33,8 @@ import ProxmoxLxcListPage from './components/proxmox/ProxmoxLxcListPage';
 import ProxmoxLxcDetailPage from './components/proxmox/ProxmoxLxcDetailPage';
 import ProxmoxLxcCreatePage from './components/proxmox/ProxmoxLxcCreatePage';
 import ProxmoxVmCreatePage from './components/proxmox/ProxmoxVmCreatePage';
+import ProxmoxNodeDashboard from './components/proxmox/ProxmoxNodeDashboard';
+import ProxmoxStorageContentPage from './components/proxmox/ProxmoxStorageContentPage';
 import { useAuthState } from './lib/useAuthState';
 
 export default function App() {
@@ -61,6 +63,8 @@ export default function App() {
       <Route path="/proxmox-lxc/new" element={isLoggedIn ? <ProxmoxLxcCreatePage /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox-lxc/:hostId/:node/:vmid" element={isLoggedIn ? <ProxmoxLxcDetailPage /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox-vms/new" element={isLoggedIn ? <ProxmoxVmCreatePage /> : <Navigate to="/login" replace />} />
+      <Route path="/proxmox/nodes/:hostId/:node" element={isLoggedIn ? <ProxmoxNodeDashboard /> : <Navigate to="/login" replace />} />
+      <Route path="/proxmox/storage/:hostId/:node/:storage" element={isLoggedIn ? <ProxmoxStorageContentPage /> : <Navigate to="/login" replace />} />
       <Route path="/truenas" element={isLoggedIn ? <TrueNASWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/apm" element={isLoggedIn ? <ApmPage /> : <Navigate to="/login" replace />} />
       <Route path="/apm/service" element={isLoggedIn ? <ApmServicePage /> : <Navigate to="/login" replace />} />
