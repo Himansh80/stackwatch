@@ -38,7 +38,12 @@ const ALL_NAV_ITEMS: Array<{
   { key: 'homelab', to: '/homelab', icon: '◉', label: 'Homelab', section: 'workspace' },
   { key: 'profile', to: '/profile', icon: '◉', label: 'Profile', section: 'workspace' },
   { key: 'settings', to: '/settings', icon: '⚙', label: 'Settings', section: 'workspace' },
-  { key: 'proxmox', to: '/proxmox', icon: '◈', label: 'Proxmox', section: 'infrastructure' },
+  // Tier 14 (Phase 14.4+): the old /proxmox workspace has been
+  // superseded by dedicated routes (/proxmox-vms, /proxmox-lxc, ...).
+  // The sidebar now links straight into the new VM list page. The
+  // legacy workspace stays routable at /proxmox for users who
+  // bookmarked it but is no longer the Proxmox entry point.
+  { key: 'proxmox', to: '/proxmox-vms', icon: '◈', label: 'Proxmox', section: 'infrastructure' },
   { key: 'truenas', to: '/truenas', icon: '▤', label: 'TrueNAS', section: 'infrastructure' },
   { key: 'apm', to: '/apm', icon: '◴', label: 'APM', section: 'observability' },
   { key: 'logs', to: '/logs', icon: '≡', label: 'Logs', section: 'observability' },
@@ -149,31 +154,9 @@ export default function AppSidebar({
           ))}
         </div>
       ) : null}
-            {active === 'proxmox' ? (
-              <div className="dash-nav-section dash-nav-sub">
-                <span className="dash-nav-heading">Proxmox</span>
-                <Link className="dash-nav-item dash-nav-sub-item" to="/proxmox">
-                  <span className="dash-nav-icon">◈</span>
-                  <span className="dash-nav-label">Workspace</span>
-                </Link>
-                <Link className="dash-nav-item dash-nav-sub-item dash-nav-active" to="/proxmox-vms">
-            <span className="dash-nav-icon">▣</span>
-            <span className="dash-nav-label">VM List (new)</span>
-          </Link>
-          <Link className="dash-nav-item dash-nav-sub-item" to="/proxmox-vms/new">
-            <span className="dash-nav-icon">+</span>
-            <span className="dash-nav-label">Create VM</span>
-          </Link>
-          <Link className="dash-nav-item dash-nav-sub-item" to="/proxmox-lxc">
-            <span className="dash-nav-icon">▤</span>
-            <span className="dash-nav-label">LXC List</span>
-          </Link>
-          <Link className="dash-nav-item dash-nav-sub-item" to="/proxmox-lxc/new">
-            <span className="dash-nav-icon">+</span>
-            <span className="dash-nav-label">Create LXC</span>
-          </Link>
-        </div>
-      ) : null}
+            {/* Tier 14: Proxmox nav lives inside ProxmoxShell (the page's own
+                sidebar), not here. The global AppSidebar just shows the
+                single 'Proxmox' link to the VM list. */}
       <div className="dash-sidebar-bottom">
         <div className="dash-connection">
           <span className="dash-live-dot" />

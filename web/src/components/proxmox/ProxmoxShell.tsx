@@ -1,14 +1,25 @@
 /**
  * Tier 14 (Phase 14.4+) — Shared shell wrapper for all Proxmox pages.
  *
- * The OLD ProxmoxWorkspace has its own internal section tabs (Overview,
- * Compute, Storage, ...) — those don't make sense for the new dedicated
- * routes (/proxmox-vms, /proxmox-lxc, /proxmox-vms/new, ...). So we
- * extract the chrome (topbar + sidebar with sectionless nav links) into
- * this wrapper and let every new page render its own content.
+ * Provides the px-shell layout: topbar + sidebar (with sectionless
+ * nav) + main + page header. Uses ONLY the px-* design system
+ * (defined in web/src/styles/proxmox.css) so the new Tier-14 pages
+ * match the rest of the new design (Datadog style with KPI cards,
+ * status pills, px-tables, etc.).
+ *
+ * The OLD /proxmox workspace (still routable, still works) uses the
+ * older sw-* design system and is NOT wrapped in this component.
+ *
+ * Props:
+ *   - title: page title (e.g. "VMs", "LXC Containers", "VM 100")
+ *   - subtitle: short line under the title
+ *   - actions: optional right-side action buttons (Add VM, Refresh)
+ *   - showSectionNav: true (default) = show section nav in sidebar.
+ *     false = suppress the nav (used on full-screen pages like
+ *     console / wizards).
  */
 import { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export interface ProxmoxShellProps {
   title: string;
@@ -20,7 +31,6 @@ export interface ProxmoxShellProps {
 }
 
 const sectionLinks: Array<{ href: string; label: string; icon: string }> = [
-  { href: '/proxmox', label: 'Overview (legacy)', icon: '⌂' },
   { href: '/proxmox-vms', label: 'VMs', icon: '▣' },
   { href: '/proxmox-vms/new', label: 'Create VM', icon: '＋' },
   { href: '/proxmox-lxc', label: 'LXC Containers', icon: '▤' },
@@ -44,60 +54,69 @@ export default function ProxmoxShell({
   children,
   showSectionNav = true,
 }: ProxmoxShellProps) {
+  const location = useLocation();
+
   function signOut() {
     localStorage.removeItem('stackwatch.token');
     window.location.href = '/login';
   }
 
   return (
-    <div className="sw-shell">
-      <header className="sw-topbar">
+    <div className="px-shell">
+      <header className="px-topbar">
         <div>
-          <div className="sw-brand">
-            <span className="sw-brand-mark">S</span>
+          <Link to="/proxmox-vms" className="px-brand">
+            <span className="px-brand-mark">S</span>
             <span>StackWatch</span>
-          </div>
-          <span className="sw-product-label">Infrastructure control plane</span>
+          </Link>
+          <span className="px-product-label">Infrastructure control plane</span>
         </div>
         <div />
-        <div className="sw-top-actions">
+        <div className="px-top-actions">
           <button
             type="button"
-            className="sw-button sw-button-quiet"
+            className="px-btn px-topbar-btn"
             onClick={signOut}
           >
             Sign out
           </button>
         </div>
       </header>
-      <div className="sw-layout">
-        <nav className="sw-sidebar">
-          <div className="sw-side-title">CONTROL PLANE</div>
-          {showSectionNav &&
-            sectionLinks.map((item) => (
-              <Link key={item.href} to={item.href} className="sw-nav-item">
+      <nav className="px-sidebar">
+        <div className="px-side-title">CONTROL PLANE</div>
+        {showSectionNav &&
+          sectionLinks.map((item) => {
+            const isActive =
+              location.pathname === item.href ||
+              (item.href !== '/proxmox-vms' && location.pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`px-nav-item${isActive ? ' active' : ''}`}
+              >
                 <span>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
-            ))}
-          <div className="sw-side-note">
-            <strong>Tier 14</strong>
-            <span>Proxmox full Web UI replacement</span>
-            <small>Built per MASTER_BUILD_PLAN §14.</small>
+            );
+          })}
+        <div className="px-side-note">
+          <strong>Tier 14</strong>
+          <span>Proxmox full Web UI replacement</span>
+          <small>Built per MASTER_BUILD_PLAN §14.</small>
+        </div>
+      </nav>
+      <main className="px-main">
+        <div className="px-page-head">
+          <div>
+            <span className="px-eyebrow">{eyebrow}</span>
+            <h1>{title}</h1>
+            {subtitle && <p>{subtitle}</p>}
           </div>
-        </nav>
-        <main className="sw-main">
-          <div className="sw-page-head">
-            <div>
-              <span className="sw-eyebrow">{eyebrow}</span>
-              <h1>{title}</h1>
-              {subtitle && <p>{subtitle}</p>}
-            </div>
-            {actions && <div className="sw-page-actions">{actions}</div>}
-          </div>
-          {children}
-        </main>
-      </div>
+          {actions && <div className="px-page-actions">{actions}</div>}
+        </div>
+        {children}
+      </main>
     </div>
   );
 }
