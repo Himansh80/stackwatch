@@ -27,12 +27,26 @@ export interface ProxmoxNode extends JsonObject {
 }
 
 export interface ProxmoxResource extends JsonObject {
+  // /vms response (Proxmox's actual fields)
   id?: string;
-  type?: string;
+  type?: string;          // legacy alias for kind; usually null from /vms
+  kind?: 'qemu' | 'lxc' | 'pool' | 'node' | 'storage' | 'network' | string;
   node?: string;
   vmid?: number;
   name?: string;
   status?: string;
+  cpu_count?: number;
+  cpu_usage?: number;      // fraction 0-1
+  mem_total?: number;      // bytes
+  mem_used?: number;       // bytes
+  disk_total?: number;     // bytes
+  disk_used?: number;      // bytes
+  net_in?: number;         // bytes
+  net_out?: number;        // bytes
+  uptime_seconds?: number; // seconds
+  template?: string;
+  // Legacy aliases kept so old code keeps compiling; new code
+  // should prefer the suffixed fields above.
   cpu?: number;
   mem?: number;
   maxmem?: number;

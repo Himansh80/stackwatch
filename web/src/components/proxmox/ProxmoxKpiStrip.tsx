@@ -33,15 +33,22 @@ function countByStatus(rows: ProxmoxResource[]): Record<string, number> {
 }
 
 function clusterUsage(rows: ProxmoxResource[]): { cpu: number; ram: number; ramTotal: number } {
+  // Proxmox /vms returns cpu_usage (fraction 0-1) and mem_used/mem_total
+  // (bytes). Fall back to legacy /cluster/resources keys for old code paths.
   let cpu = 0;
   let ram = 0;
   let ramTotal = 0;
   let n = 0;
   for (const row of rows) {
-    if (typeof row.cpu === 'number') cpu += row.cpu;
-    if (typeof row.mem === 'number') ram += row.mem;
-    if (typeof row.maxmem === 'number') ramTotal += row.maxmem;
-    n += 1;
+    const c = typeof row.cpu_usage === 'number' ? row.cpu_usage
+      : typeof row.cpu === 'number' ? row.cpu : 0;
+    if (c > 0) { cpu += c; n += 1; }
+    const m = typeof row.mem_used === 'number' ? row.mem_used
+      : typeof row.mem === 'number' ? row.mem : 0;
+    if (m > 0) ram += m;
+    const mt = typeof row.mem_total === 'number' ? row.mem_total
+      : typeof row.maxmem === 'number' ? row.maxmem : 0;
+    if (mt > 0) ramTotal += mt;
   }
   return { cpu: n ? cpu / n : 0, ram, ramTotal };
 }

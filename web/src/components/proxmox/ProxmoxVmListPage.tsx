@@ -80,6 +80,63 @@ export default function ProxmoxVmListPage({ initialHostId }: Props) {
     };
   }, [load]);
 
+  // If no host was pre-selected, pick the first available one.
+  useEffect(() => {
+    if (hostId) return;
+    let alive = true;
+    api<{ hosts?: Array<{ id: string; name: string }> }>('GET', '/api/v1/proxmox/hosts')
+      .then((data) => {
+        if (!alive) return;
+        const hosts = data.hosts ?? [];
+        if (hosts.length > 0 && hosts[0]) setHostId(hosts[0].id);
+      })
+      .catch(() => {/* ignore */});
+    return () => { alive = false; };
+  }, [hostId]);
+
+  // After loading the VM list, fetch IPs from the QEMU guest agent
+  // for each running VM. /vms doesn't carry IPs; only the agent does.
+  // IPs land in `ips` keyed by vmid; table reads from there.
+  const [ips, setIps] = useState<Record<number, string>>({});
+  const fetchIps = useCallback(async (rows: ProxmoxResource[]) => {
+    if (!hostId) return;
+    const candidates = rows.filter((r) =>
+      readString(r.kind).toLowerCase() === 'qemu' &&
+      readString(r.status).toLowerCase() === 'running',
+    );
+    const updates: Record<number, string> = {};
+    await Promise.all(
+      candidates.map(async (vm) => {
+        if (!vm.node || !vm.vmid) return;
+        try {
+          const data = await api<{ result?: Array<{ ip?: string; name: string }> }>(
+            'GET',
+            `/api/v1/proxmox/hosts/${hostId}/nodes/${encodeURIComponent(String(vm.node))}/qemu/${vm.vmid}/agent/network-get-interfaces`,
+          );
+          const ifaces = data.result ?? [];
+          for (const iface of ifaces) {
+            const ip = String(iface.ip ?? '');
+            if (ip && !ip.startsWith('127.') && !ip.startsWith('::1')) {
+              updates[Number(vm.vmid)] = ip;
+              return;
+            }
+          }
+        } catch {
+          /* agent not installed; skip */
+        }
+      }),
+    );
+    if (Object.keys(updates).length > 0) {
+      setIps((prev) => ({ ...prev, ...updates }));
+    }
+  }, [hostId]);
+
+  // Re-fetch IPs after each successful load (keeps them fresh)
+  useEffect(() => {
+    if (resources.length > 0) void fetchIps(resources);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resources, hostId]);
+
   // Filtered rows
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -208,6 +265,7 @@ export default function ProxmoxVmListPage({ initialHostId }: Props) {
           busy={busy}
           onAction={onAction}
           hostId={hostId}
+          ips={ips}
           emptyHint={
             resources.length === 0
               ? loading
