@@ -1,6 +1,5 @@
 /**
- * Tier 14 Phase 14.5 — VM create wizard orchestrator.
- * 4-step flow: ISO → Hardware → Network → Confirm.
+ * Tier 14 Phase 14.6 — VM create wizard orchestrator (extended for multi-NIC + EFI + Cloud-Init).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -11,7 +10,7 @@ import ProxmoxVmCreateStep1Iso, { type Iso } from './ProxmoxVmCreateStep1Iso';
 import ProxmoxVmCreateStep2Hardware from './ProxmoxVmCreateStep2Hardware';
 import ProxmoxVmCreateStep3Network from './ProxmoxVmCreateStep3Network';
 import ProxmoxVmCreateStep4Confirm from './ProxmoxVmCreateStep4Confirm';
-import { DEFAULT_VM_SPEC, type VmSpec } from './lib/vm-types';
+import { DEFAULT_VM_SPEC, type Nic, type VmSpec } from './lib/vm-types';
 
 const STEPS = [
   { id: 1, title: 'ISO' },
@@ -19,6 +18,12 @@ const STEPS = [
   { id: 3, title: 'Network' },
   { id: 4, title: 'Confirm' },
 ] as const;
+
+function buildNicStr(nic: Nic): string {
+  let s = `${nic.netModel},bridge=${nic.bridge}`;
+  if (nic.vlanTag) s += `,tag=${nic.vlanTag}`;
+  return s;
+}
 
 export default function ProxmoxVmCreatePage() {
   const [searchParams] = useSearchParams();
@@ -32,7 +37,6 @@ export default function ProxmoxVmCreatePage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Fetch nodes for the selected host
   useEffect(() => {
     if (!hostId) return;
     let alive = true;
@@ -70,6 +74,9 @@ export default function ProxmoxVmCreatePage() {
       if (!spec.storage) { setError('Root storage is required.'); return; }
       if (spec.vmid < 100) { setError('VMID must be >= 100.'); return; }
     }
+    if (step === 3 && spec.nics.length === 0) {
+      setError('Add at least one NIC.'); return;
+    }
     setStep((s) => Math.min(4, s + 1));
   }
   function back() { setStep((s) => Math.max(1, s - 1)); }
@@ -79,7 +86,6 @@ export default function ProxmoxVmCreatePage() {
     setBusy(true);
     setError('');
     try {
-      // Build Proxmox API body
       const body: Record<string, unknown> = {
         vmid: spec.vmid,
         name: spec.name,
@@ -89,11 +95,28 @@ export default function ProxmoxVmCreatePage() {
         bios: spec.bios,
         machine: spec.machine,
         cpu: spec.cpuType,
-        net0: buildNet0(spec),
+        ostype: spec.osType,
         scsi0: `${spec.storage}:${spec.disk}`,
         ide2: spec.iso ? `${spec.iso},media=cdrom` : 'none,media=cdrom',
         start: spec.startAfterCreate ? 1 : 0,
       };
+      // Multi-NIC: net0..netN
+      spec.nics.forEach((nic, idx) => {
+        body[`net${idx}`] = buildNicStr(nic);
+      });
+      // Cloud-Init drive
+      if (spec.cloudInit) {
+        body.ide2 = 'none,media=cdrom';
+        body.cicustom = `user=${spec.storage}:snippets/${spec.vmid}-user.yaml`;
+      }
+      // EFI disk
+      if (spec.efiDisk) {
+        body.efidisk0 = `${spec.storage}:1,efitype=4m,pre-enrolled-keys=1`;
+      }
+      // TPM state
+      if (spec.tpmState) {
+        body.tpmstate0 = `${spec.storage}:1,version=v2.0`;
+      }
       await api(
         'POST',
         `/api/v1/proxmox/hosts/${hostId}/nodes/${encodeURIComponent(node)}/qemu`,
@@ -206,10 +229,4 @@ export default function ProxmoxVmCreatePage() {
       </div>
     </motion.div>
   );
-}
-
-function buildNet0(spec: VmSpec): string {
-  let parts = `${spec.netModel},bridge=${spec.bridge}`;
-  if (spec.vlanTag) parts += `,tag=${spec.vlanTag}`;
-  return parts;
 }

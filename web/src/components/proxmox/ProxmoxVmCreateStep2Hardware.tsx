@@ -1,5 +1,5 @@
 /**
- * Tier 14 Phase 14.5 — VM wizard step 2: Hardware (cores / RAM / disk / BIOS / machine / CPU).
+ * Tier 14 Phase 14.6 — VM wizard step 2: Hardware (extended with Cloud-Init / EFI / TPM).
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
@@ -55,7 +55,7 @@ export default function ProxmoxVmCreateStep2Hardware({ hostId, node, spec, onCha
     <div>
       <h3 className="px-wizard-step-title">Hardware</h3>
       <p className="px-wizard-step-desc">
-        Configure VMID, name, CPU, memory, disk, BIOS, and machine type.
+        Configure VMID, name, CPU, memory, disk, BIOS, machine, and boot type.
       </p>
       <div className="px-form-grid">
         <div className="px-form-field">
@@ -146,7 +146,7 @@ export default function ProxmoxVmCreateStep2Hardware({ hostId, node, spec, onCha
             <option value="i440fx">i440fx (legacy)</option>
           </select>
         </div>
-        <div className="px-form-field px-form-full">
+        <div className="px-form-field">
           <label>CPU type</label>
           <select
             value={spec.cpuType}
@@ -158,6 +158,55 @@ export default function ProxmoxVmCreateStep2Hardware({ hostId, node, spec, onCha
             <option value="x86-64-v2-AES">x86-64-v2-AES</option>
             <option value="x86-64-v3">x86-64-v3</option>
           </select>
+        </div>
+        <div className="px-form-field">
+          <label>OS type</label>
+          <select
+            value={spec.osType}
+            onChange={(e) => onChange({ osType: e.target.value as VmSpec['osType'] })}
+            className="px-form-select"
+          >
+            <option value="l26">Linux 2.6+</option>
+            <option value="win11">Windows 11 / 2022</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="px-form-toggles">
+        <div className="px-form-field px-form-toggle">
+          <label htmlFor="px-vm-cloudinit">
+            <input
+              id="px-vm-cloudinit"
+              type="checkbox"
+              checked={spec.cloudInit}
+              onChange={(e) => onChange({ cloudInit: e.target.checked })}
+            />
+            Cloud-Init drive (first-boot user/network/ssh-key config)
+          </label>
+        </div>
+        <div className="px-form-field px-form-toggle">
+          <label htmlFor="px-vm-efi">
+            <input
+              id="px-vm-efi"
+              type="checkbox"
+              checked={spec.efiDisk}
+              onChange={(e) => onChange({ efiDisk: e.target.checked, tpmState: e.target.checked ? spec.tpmState : false })}
+            />
+            EFI disk (OVMF + EFI storage, required for Windows / modern Linux)
+          </label>
+        </div>
+        <div className="px-form-field px-form-toggle">
+          <label htmlFor="px-vm-tpm" className={spec.efiDisk ? '' : 'px-form-disabled'}>
+            <input
+              id="px-vm-tpm"
+              type="checkbox"
+              checked={spec.tpmState}
+              onChange={(e) => onChange({ tpmState: e.target.checked })}
+              disabled={!spec.efiDisk}
+            />
+            TPM state (required for Windows 11)
+          </label>
         </div>
       </div>
     </div>

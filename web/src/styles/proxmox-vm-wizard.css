@@ -1,0 +1,73 @@
+/* Tier 14 Phase 14.6 — Multi-NIC editor + form toggles */
+
+.px-form-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.px-form-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.px-nic-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.px-nic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.px-nic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--px-surface-2);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-sm);
+}
+
+.px-nic-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--px-accent);
+  min-width: 42px;
+}
+
+.px-nic-fields {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr auto;
+  gap: 8px;
+  flex: 1;
+  align-items: center;
+}
+
+.px-nic-bridge,
+.px-nic-vlan {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12.5px;
+}
+
+.px-nic-model {
+  font-size: 12.5px;
+}
+
+@media (max-width: 768px) {
+  .px-nic-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  .px-nic-bridge { grid-column: 1 / -1; }
+  .px-nic-model  { grid-column: 1; }
+  .px-nic-vlan   { grid-column: 2; }
+}

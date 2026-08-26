@@ -1,26 +1,36 @@
 /**
- * Tier 14 Phase 14.5 — VM creation spec (shared by all 4 wizard steps).
+ * Tier 14 Phase 14.6 — VM creation spec (extended with multi-NIC + Cloud-Init + EFI).
  */
+export interface Nic {
+  bridge: string;
+  netModel: 'virtio' | 'e1000' | 'vmxnet3';
+  vlanTag: string;
+}
+
 export interface VmSpec {
   // Step 1: ISO
-  iso: string; // volid OR empty for "no media"
+  iso: string;
   // Step 2: Hardware
   vmid: number;
   name: string;
   cores: number;
-  memory: number; // MB
-  disk: number; // GB
-  storage: string; // root disk storage name
+  memory: number;
+  disk: number;
+  storage: string;
   bios: 'seabios' | 'ovmf';
   machine: 'q35' | 'i440fx';
   cpuType: string;
-  // Step 3: Network
-  bridge: string;
-  netModel: 'virtio' | 'e1000' | 'vmxnet3';
-  vlanTag: string;
+  osType: 'l26' | 'win11' | 'other';
+  cloudInit: boolean;
+  efiDisk: boolean;
+  tpmState: boolean;
+  // Step 3: Network (now multi-NIC)
+  nics: Nic[];
   // Step 4: lifecycle
   startAfterCreate: boolean;
 }
+
+export const MAX_NICS = 4;
 
 export const DEFAULT_VM_SPEC: VmSpec = {
   iso: '',
@@ -33,8 +43,12 @@ export const DEFAULT_VM_SPEC: VmSpec = {
   bios: 'seabios',
   machine: 'q35',
   cpuType: 'host',
-  bridge: 'vmbr0',
-  netModel: 'virtio',
-  vlanTag: '',
+  osType: 'l26',
+  cloudInit: false,
+  efiDisk: false,
+  tpmState: false,
+  nics: [
+    { bridge: 'vmbr0', netModel: 'virtio', vlanTag: '' },
+  ],
   startAfterCreate: true,
 };

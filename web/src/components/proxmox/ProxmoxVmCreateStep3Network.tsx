@@ -1,7 +1,9 @@
 /**
- * Tier 14 Phase 14.5 — VM wizard step 3: Network (bridge + model + VLAN).
+ * Tier 14 Phase 14.6 — VM wizard step 3: Network (multi-NIC with add/remove).
  */
-import type { VmSpec } from './lib/vm-types';
+import { AnimatePresence } from 'framer-motion';
+import ProxmoxNicRow from './ProxmoxNicRow';
+import { MAX_NICS, type Nic, type VmSpec } from './lib/vm-types';
 
 interface Props {
   spec: VmSpec;
@@ -9,47 +11,53 @@ interface Props {
 }
 
 export default function ProxmoxVmCreateStep3Network({ spec, onChange }: Props) {
+  function addNic() {
+    if (spec.nics.length >= MAX_NICS) return;
+    onChange({ nics: [...spec.nics, { bridge: 'vmbr0', netModel: 'virtio', vlanTag: '' }] });
+  }
+  function updateNic(idx: number, patch: Partial<Nic>) {
+    onChange({ nics: spec.nics.map((n, i) => (i === idx ? { ...n, ...patch } : n)) });
+  }
+  function removeNic(idx: number) {
+    onChange({ nics: spec.nics.filter((_, i) => i !== idx) });
+  }
+
   return (
     <div>
       <h3 className="px-wizard-step-title">Network</h3>
       <p className="px-wizard-step-desc">
-        Configure the primary network interface (Phase 14.6 will add multi-NIC).
+        Configure up to {MAX_NICS} network interfaces. Each can be on a different bridge / VLAN.
       </p>
 
-      <div className="px-form-grid">
-        <div className="px-form-field">
-          <label>Bridge *</label>
-          <input
-            type="text"
-            value={spec.bridge}
-            onChange={(e) => onChange({ bridge: e.target.value })}
-            placeholder="vmbr0"
-          />
-        </div>
-
-        <div className="px-form-field">
-          <label>Network model</label>
-          <select
-            value={spec.netModel}
-            onChange={(e) => onChange({ netModel: e.target.value as VmSpec['netModel'] })}
-            className="px-form-select"
-          >
-            <option value="virtio">virtio (fast, modern)</option>
-            <option value="e1000">e1000 (broadcom compat)</option>
-            <option value="vmxnet3">vmxnet3 (VMware compat)</option>
-          </select>
-        </div>
-
-        <div className="px-form-field px-form-full">
-          <label>VLAN tag (optional)</label>
-          <input
-            type="text"
-            value={spec.vlanTag}
-            onChange={(e) => onChange({ vlanTag: e.target.value.replace(/\D/g, '') })}
-            placeholder="10"
-          />
-        </div>
+      <div className="px-nic-toolbar">
+        <span className="px-muted">{spec.nics.length} of {MAX_NICS} NICs</span>
+        <button
+          type="button"
+          className="px-btn px-btn-quiet"
+          onClick={addNic}
+          disabled={spec.nics.length >= MAX_NICS}
+        >
+          + Add NIC
+        </button>
       </div>
+
+      <div className="px-nic-list">
+        <AnimatePresence>
+          {spec.nics.map((nic, idx) => (
+            <ProxmoxNicRow
+              key={idx}
+              index={idx}
+              nic={nic}
+              onChange={(patch) => updateNic(idx, patch)}
+              onRemove={() => removeNic(idx)}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {spec.nics.length === 0 && (
+        <p className="px-muted" style={{ marginTop: 12 }}>No NICs configured. Click "+ Add NIC" to add one.</p>
+      )}
     </div>
   );
 }
