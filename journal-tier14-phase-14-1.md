@@ -102,3 +102,19 @@ When the user says "next", I'll start Phase 14.2: **VM detail page** at `/proxmo
 Estimated ~6-8 more sessions for all of Tier 14 (per MASTER-PLAN).
 
 ---
+## Universal build standard (locked 2026-08-26, applies to EVERY tier/phase/sub-tier)
+
+User said: "and not for this follow for every tiers and sub tiers ok the modularity approach, datadog and other features and speckit and other tools across every tiers ok am i clear and comprehensive"
+
+Universal standards (NO EXCEPTIONS):
+1. **Modular approach** — every file ≤400 LOC, split by domain
+2. **Datadog features** — dark theme, KPI cards, status pills, severity badges, professional polish, tabular-nums
+3. **Speckit methodology** — proposal → spec → plan → tasks → checklist → build → archive (with journal + memory)
+4. **Framer-motion** — smooth animations, whileHover/whileTap, AnimatePresence, animated count-up
+5. **ui/ux-pro-max** — best design components and patterns
+6. **21st.dev components** — when applicable for specialized UI
+7. **Test workflow** — during phase + end-of-phase A-to-Z + end-of-tier mega-test
+
+Scope: ALL of StackWatch going forward — Tier 14 through Tier 25, all sub-features, all phases.
+
+NO EXCEPTIONS: every change gets modular + Datadog + speckit (where applicable) + framer-motion (where UI) + tests.
