@@ -32,23 +32,28 @@ export default function ProxmoxVmListPage({ initialHostId }: Props) {
   const [status, setStatus] = useState<StatusFilter>('all');
 
   const load = useCallback(async () => {
-    if (!hostId) return;
-    setLoading(true);
-    try {
-      const data = await api<{ resources?: ProxmoxResource[] } | ProxmoxResource[]>(
-        'GET',
-        `/api/v1/proxmox/hosts/${hostId}/vms`,
-      );
-      const list = Array.isArray(data) ? data : data.resources ?? [];
-      setResources(list);
-      setError('');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to load VMs.');
-      setResources([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [hostId]);
+      if (!hostId) return;
+      setLoading(true);
+      try {
+        // /vms returns {total, vms: [...]}; /cluster/resources returns {resources: [...]}.
+        // We call /vms (which Proxmox itself uses) and the field is `vms`.
+        const data = await api<{ vms?: ProxmoxResource[] } | ProxmoxResource[]>(
+          'GET',
+          `/api/v1/proxmox/hosts/${hostId}/vms`,
+        );
+        const raw = Array.isArray(data) ? data : data.vms ?? [];
+        // Filter out non-VM rows: Proxmox's /vms returns `pool` rows (no vmid)
+        // and stopped-but-removed entries (no name). Only keep rows with vmid > 0.
+        const list = raw.filter((r) => Number(r.vmid) > 0 || readString(r.name) !== '');
+        setResources(list);
+        setError('');
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Unable to load VMs.');
+        setResources([]);
+      } finally {
+        setLoading(false);
+      }
+    }, [hostId]);
 
   // Initial + host-id change
   useEffect(() => {
