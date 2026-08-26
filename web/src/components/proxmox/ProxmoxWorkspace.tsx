@@ -279,7 +279,13 @@ export default function ProxmoxWorkspace() {
       }
       if (section === 'compute') {
         const resourcePayload = await read(pxGet(hostId, '/vms'), {});
-        setResources(listFrom(resourcePayload, 'vms', 'resources') as ProxmoxResource[]);
+        // /vms also returns the cluster node + storage + network rows + the
+        // storage pool row. Filter to just qemu + lxc (the Compute list).
+        const all = listFrom(resourcePayload, 'vms', 'resources') as ProxmoxResource[];
+        setResources(all.filter((row) => {
+          const kind = String(row.kind ?? row.type ?? '').toLowerCase();
+          return kind === 'qemu' || kind === 'lxc';
+        }));
       }
       if (section === 'storage') {
         const [storagePayload, diskPayload, zfsPayload] = await Promise.all([
@@ -506,7 +512,15 @@ function Overview({ nodes, resources, hostState, onResource }: { nodes: ProxmoxN
   const stopped = resources.filter((row) => readString(row.status).toLowerCase() === 'stopped').length;
   return <>
     <div className="sw-stat-grid"><Stat label="Cluster nodes" value={nodes.length} hint="Live from Proxmox" /><Stat label="Resources" value={resources.length} hint={`${running} running · ${stopped} stopped`} accent="blue" /><Stat label="Connection" value={readString(objectFrom(hostState.connectivity).ok) === 'false' ? 'Degraded' : 'Healthy'} hint="Last live test" accent="green" /><Stat label="Cluster mode" value={readString(objectFrom(hostState.cluster).type || hostState.status || 'standalone')} hint="Reported by host" accent="purple" /></div>
-    <SearchablePanel title="Nodes" eyebrow="Compute fabric" rows={nodes} columns={[{ key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'maxcpu', label: 'CPU capacity' }, { key: 'maxmem', label: 'Memory', render: (row) => formatBytes(row.maxmem) }, { key: 'uptime', label: 'Uptime', render: (row) => row.uptime ? `${Math.floor(Number(row.uptime) / 86400)}d` : '—' }]} />
+    <SearchablePanel title="Nodes" eyebrow="Compute fabric" rows={nodes} columns={[
+      { key: 'node', label: 'Node' },
+      { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> },
+      // Proxmox's /nodes returns cpu_count, mem_total, uptime_seconds
+      // (not maxcpu/maxmem/uptime). Map so columns show real numbers.
+      { key: 'cpu_count', label: 'CPU capacity', render: (row) => formatPercent(Number(row.cpu ?? 0) * 100) },
+      { key: 'mem_total', label: 'Memory', render: (row) => formatBytes(row.mem_total) },
+      { key: 'uptime_seconds', label: 'Uptime', render: (row) => row.uptime_seconds ? `${Math.floor(Number(row.uptime_seconds) / 86400)}d` : '—' },
+    ]} />
     <SearchablePanel title="Cluster resources" eyebrow="VMs and containers" rows={resources} onRowClick={onResource} columns={[{ key: 'type', label: 'Type' }, { key: 'vmid', label: 'ID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'cpu', label: 'CPU', render: (row) => formatPercent(row.cpu) }, { key: 'mem', label: 'Memory', render: (row) => formatBytes(row.mem) }]} />
   </>;
 }

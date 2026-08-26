@@ -51,13 +51,14 @@ export default function ProxmoxLxcDetailPage() {
     if (!hostId || !Number.isFinite(vmidNum)) return;
     setLoading(true);
     try {
-      const data = await api<{ resources?: ProxmoxResource[] } | ProxmoxResource[]>(
-        'GET',
-        `/api/v1/proxmox/hosts/${hostId}/vms`,
-      );
-      const list = Array.isArray(data) ? data : data.resources ?? [];
+      const data = await api<{ vms?: ProxmoxResource[]; resources?: ProxmoxResource[] } | ProxmoxResource[]>(
+            'GET',
+            `/api/v1/proxmox/hosts/${hostId}/vms`,
+          );
+          // Proxmox's /vms returns {total, vms:[...]}; tolerates resources too
+          const list = Array.isArray(data) ? data : data.vms ?? data.resources ?? [];
       const found = list.find(
-        (r) => Number(r.vmid) === vmidNum && readString(r.type).toLowerCase().includes('lxc'),
+        (r) => Number(r.vmid) === vmidNum && readString(r.kind).toLowerCase() === 'lxc',
       );
       setCt(found ?? null);
       setError(found ? '' : `CT ${vmid} not found on host ${hostId.slice(0, 8)}`);

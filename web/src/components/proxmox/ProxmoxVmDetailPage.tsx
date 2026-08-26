@@ -55,14 +55,16 @@ export default function ProxmoxVmDetailPage() {
   }, [tab]);
 
   const loadVM = useCallback(async () => {
-    if (!hostId || !Number.isFinite(vmidNum)) return;
-    setLoading(true);
-    try {
-      const data = await api<{ resources?: ProxmoxResource[] } | ProxmoxResource[]>(
-        'GET',
-        `/api/v1/proxmox/hosts/${hostId}/vms`,
-      );
-      const list = Array.isArray(data) ? data : data.resources ?? [];
+      if (!hostId || !Number.isFinite(vmidNum)) return;
+      setLoading(true);
+      try {
+        const data = await api<{ vms?: ProxmoxResource[]; resources?: ProxmoxResource[] } | ProxmoxResource[]>(
+          'GET',
+          `/api/v1/proxmox/hosts/${hostId}/vms`,
+        );
+        // Proxmox's /vms returns {total, vms:[...]}. Tolerate either vms or resources
+        // for forward-compat with the older /cluster/resources shape.
+        const list = Array.isArray(data) ? data : data.vms ?? data.resources ?? [];
       const found = list.find((r) => Number(r.vmid) === vmidNum);
       setVm(found ?? null);
       setError(found ? '' : `VM ${vmid} not found on host ${hostId.slice(0, 8)}`);

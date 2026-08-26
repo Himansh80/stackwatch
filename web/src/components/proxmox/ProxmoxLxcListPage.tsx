@@ -30,13 +30,14 @@ export default function ProxmoxLxcListPage() {
     if (!hostId) return;
     setLoading(true);
     try {
-      const data = await api<{ resources?: ProxmoxResource[] } | ProxmoxResource[]>(
-        'GET',
-        `/api/v1/proxmox/hosts/${hostId}/vms`,
-      );
-      const list = Array.isArray(data) ? data : data.resources ?? [];
-      // Filter to LXC only
-      setResources(list.filter((r) => readString(r.type).toLowerCase().includes('lxc')));
+      const data = await api<{ vms?: ProxmoxResource[]; resources?: ProxmoxResource[] } | ProxmoxResource[]>(
+            'GET',
+            `/api/v1/proxmox/hosts/${hostId}/vms`,
+          );
+          // Proxmox's /vms returns {total, vms:[...]}; tolerates resources too
+          const list = Array.isArray(data) ? data : data.vms ?? data.resources ?? [];
+          // Filter to LXC only (Proxmox's rows have kind='lxc', type is null)
+          setResources(list.filter((r) => readString(r.kind).toLowerCase() === 'lxc'));
       setError('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to load containers.');

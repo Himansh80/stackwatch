@@ -36,16 +36,20 @@ export default function ProxmoxVmListPage({ initialHostId }: Props) {
       if (!hostId) return;
       setLoading(true);
       try {
-        // /vms returns {total, vms: [...]}; /cluster/resources returns {resources: [...]}.
+        // Proxmox's /vms returns {total, vms:[...]}; tolerates /cluster/resources too
         // We call /vms (which Proxmox itself uses) and the field is `vms`.
         const data = await api<{ vms?: ProxmoxResource[] } | ProxmoxResource[]>(
           'GET',
           `/api/v1/proxmox/hosts/${hostId}/vms`,
         );
         const raw = Array.isArray(data) ? data : data.vms ?? [];
-        // Filter out non-VM rows: Proxmox's /vms returns `pool` rows (no vmid)
-        // and stopped-but-removed entries (no name). Only keep rows with vmid > 0.
-        const list = raw.filter((r) => Number(r.vmid) > 0 || readString(r.name) !== '');
+        // /vms also returns the cluster's node/storage/network rows + the
+        // storage pool row (kind='pool'). Filter to just qemu + lxc
+        // — that's what the dashboard cares about.
+        const list = raw.filter((r) => {
+          const kind = readString(r.kind).toLowerCase();
+          return kind === 'qemu' || kind === 'lxc';
+        });
         setResources(list);
         setError('');
       } catch (cause) {
