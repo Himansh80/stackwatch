@@ -198,12 +198,11 @@ export default function Dashboard() {
   return (
     <div className="dash-app">
       <AppSidebar
-        active="dashboard"
-        onLogout={logout}
-        apiVersion={text(value(snapshot.health, 'version'), 'StackWatch API')}
-        firingAlerts={firingAlerts}
-        show={['dashboard', 'billing', 'proxmox', 'truenas']}
-      />
+              active="dashboard"
+              onLogout={logout}
+              apiVersion={text(value(snapshot.health, 'version'), 'StackWatch API')}
+              firingAlerts={firingAlerts}
+            />
       <main className="dash-main">
         <header className="dash-topbar">
           <div className="dash-greeting">

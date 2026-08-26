@@ -1392,3 +1392,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* Sub-navigation (Tier 14 — Proxmox VM List under Proxmox) */
+.dash-nav-sub {
+  padding-left: 12px;
+  margin-left: 8px;
+  border-left: 1px solid rgba(148, 163, 184, 0.15);
+}
+.dash-nav-sub-item {
+  font-size: 12.5px;
+  padding: 6px 12px;
+  opacity: 0.75;
+}
+.dash-nav-sub-item:hover { opacity: 1; }
+.dash-nav-sub-item.dash-nav-active { opacity: 1; font-weight: 600; }
+.dash-nav-sub .dash-nav-heading {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground, #94a3b8);
+  margin-bottom: 6px;
+}
