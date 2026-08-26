@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 
-export type DetailTab = 'summary' | 'hardware' | 'network' | 'console' | 'snapshots' | 'firewall';
+export type DetailTab = 'summary' | 'hardware' | 'resources' | 'network' | 'console' | 'snapshots' | 'firewall';
 
 interface Tab {
   id: DetailTab;
@@ -16,6 +16,7 @@ interface Tab {
 const TABS: Tab[] = [
   { id: 'summary', label: 'Summary', icon: '◉' },
   { id: 'hardware', label: 'Hardware', icon: '▣' },
+  { id: 'resources', label: 'Resources', icon: '◧' },
   { id: 'network', label: 'Network', icon: '⌁' },
   { id: 'console', label: 'Console', icon: '▶' },
   { id: 'snapshots', label: 'Snapshots', icon: '◰' },

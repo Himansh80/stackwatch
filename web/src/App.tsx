@@ -29,6 +29,9 @@ import PlatformPage from './pages/PlatformPage';
 import ProxmoxWorkspace from './components/proxmox/ProxmoxWorkspace';
 import ProxmoxVmListPage from './components/proxmox/ProxmoxVmListPage';
 import ProxmoxVmDetailPage from './components/proxmox/ProxmoxVmDetailPage';
+import ProxmoxLxcListPage from './components/proxmox/ProxmoxLxcListPage';
+import ProxmoxLxcDetailPage from './components/proxmox/ProxmoxLxcDetailPage';
+import ProxmoxLxcCreatePage from './components/proxmox/ProxmoxLxcCreatePage';
 import { useAuthState } from './lib/useAuthState';
 
 export default function App() {
@@ -52,7 +55,10 @@ export default function App() {
       <Route path="/settings" element={isLoggedIn ? <SettingsPage /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox" element={isLoggedIn ? <ProxmoxWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/proxmox-vms" element={isLoggedIn ? <ProxmoxVmListPage /> : <Navigate to="/login" replace />} />
-      <Route path="/proxmox-vms/:hostId/:node/:vmid" element={isLoggedIn ? <ProxmoxVmDetailPage /> : <Navigate to="/login" replace />} />
+            <Route path="/proxmox-vms/:hostId/:node/:vmid" element={isLoggedIn ? <ProxmoxVmDetailPage /> : <Navigate to="/login" replace />} />
+            <Route path="/proxmox-lxc" element={isLoggedIn ? <ProxmoxLxcListPage /> : <Navigate to="/login" replace />} />
+            <Route path="/proxmox-lxc/new" element={isLoggedIn ? <ProxmoxLxcCreatePage /> : <Navigate to="/login" replace />} />
+            <Route path="/proxmox-lxc/:hostId/:node/:vmid" element={isLoggedIn ? <ProxmoxLxcDetailPage /> : <Navigate to="/login" replace />} />
       <Route path="/truenas" element={isLoggedIn ? <TrueNASWorkspace /> : <Navigate to="/login" replace />} />
       <Route path="/apm" element={isLoggedIn ? <ApmPage /> : <Navigate to="/login" replace />} />
       <Route path="/apm/service" element={isLoggedIn ? <ApmServicePage /> : <Navigate to="/login" replace />} />
