@@ -160,6 +160,10 @@ export default function AppSidebar({
             <span className="dash-nav-icon">▣</span>
             <span className="dash-nav-label">VM List (new)</span>
           </Link>
+          <Link className="dash-nav-item dash-nav-sub-item" to="/proxmox-vms/new">
+            <span className="dash-nav-icon">+</span>
+            <span className="dash-nav-label">Create VM</span>
+          </Link>
           <Link className="dash-nav-item dash-nav-sub-item" to="/proxmox-lxc">
             <span className="dash-nav-icon">▤</span>
             <span className="dash-nav-label">LXC List</span>
