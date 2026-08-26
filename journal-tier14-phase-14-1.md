@@ -52,6 +52,27 @@ Zero new endpoints. Uses existing Tier 1:
 
 ## Operational notes this session
 
+### TEST WORKFLOW RULE (locked 2026-08-26, user directive)
+
+User said: "we will do like this we test during the phase 14 build like now and at the end you will give me the full detailed test for the entire phase 14 complete test end to end from A to Z ok note it down and we strictly follow it ok"
+
+Strict workflow for ALL of Tier 14 (going forward):
+1. **During each phase** — build, user tests, fix, ship (current pattern — keep it).
+2. **At the end of every phase** — deliver a **detailed A-to-Z test plan for that phase ONLY**. User runs through it manually.
+3. **When ALL of Tier 14 is complete** — deliver the **FULL end-to-end A-to-Z test for the entire Tier 14** (every feature across every phase). This is the final acceptance gate.
+
+No exceptions. NEVER skip the per-phase test plan at the end of each phase. NEVER combine all phases into one mega-test (do per-phase as built, mega-test only when Tier 14 is 100% done).
+
+Test plan format (mandatory):
+- Numbered test cases
+- Expected vs actual
+- "What to tell me" outcome (all good / fix X / still broken)
+- Browser refresh instructions (Ctrl+Shift+R) if needed
+- Mobile + edge cases
+- Empty/error states
+
+### Operational lessons
+
 1. **In-memory rate limiter requires service restart to clear.** `systemctl restart stackwatch-api-gateway.service`. Don't reset users; just restart. (User hit "too many requests" from my failed login probes earlier.)
 2. **Dashboard.tsx was filtering sidebar to 4 items.** `show={['dashboard','billing','proxmox','truenas']}` was a leftover from earlier UX iteration. Removed to show all 21.
 3. **No `rsync` on .115 host.** Deploy frontend via `scp` instead of `rsync`. Per-file, not bulk.
