@@ -1,6 +1,6 @@
 /**
- * Tier 14 Phase 14.8 — SDN zones (read-only list for Phase 14.8).
- * Full CRUD ships in Phase 14.10.
+ * Tier 14 Phase 14.8 — SDN zones (read-only for Phase 14.8; full CRUD ships in Phase 14.10).
+ * NOTE: backend doesn't expose this endpoint yet — page renders "Unable to load" gracefully.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -29,7 +29,7 @@ export default function ProxmoxSdnZones() {
       const list = Array.isArray(data) ? data : data.zones ?? [];
       setZones(list);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to load SDN zones.');
+      setError(cause instanceof Error ? cause.message : 'SDN zones endpoint not available yet.');
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ export default function ProxmoxSdnZones() {
       <div className="px-detail-meta">
         <span><strong>Total</strong> {zones.length}</span>
         <span className="px-confirm-warn" style={{ fontSize: 12 }}>
-          Read-only in Phase 14.8 — full CRUD ships in Phase 14.10
+          Read-only in Phase 14.8 — full CRUD ships in Phase 14.10 (backend pending)
         </span>
       </div>
 
