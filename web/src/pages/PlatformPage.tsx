@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, api, me } from '../lib/api';
 import { motion, pageEnter } from '../lib/motion';
+import StatusPill from '../components/shared/StatusPill';
 
 // Tier 11 Phase 8 — Platform & Commerce unified 6-tab
 // customer-facing dashboard.
@@ -130,8 +131,14 @@ export default function PlatformPage() {
                   }`}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  <span className="font-semibold">{tab.label}</span>
-                  <span className="block text-xs opacity-60">{tab.subtitle}</span>
+                  <div className="flex items-center gap-2">
+                    <StatusPill
+                      status={isActive ? 'up' : 'unknown'}
+                      label={tab.label}
+                      size="sm"
+                    />
+                    <span className="block text-xs opacity-60">{tab.subtitle}</span>
+                  </div>
                 </button>
               );
             })}

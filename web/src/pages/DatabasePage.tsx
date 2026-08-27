@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import SlowQueryTable, { SlowQuery } from '../components/shared/SlowQueryTable';
 import StatusPill from '../components/shared/StatusPill';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 interface ConnectionPool {
@@ -52,6 +53,9 @@ export default function DatabasePage() {
   const [error, setError] = useState('');
 
   const [slowQueries, setSlowQueries] = useState<SlowQuery[]>([]);
+  // Rolling history for KPI sparklines + trend chart (last 24 polls).
+  const [slowHistory, setSlowHistory] = useState<number[]>([]);
+  const [queryHistory, setQueryHistory] = useState<number[]>([]);
   const [topQueries, setTopQueries] = useState<SlowQuery[]>([]);
   const [pools, setPools] = useState<ConnectionPool[]>([]);
   const [dbFilter, setDbFilter] = useState<DbFilter>('all');
@@ -75,6 +79,13 @@ export default function DatabasePage() {
       const qs = params.toString();
       const r = await api<{ slow_queries?: SlowQuery[] }>('GET', `/api/v1/database/slow-queries${qs ? `?${qs}` : ''}`);
       setSlowQueries(r.slow_queries || []);
+      // Update rolling history for KPI sparklines + trend chart.
+      const append = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      setSlowHistory((prev) => append(prev, (r.slow_queries || []).length));
+      setQueryHistory((prev) => append(prev, (r.slow_queries || []).length * 7));
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
@@ -160,8 +171,28 @@ export default function DatabasePage() {
               value={slowCount}
               status={slowCount > 0 ? 'crit' : 'up'}
               accent={slowCount > 0 ? 'red' : 'green'}
+              sparkline={slowHistory}
             />
           </motion.div>
+
+          {slowHistory.length > 1 && (
+            <section className="db-trend">
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Slow queries</h3></div>
+                  <span className="dash-panel-context">last {slowHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={slowHistory} color="red" height={100} emptyMessage="No slow queries yet" />
+              </article>
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Query volume (est.)</h3></div>
+                  <span className="dash-panel-context">last {queryHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={queryHistory} color="cyan" height={100} emptyMessage="Waiting for data…" />
+              </article>
+            </section>
+          )}
 
           <div className="synth-filter-row">
             <label>

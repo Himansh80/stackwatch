@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import PipelineCard from '../components/shared/PipelineCard';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
@@ -53,6 +54,9 @@ export default function CicdPage() {
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  // Rolling history for KPI sparklines + trend chart (last 24 polls).
+  const [pipelineHistory, setPipelineHistory] = useState<number[]>([]);
+  const [failureHistory, setFailureHistory] = useState<number[]>([]);
 
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [envFilter, setEnvFilter] = useState<EnvFilter>('all');
@@ -73,6 +77,14 @@ export default function CicdPage() {
       const qs = params.toString();
       const r = await api<{ pipelines?: Pipeline[] }>('GET', `/api/v1/cicd/pipelines${qs ? `?${qs}` : ''}`);
       setPipelines(r.pipelines || []);
+      // Update rolling history for KPI sparklines + trend chart.
+      const append = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      setPipelineHistory((prev) => append(prev, (r.pipelines || []).length));
+      const failed = (r.pipelines || []).filter((p) => String(p.status || '').toLowerCase() === 'failed').length;
+      setFailureHistory((prev) => append(prev, failed));
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
@@ -129,6 +141,7 @@ export default function CicdPage() {
               value={todayPipelines.length}
               status={todayPipelines.length > 0 ? 'up' : 'neutral'}
               accent="cyan"
+              sparkline={pipelineHistory}
             />
             <KpiCard
               label="Success rate"
@@ -142,6 +155,24 @@ export default function CicdPage() {
               status={avgDurationMs === 0 ? 'neutral' : 'up'}
               accent="indigo"
             />
+            {pipelineHistory.length > 1 && (
+              <section className="cicd-trend">
+                <article className="dash-panel">
+                  <div className="dash-panel-head">
+                    <div><span className="dash-eyebrow">Trend</span><h3>Pipelines</h3></div>
+                    <span className="dash-panel-context">last {pipelineHistory.length} polls</span>
+                  </div>
+                  <TimeSeriesChart values={pipelineHistory} color="cyan" height={100} emptyMessage="Waiting for data…" />
+                </article>
+                <article className="dash-panel">
+                  <div className="dash-panel-head">
+                    <div><span className="dash-eyebrow">Trend</span><h3>Failures</h3></div>
+                    <span className="dash-panel-context">last {failureHistory.length} polls</span>
+                  </div>
+                  <TimeSeriesChart values={failureHistory} color="red" height={100} emptyMessage="No failures yet" />
+                </article>
+              </section>
+            )}
           </motion.div>
 
           {tab === 'pipelines' ? (
