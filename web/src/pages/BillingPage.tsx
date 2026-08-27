@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, clearToken, getToken } from '../lib/api';
 import { motion, pageEnter } from '../lib/motion';
+import StatusPill from '../components/shared/StatusPill';
 
 type Tenant = {
   id: string;
@@ -118,7 +119,7 @@ export default function BillingPage() {
               <section className="dash-panel">
                 <div className="dash-panel-head">
                   <div><span className="dash-eyebrow">Current plan</span><h3>Workspace subscription</h3></div>
-                  <span className="dash-text-link">{tenant?.status || 'active'}</span>
+                  <StatusPill status={(tenant?.status === 'active' || tenant?.status === 'suspended' || tenant?.status === 'trialing') ? tenant.status : 'unknown'} label={tenant?.status || 'active'} size="sm" />
                 </div>
                 <div className="dash-resource-grid">
                   <div className="dash-resource-card">
