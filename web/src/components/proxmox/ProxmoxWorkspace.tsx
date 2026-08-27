@@ -231,12 +231,18 @@ export default function ProxmoxWorkspace() {
   const [hostForm, setHostForm] = useState(emptyHost);
   const [vmForm, setVMForm] = useState(emptyVM);
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+      const [showAction, setShowAction] = useState(false);
+      const [actionJSON, setActionJSON] = useState('');
+      const [current, setCurrent] = useState<{label: string; endpoint: string; method: string} | null>(null);
+      const [selectedNodeName, setSelectedNodeName] = useState('');
+      const [selectedStorageName, setSelectedStorageName] = useState('');
+      const [selectedUserName, setSelectedUserName] = useState<Row | null>(null);
 
-  const host = hosts.find((item) => item.id === hostId);
-  const selectedNodeName = selectedNode || readString(nodes[0]?.node);
+      const host = hosts.find((item) => item.id === hostId);
+      const selectedNodeNameDerived = selectedNode || readString(nodes[0]?.node);
 
   async function loadHosts() {
     try {
@@ -456,39 +462,66 @@ export default function ProxmoxWorkspace() {
   }
 
   async function migrateResource(row: Row) {
-    if (!hostId) return;
-    const target = window.prompt(`Target node for ${readString(row.name || row.vmid)}:`);
-    if (!target || !window.confirm(`Migrate ${readString(row.name || row.vmid)} to ${target}?`)) return;
-    setBusy(true); setError('');
-    try { await pxPost(hostId, `/nodes/${encodeURIComponent(readString(row.node))}/${readString(row.type).toLowerCase().includes('lxc') ? 'lxc' : 'qemu'}/${row.vmid}/migrate`, { target, online: true }); setNotice('Migration task queued.'); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Migration failed.'); }
-    finally { setBusy(false); }
-  }
+      if (!hostId) return;
+      const target = window.prompt(`Target node for ${readString(row.name || row.vmid)}:`);
+      if (!target || !window.confirm(`Migrate ${readString(row.name || row.vmid)} to ${target}?`)) return;
+      setBusy(true); setError('');
+      try { await pxPost(hostId, `/nodes/${encodeURIComponent(readString(row.node))}/${readString(row.type).toLowerCase().includes('lxc') ? 'lxc' : 'qemu'}/${row.vmid}/migrate`, { target, online: true }); setNotice('Migration task queued.'); }
+      catch (cause) { setError(cause instanceof Error ? cause.message : 'Migration failed.'); }
+      finally { setBusy(false); }
+    }
 
-  const hostActions = <>
+    async function runAction() {
+      if (!hostId || !current) return;
+      setBusy(true); setError('');
+      try {
+        await pxPost(hostId, current.endpoint, JSON.parse(actionJSON || '{}'));
+        setNotice('Action completed.');
+        await loadWorkspace();
+        setShowAction(false);
+        setCurrent(null);
+        setActionJSON('');
+      } catch (cause) { setError(cause instanceof Error ? cause.message : 'Action failed.'); }
+      finally { setBusy(false); }
+    }
+
+    const hostActions = <>
     <Button tone="quiet" onClick={() => void loadWorkspace()} disabled={loading || !hostId}>↻ Refresh</Button>
     <Button tone="quiet" onClick={() => void testHost()} disabled={busy || !hostId}>Test connection</Button>
     <Button tone="primary" onClick={() => setShowHostForm((value) => !value)}>+ Add Proxmox host</Button>
   </>;
 
-  return <div className="sw-shell">
-    <header className="sw-topbar">
-      <div><div className="sw-brand"><span className="sw-brand-mark">S</span><span>StackWatch</span></div><span className="sw-product-label">Infrastructure control plane</span></div>
-      <div className="sw-host-picker"><span>PROXMOX HOST</span><select value={hostId} onChange={(event) => setHostId(event.target.value)}><option value="">Select a host</option>{hosts.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.base_url}</option>)}</select></div>
-      <div className="sw-top-actions">{host && <span className={`sw-status ${statusClass(host.status)}`}>{host.status || 'unknown'}</span>}<Button tone="quiet" onClick={() => { localStorage.removeItem('stackwatch.token'); window.location.href = '/login'; }}>Sign out</Button></div>
-    </header>
-    <div className="sw-layout">
-      <aside className="sw-sidebar">
-        <div className="sw-side-title">CONTROL PLANE</div>
-        {sections.map((item) => <button className={`sw-nav-item ${section === item.id ? 'active' : ''}`} key={item.id} onClick={() => setSection(item.id)}><span>{item.icon}</span>{item.label}</button>)}
-        <div className="sw-side-note"><strong>Tier 1</strong><span>Proxmox VE management</span><small>Every action uses the authenticated API and reports upstream support status.</small></div>
-      </aside>
-      <main className="sw-main">
-        <div className="sw-page-head"><div><span className="sw-eyebrow">TIER 1 · PROXMOX VE</span><h1>{sections.find((item) => item.id === section)?.label}</h1><p>{host ? `${host.name} · ${host.base_url}` : 'Register a Proxmox VE host to begin.'}</p></div><div className="sw-page-actions">{hostActions}</div></div>
-        {showHostForm && <Panel title="Register Proxmox VE" eyebrow="Secure connection">
+  return (
+    <>
+      <div className="px-page-head">
+        <div>
+          <span className="px-eyebrow">TIER 1 · PROXMOX VE</span>
+          <h1 className="px-page-title">{sections.find((item) => item.id === section)?.label}</h1>
+          <p className="px-page-sub">{host ? `${host.name} · ${host.base_url}` : 'Register a Proxmox VE host to begin.'}</p>
+        </div>
+        <div className="px-page-actions">
+          <select
+            className="px-host-select"
+            aria-label="Active Proxmox host"
+            value={hostId}
+            onChange={(event) => setHostId(event.target.value)}
+          >
+            <option value="">Select host…</option>
+            {hosts.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} · {item.base_url}
+              </option>
+            ))}
+          </select>
+          {hostActions}
+        </div>
+      </div>
+
+      {showHostForm && <Panel title="Register Proxmox VE" eyebrow="Secure connection">
           <form className="sw-form-grid" onSubmit={registerHost}><FormField label="Display name" value={hostForm.name} required onChange={(value) => setHostForm({ ...hostForm, name: value })} placeholder="e.g. cluster-prod-eu" /><FormField label="Base URL" value={hostForm.base_url} required onChange={(value) => setHostForm({ ...hostForm, base_url: value })} placeholder="https://proxmox.example.com:8006" /><FormField label="API token" value={hostForm.api_token} required type="password" onChange={(value) => setHostForm({ ...hostForm, api_token: value })} placeholder="user@pam!tokenid=uuid" /><label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(event) => setHostForm({ ...hostForm, verify_tls: event.target.checked })} /><span>Verify TLS certificate</span></label><div className="sw-form-actions"><Button tone="quiet" onClick={() => setShowHostForm(false)}>Cancel</Button><Button type="submit" tone="primary" disabled={busy}>Connect and save</Button></div></form>
         </Panel>}
-        {error && <div className="sw-alert sw-alert-error"><strong>Request failed</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
+
+      {error && <div className="sw-alert sw-alert-error"><strong>Request failed</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
         {notice && <div className="sw-alert sw-alert-success"><strong>Done</strong><span>{notice}</span><button onClick={() => setNotice('')}>×</button></div>}
         {!hostId && <Panel title="No Proxmox host registered" eyebrow="Start here"><div className="sw-empty sw-empty-large"><div className="sw-empty-icon">◈</div><h3>Connect your Proxmox cluster</h3><p>Register a Proxmox VE API token above. StackWatch tests the connection before saving credentials and never returns the token to the browser after registration.</p><Button tone="primary" onClick={() => setShowHostForm(true)}>Register first host</Button></div></Panel>}
         {hostId && section === 'overview' && <Overview nodes={nodes} resources={resources} hostState={hostState} onResource={(row) => { setSection('compute'); setSelectedNode(readString(row.node)); }} />}
@@ -501,30 +534,87 @@ export default function ProxmoxWorkspace() {
         {hostId && section === 'templates' && <TemplatesView selectedNode={selectedNodeName} templates={templates} storage={storage} resources={resources} onSelectStorage={(value) => setSelectedStorage(value)} onMarkTemplate={markTemplate} onCloudInit={applyCloudInit} />}
         {hostId && section === 'cluster' && <ClusterView status={haStatus} resources={haResources} allResources={resources} onMigrate={migrateResource} />}
         {hostId && section === 'monitoring' && <MonitoringView nodes={nodes} selectedNode={selectedNodeName} setSelectedNode={setSelectedNode} points={monitoring} />}
-        {hostId && <div className="sw-danger-zone"><div><strong>Remove registered host</strong><span>This removes StackWatch’s saved connection only. It does not delete anything in Proxmox.</span></div><Button tone="danger" onClick={() => void deleteHost()} disabled={busy}>Remove host</Button></div>}
-      </main>
-    </div>
-  </div>;
+        {hostId && <div className="sw-danger-zone"><div><strong>Remove registered host</strong><span>This removes StackWatch's saved connection only. It does not delete anything in Proxmox.</span></div><Button tone="danger" onClick={() => void deleteHost()} disabled={busy}>Remove host</Button></div>}
+      {showAction && current && (
+              <div className="sw-modal-backdrop" role="dialog" aria-modal="true">
+                <div className="sw-modal">
+                  <div className="sw-panel-head">
+                    <div><span className="sw-eyebrow">Authenticated mutation</span><h2>Create {current.label}</h2></div>
+                    <Button tone="quiet" onClick={() => setShowAction(false)}>Close</Button>
+                  </div>
+                  <form onSubmit={(event) => { event.preventDefault(); runAction(); }}>
+                    <textarea
+                      className="sw-json-editor"
+                      value={actionJSON}
+                      onChange={(event) => setActionJSON(event.target.value)}
+                      spellCheck={false}
+                      rows={10}
+                    />
+                    <div className="sw-form-actions">
+                      <Button tone="quiet" onClick={() => setShowAction(false)} type="button">Cancel</Button>
+                      <Button tone="primary" type="submit" disabled={busy}>Submit</Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+    </>
+  );
 }
 
-function Overview({ nodes, resources, hostState, onResource }: { nodes: ProxmoxNode[]; resources: ProxmoxResource[]; hostState: Row; onResource: (row: Row) => void }) {
+function Overview({ nodes, resources, onResource }: { nodes: ProxmoxNode[]; resources: ProxmoxResource[]; hostState: Row; onResource: (row: Row) => void }) {
   const running = resources.filter((row) => readString(row.status).toLowerCase() === 'running').length;
   const stopped = resources.filter((row) => readString(row.status).toLowerCase() === 'stopped').length;
-  return <>
-    <div className="sw-stat-grid"><Stat label="Cluster nodes" value={nodes.length} hint="Live from Proxmox" /><Stat label="Resources" value={resources.length} hint={`${running} running · ${stopped} stopped`} accent="blue" /><Stat label="Connection" value={readString(objectFrom(hostState.connectivity).ok) === 'false' ? 'Degraded' : 'Healthy'} hint="Last live test" accent="green" /><Stat label="Cluster mode" value={readString(objectFrom(hostState.cluster).type || hostState.status || 'standalone')} hint="Reported by host" accent="purple" /></div>
-    <SearchablePanel title="Nodes" eyebrow="Compute fabric" rows={nodes} columns={[
-      { key: 'node', label: 'Node' },
-      { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> },
-      // Proxmox's /nodes returns cpu_count, mem_total, uptime_seconds
-      // (not maxcpu/maxmem/uptime). Map so columns show real numbers.
-      { key: 'cpu_count', label: 'CPU capacity', render: (row) => formatPercent(Number(row.cpu ?? 0) * 100) },
-      { key: 'mem_total', label: 'Memory', render: (row) => formatBytes(row.mem_total) },
-      { key: 'uptime_seconds', label: 'Uptime', render: (row) => row.uptime_seconds ? `${Math.floor(Number(row.uptime_seconds) / 86400)}d` : '—' },
-    ]} />
-    <SearchablePanel title="Cluster resources" eyebrow="VMs and containers" rows={resources} onRowClick={onResource} columns={[{ key: 'type', label: 'Type' }, { key: 'vmid', label: 'ID' }, { key: 'name', label: 'Name' }, { key: 'node', label: 'Node' }, { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> }, { key: 'cpu', label: 'CPU', render: (row) => formatPercent(row.cpu) }, { key: 'mem', label: 'Memory', render: (row) => formatBytes(row.mem) }]} />
-  </>;
-}
+  const totalMem = nodes.reduce((sum, n) => sum + Number(n.mem_total || 0), 0);
+  const usedMem = resources.reduce((sum, r) => sum + Number(r.mem || 0), 0);
+  const memPct = totalMem > 0 ? Math.round((usedMem / totalMem) * 100) : 0;
+  const avgCpu = resources.length > 0 ? resources.reduce((sum, r) => sum + Number(r.cpu || 0), 0) / resources.length : 0;
 
+  return (
+    <>
+      <div className="px-kpi-strip">
+        <div className="px-kpi-card">
+          <span className="px-kpi-label">Cluster Nodes</span>
+          <span className="px-kpi-value">{nodes.length}</span>
+          <span className="px-kpi-hint">Live from Proxmox</span>
+        </div>
+        <div className="px-kpi-card">
+          <span className="px-kpi-label">Total RAM</span>
+          <span className="px-kpi-value">{formatBytes(usedMem)} / {formatBytes(totalMem)}</span>
+          <span className="px-kpi-hint">{memPct}% used</span>
+        </div>
+        <div className="px-kpi-card">
+          <span className="px-kpi-label">Avg CPU</span>
+          <span className="px-kpi-value">{avgCpu.toFixed(1)}%</span>
+          <span className="px-kpi-hint">Across all resources</span>
+        </div>
+        <div className="px-kpi-card">
+          <span className="px-kpi-label">Resources</span>
+          <span className="px-kpi-value">{resources.length}</span>
+          <span className="px-kpi-hint">{running} running · {stopped} stopped</span>
+        </div>
+      </div>
+
+      <SearchablePanel title="Nodes" eyebrow="Compute fabric" rows={nodes} columns={[
+        { key: 'node', label: 'Node' },
+        { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> },
+        { key: 'cpu_count', label: 'CPU capacity', render: (row) => formatPercent(Number(row.cpu ?? 0) * 100) },
+        { key: 'mem_total', label: 'Memory', render: (row) => formatBytes(row.mem_total) },
+        { key: 'uptime_seconds', label: 'Uptime', render: (row) => row.uptime_seconds ? `${Math.floor(Number(row.uptime_seconds) / 86400)}d ${Math.floor((Number(row.uptime_seconds) % 86400) / 3600)}h` : '—' },
+      ]} />
+      <SearchablePanel title="Cluster resources" eyebrow="VMs and containers" rows={resources} onRowClick={onResource} columns={[
+        { key: 'type', label: 'Type' },
+        { key: 'vmid', label: 'ID' },
+        { key: 'name', label: 'Name' },
+        { key: 'node', label: 'Node' },
+        { key: 'status', label: 'Status', render: (row) => <span className={`sw-status ${statusClass(row.status)}`}>{displayValue(row.status)}</span> },
+        { key: 'cpu', label: 'CPU', render: (row) => formatPercent(row.cpu) },
+        { key: 'mem', label: 'Memory', render: (row) => formatBytes(row.mem) },
+        { key: 'ip', label: 'IP', render: (row) => displayValue(((row.networks as Row[])?.[0]?.ip) || row.ip || '—') },
+      ]} />
+    </>
+  );
+}
 function Compute({ nodes, resources, selectedNode, setSelectedNode, showCreate, setShowCreate, form, setForm, onCreate, onLifecycle, loading }: { nodes: ProxmoxNode[]; resources: ProxmoxResource[]; selectedNode: string; setSelectedNode: (value: string) => void; showCreate: 'vm' | 'lxc' | null; setShowCreate: (value: 'vm' | 'lxc' | null) => void; form: typeof emptyVM; setForm: (value: typeof emptyVM) => void; onCreate: (event: FormEvent) => void; onLifecycle: (resource: ProxmoxResource, action: string) => void; loading: boolean }) {
   // Local search state — DataTable filters by this string across every
   // column. The compute fleet can have hundreds of VMs, so search is
