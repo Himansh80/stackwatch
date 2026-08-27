@@ -10,6 +10,7 @@ import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import ErrorBar from '../components/dashboard/ErrorBar';
 import { motion, kpiStagger } from '../lib/motion';
 import EmptyState from '../components/shared/EmptyState';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { HeartIcon, NetworkIcon, PlayIcon, ServerIcon } from '../components/icons';
 import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, formatBytes, formatPercent } from '../lib/proxmox';
 import { formatRelative } from '../lib/clock';
@@ -181,9 +182,9 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <KpiCard label="Connected hosts" value={snapshot.hosts.length} delta="Registered control planes" accent="cyan" icon={<ServerIcon />} sparkline={history.hosts} />
-            <KpiCard label="Compute nodes" value={snapshot.nodes.length} delta="Across your Proxmox fabric" accent="indigo" icon={<NetworkIcon />} sparkline={history.nodes} />
-            <KpiCard label="Running workloads" value={running} delta={`${stopped} stopped`} accent="green" icon={<PlayIcon />} sparkline={history.running} />
+            <KpiCard label="Connected hosts" value={snapshot.hosts.length} delta="Registered control planes" accent="cyan" icon={<ServerIcon />} sparkline={history.hosts} onClick={() => (window.location.href = '/proxmox')} />
+            <KpiCard label="Compute nodes" value={snapshot.nodes.length} delta="Across your Proxmox fabric" accent="indigo" icon={<NetworkIcon />} sparkline={history.nodes} onClick={() => (window.location.href = '/proxmox')} />
+            <KpiCard label="Running workloads" value={running} delta={`${stopped} stopped`} accent="green" icon={<PlayIcon />} sparkline={history.running} onClick={() => (window.location.href = '/proxmox-vms')} />
             <KpiCard
               label="API health"
               value={apiHealthStatus || '—'}
@@ -195,6 +196,38 @@ export default function Dashboard() {
           </>
         )}
       </motion.section>
+      <section className="dash-trend-grid">
+        <article className="dash-panel">
+          <div className="dash-panel-head">
+            <div>
+              <span className="dash-eyebrow">Resource trend</span>
+              <h3>CPU utilization</h3>
+            </div>
+            <span className="dash-panel-context">last 30s</span>
+          </div>
+          <TimeSeriesChart values={history.cpu} unit="%" color="cyan" height={120} emptyMessage="Waiting for CPU data…" />
+        </article>
+        <article className="dash-panel">
+          <div className="dash-panel-head">
+            <div>
+              <span className="dash-eyebrow">Resource trend</span>
+              <h3>Connected hosts</h3>
+            </div>
+            <span className="dash-panel-context">last 30s</span>
+          </div>
+          <TimeSeriesChart values={history.hosts} color="indigo" height={120} emptyMessage="Waiting for host data…" />
+        </article>
+        <article className="dash-panel">
+          <div className="dash-panel-head">
+            <div>
+              <span className="dash-eyebrow">Resource trend</span>
+              <h3>Running workloads</h3>
+            </div>
+            <span className="dash-panel-context">last 30s</span>
+          </div>
+          <TimeSeriesChart values={history.running} color="green" height={120} emptyMessage="Waiting for workload data…" />
+        </article>
+      </section>
       <section className="dash-grid-main">
         <article className="dash-panel dash-chart-panel">
           <div className="dash-panel-head">
