@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import ThreatCard from '../components/shared/ThreatCard';
 import ComplianceBar from '../components/shared/ComplianceBar';
+import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
-import { motion, pageEnter } from '../lib/motion';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
+import { motion, pageEnter, kpiStagger } from '../lib/motion';
 
 interface Threat {
   id: string;
@@ -73,6 +75,10 @@ export default function SecurityPage() {
   const [siem, setSiem] = useState<SiemEvent[]>([]);
   const [siemSev, setSiemSev] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
 
+  // Rolling history for KPI sparklines + threat trend chart (24 polls).
+  const [threatCountHistory, setThreatCountHistory] = useState<number[]>([]);
+  const [criticalHistory, setCriticalHistory] = useState<number[]>([]);
+
   const requireAuth = (): boolean => {
     if (!getToken()) {
       setError('Sign in to view Security.');
@@ -89,7 +95,18 @@ export default function SecurityPage() {
       if (threatResolved !== 'all') params.set('resolved', threatResolved === 'resolved' ? 'true' : 'false');
       const qs = params.toString();
       const r = await api<{ threats?: Threat[] }>('GET', `/api/v1/security/threats${qs ? `?${qs}` : ''}`);
-      setThreats(r.threats || []);
+      const rows = r.threats || [];
+      setThreats(rows);
+      // Update rolling history (always track total + critical, regardless of filter).
+      const append = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      const critical = rows.filter((t) => (t.severity || '').toLowerCase() === 'critical').length;
+      if (threatResolved !== 'resolved') {
+        setThreatCountHistory((prev) => append(prev, rows.length));
+        setCriticalHistory((prev) => append(prev, critical));
+      }
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
@@ -140,6 +157,31 @@ export default function SecurityPage() {
             <section className="dash-section">
               <span className="dash-eyebrow">Threats</span>
               <h2 className="dash-section-title">Active security threats</h2>
+              <motion.div className="dash-kpi-strip" variants={kpiStagger} initial="hidden" animate="show">
+                <KpiCard label="Open threats" value={threats.filter((t) => !(t as any).resolved).length} status={threats.length > 0 ? 'crit' : 'up'} accent="red" sparkline={threatCountHistory} />
+                <KpiCard label="Critical" value={threats.filter((t) => (t.severity || '').toLowerCase() === 'critical').length} status={threats.filter((t) => (t.severity || '').toLowerCase() === 'critical').length > 0 ? 'crit' : 'up'} accent="red" sparkline={criticalHistory} />
+                <KpiCard label="High" value={threats.filter((t) => (t.severity || '').toLowerCase() === 'high').length} accent="amber" />
+                <KpiCard label="Total" value={threats.length} accent="indigo" />
+              </motion.div>
+
+              {threatCountHistory.length > 1 && (
+                <section className="sec-trend">
+                  <article className="dash-panel">
+                    <div className="dash-panel-head">
+                      <div><span className="dash-eyebrow">Trend</span><h3>Threat count</h3></div>
+                      <span className="dash-panel-context">last {threatCountHistory.length} polls</span>
+                    </div>
+                    <TimeSeriesChart values={threatCountHistory} color="red" height={100} emptyMessage="Waiting for data…" />
+                  </article>
+                  <article className="dash-panel">
+                    <div className="dash-panel-head">
+                      <div><span className="dash-eyebrow">Trend</span><h3>Critical severity</h3></div>
+                      <span className="dash-panel-context">last {criticalHistory.length} polls</span>
+                    </div>
+                    <TimeSeriesChart values={criticalHistory} color="red" height={100} emptyMessage="No critical threats" />
+                  </article>
+                </section>
+              )}
               <div className="synth-filter-row">
                 <label>
                   <span>Severity</span>

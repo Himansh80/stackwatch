@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import CspmSeverityBadge from '../components/shared/CspmSeverityBadge';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 interface CspmResource {
@@ -46,6 +47,9 @@ export default function CspmPage() {
   const [error, setError] = useState('');
   const [resources, setResources] = useState<CspmResource[]>([]);
   const [findings, setFindings] = useState<CspmFinding[]>([]);
+  // Rolling history for KPI sparklines + compliance drift chart (24 polls).
+  const [resourceHistory, setResourceHistory] = useState<number[]>([]);
+  const [findingsHistory, setFindingsHistory] = useState<number[]>([]);
   const [sevFilter, setSevFilter] = useState<SevFilter>('all');
   const [resolvedFilter, setResolvedFilter] = useState<ResolvedFilter>('open');
 
@@ -62,6 +66,12 @@ export default function CspmPage() {
     try {
       const r = await api<{ resources?: CspmResource[] }>('GET', '/api/v1/cspm/resources');
       setResources(r.resources || []);
+      // Update rolling history for KPI sparklines + trend chart.
+      const append = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      setResourceHistory((prev) => append(prev, (r.resources || []).length));
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
@@ -81,6 +91,11 @@ export default function CspmPage() {
         `/api/v1/cspm/findings${qs ? `?${qs}` : ''}`,
       );
       setFindings(r.findings || []);
+      const append2 = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      setFindingsHistory((prev) => append2(prev, (r.findings || []).length));
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
@@ -106,14 +121,34 @@ export default function CspmPage() {
             animate="show"
             variants={kpiStagger}
           >
-            <KpiCard label="Tracked resources" value={resources.length} status="up" accent="cyan" />
+            <KpiCard label="Tracked resources" value={resources.length} status="up" accent="cyan" sparkline={resourceHistory} />
             <KpiCard
               label="Open findings"
               value={findings.filter((f) => !f.resolved_at).length}
               status={findings.length > 0 ? 'crit' : 'neutral'}
               accent={findings.length > 0 ? 'red' : 'green'}
+              sparkline={findingsHistory}
             />
           </motion.div>
+
+          {findingsHistory.length > 1 && (
+            <section className="cspm-trend">
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Tracked resources</h3></div>
+                  <span className="dash-panel-context">last {resourceHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={resourceHistory} color="cyan" height={100} emptyMessage="Waiting for data…" />
+              </article>
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Findings</h3></div>
+                  <span className="dash-panel-context">last {findingsHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={findingsHistory} color="amber" height={100} emptyMessage="No findings yet" />
+              </article>
+            </section>
+          )}
 
           <section className="dash-section">
             <span className="dash-eyebrow">Resources</span>
