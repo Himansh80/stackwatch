@@ -1,14 +1,23 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import LogSearchTab from '../components/logs/LogSearchTab';
 import LogMonitorsTab, { LogMonitor } from '../components/logs/LogMonitorsTab';
 import LogArchivesTab, { LogArchive, LogRehydration } from '../components/logs/LogArchivesTab';
 import LogRetentionTab, { LogRetention } from '../components/logs/LogRetentionTab';
 import LogPatternsTab, { LogPattern } from '../components/logs/LogPatternsTab';
+import KpiCard from '../components/shared/KpiCard';
+import StatusPill from '../components/shared/StatusPill';
 import type { LogEntryData } from '../components/shared/LogEntry';
 import { motion, pageEnter } from '../lib/motion';
 
 type Tab = 'search' | 'retention' | 'archives' | 'monitors' | 'patterns';
+const TAB_LABELS: Record<Tab, string> = {
+  search: 'Search',
+  retention: 'Retention',
+  archives: 'Archives',
+  monitors: 'Monitors',
+  patterns: 'Patterns',
+};
 
 /**
  * LogsFullPage — Log Management Full (D3) at /logs.
@@ -23,7 +32,7 @@ type Tab = 'search' | 'retention' | 'archives' | 'monitors' | 'patterns';
  * cheap and avoids unnecessary 401s when the user lands on the page.
  */
 export default function LogsFullPage() {
-  const [tab, _setTab] = useState<Tab>('search');
+  const [tab, setTab] = useState<Tab>('search');
   const [error, setError] = useState('');
   const [logs, setLogs] = useState<LogEntryData[]>([]);
   const [monitors, setMonitors] = useState<LogMonitor[]>([]);
@@ -113,16 +122,62 @@ export default function LogsFullPage() {
     }
   }, []);
 
-  const _summary = (() => {
+  const _summary = useMemo(() => {
     if (tab === 'search') return `${logs.length} entries`;
     if (tab === 'monitors') return `${monitors.length} monitor${monitors.length === 1 ? '' : 's'}`;
     if (tab === 'archives') return `${archives.length} archive${archives.length === 1 ? '' : 's'}`;
     if (tab === 'retention') return `${retention.length} polic${retention.length === 1 ? 'y' : 'ies'}`;
     return `${patterns.length} pattern${patterns.length === 1 ? '' : 's'}`;
-  })();
+  }, [tab, logs, monitors, archives, retention, patterns]);
+
+  // Log-level KPIs computed client-side from the loaded logs array.
+  const logLevelKpis = useMemo(() => {
+    const counts = { error: 0, warn: 0, info: 0, debug: 0 };
+    for (const entry of logs) {
+      const lvl = String(entry.level ?? '').toLowerCase();
+      if (lvl === 'error' || lvl === 'fatal' || lvl === 'critical') counts.error += 1;
+      else if (lvl === 'warn' || lvl === 'warning') counts.warn += 1;
+      else if (lvl === 'info' || lvl === 'notice') counts.info += 1;
+      else if (lvl === 'debug' || lvl === 'trace') counts.debug += 1;
+    }
+    return counts;
+  }, [logs]);
 
   return (
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
+          <section className="logs-kpi-strip">
+            <KpiCard label="Errors" value={logLevelKpis.error} accent="red" />
+            <KpiCard label="Warnings" value={logLevelKpis.warn} accent="amber" />
+            <KpiCard label="Info" value={logLevelKpis.info} accent="cyan" />
+            <KpiCard label="Debug" value={logLevelKpis.debug} accent="indigo" />
+          </section>
+
+          <div className="logs-tabs" role="tablist" style={{ marginTop: 16 }}>
+            {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
+              <button
+                key={t}
+                role="tab"
+                type="button"
+                aria-selected={tab === t}
+                className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
+                onClick={() => setTab(t)}
+              >
+                <StatusPill
+                  status={
+                    t === 'search' && logs.length > 0 ? 'ok' :
+                    t === 'monitors' && monitors.length > 0 ? 'warn' :
+                    t === 'archives' && archives.length > 0 ? 'ok' :
+                    t === 'retention' && retention.length > 0 ? 'ok' :
+                    t === 'patterns' && patterns.length > 0 ? 'ok' :
+                    'unknown'
+                  }
+                  label={TAB_LABELS[t]}
+                  size="sm"
+                />
+              </button>
+            ))}
+          </div>
+
           {tab === 'search' ? (
             <LogSearchTab entries={logs} busy={searchBusy} error={error} onSearch={handleSearch} />
           ) : null}

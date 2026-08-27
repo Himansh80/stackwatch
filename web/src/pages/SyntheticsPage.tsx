@@ -5,6 +5,7 @@ import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
 import SlaBadge from '../components/shared/SlaBadge';
 import StatusPill from '../components/shared/StatusPill';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 interface SynthTest {
@@ -51,6 +52,9 @@ export default function SyntheticsPage() {
   const [busy, setBusy] = useState(false);
   const [formErr, setFormErr] = useState('');
   const [running, setRunning] = useState<string | null>(null);
+  // Rolling history for KPI sparklines + trend chart (last 24 polls).
+  const [passingHistory, setPassingHistory] = useState<number[]>([]);
+  const [failingHistory, setFailingHistory] = useState<number[]>([]);
 
   const load = useCallback(async () => {
     if (!getToken()) {
@@ -62,7 +66,20 @@ export default function SyntheticsPage() {
     setLoading(true);
     try {
       const res = await api<{ tests?: SynthTest[] }>('GET', '/api/v1/synthetics/tests-full');
-      setTests(res.tests || []);
+      const rows = res.tests || [];
+      setTests(rows);
+      // Update rolling history with current counts.
+      const enabled = rows.filter((t) => t.enabled).length;
+      const append = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      // Pass rate approximation: tests with sla_uptime_pct >= 99.9 count as passing
+      // (real pass rate would require /synthetics/results/:test_id per test).
+      const passing = rows.filter((t) => t.enabled && t.sla_uptime_pct >= 99.5).length;
+      const failing = enabled - passing;
+      setPassingHistory((prev) => append(prev, passing));
+      setFailingHistory((prev) => append(prev, failing));
     } catch (cause) {
       const msg = cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message || 'Unable to load tests.';
       setError(msg);
@@ -251,8 +268,8 @@ export default function SyntheticsPage() {
             <span className="dash-eyebrow">Overview</span>
             <h2 className="dash-section-title">Synthetic test health</h2>
             <motion.div className="dash-kpi-strip" variants={kpiStagger} initial="hidden" animate="show">
-              <KpiCard label="Passing" value={kpis.passing} accent="green" />
-              <KpiCard label="Failing" value={kpis.failing} accent="red" />
+              <KpiCard label="Passing" value={kpis.passing} accent="green" sparkline={passingHistory} />
+              <KpiCard label="Failing" value={kpis.failing} accent="red" sparkline={failingHistory} />
               <KpiCard label="Paused" value={kpis.paused} accent="amber" />
               <KpiCard
                 label="Avg uptime"
@@ -261,6 +278,25 @@ export default function SyntheticsPage() {
               />
             </motion.div>
           </section>
+
+          {passingHistory.length > 1 && (
+            <section className="synth-trend">
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Passing tests</h3></div>
+                  <span className="dash-panel-context">last {passingHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={passingHistory} color="green" height={100} emptyMessage="Waiting for data…" />
+              </article>
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Failing tests</h3></div>
+                  <span className="dash-panel-context">last {failingHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={failingHistory} color="red" height={100} emptyMessage="No failures yet" />
+              </article>
+            </section>
+          )}
 
           {error ? (
             <div className="dash-error" role="alert">
@@ -297,12 +333,12 @@ export default function SyntheticsPage() {
                   {tests.map((t) => (
                     <tr key={t.id}>
                       <td>
-                                              <StatusPill
-                                                status={t.enabled ? 'up' : 'stale'}
-                                                label={t.enabled ? 'active' : 'paused'}
-                                                size="sm"
-                                              />
-                                            </td>
+                        <StatusPill
+                          status={t.enabled ? 'up' : 'stale'}
+                          label={t.enabled ? 'active' : 'paused'}
+                          size="sm"
+                        />
+                      </td>
                       <td>
                         <strong>{t.name}</strong>
                         <br />
