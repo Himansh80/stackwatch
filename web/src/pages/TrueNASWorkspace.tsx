@@ -3,7 +3,8 @@ import { createTrueNASHost, deleteTrueNASHost, listTrueNASHosts, testTrueNASHost
 import FilterBar from '../components/FilterBar';
 import EmptyState from '../components/shared/EmptyState';
 import StatusPill from '../components/shared/StatusPill';
-import { motion, pageEnter } from '../lib/motion';
+import KpiCard from '../components/shared/KpiCard';
+import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 type Section = { id: string; label: string; path: string };
 const sections: Section[] = [
@@ -65,6 +66,18 @@ export default function TrueNASWorkspace() {
   const [search, setSearch] = useState('');
   const selected = useMemo(() => hosts.find((host) => host.id === hostId), [hosts, hostId]);
   const current = sections.find((item) => item.id === section) ?? sections[0];
+
+  // KPI strip metrics — derived client-side from the loaded hosts list
+  // and the currently-loaded section rows. Each card links to a section.
+  const kpi = useMemo(() => {
+    const totalHosts = hosts.length;
+    const onlineHosts = hosts.filter((h) => h.status === 'online').length;
+    const poolCount = section === 'pools' ? rows.length : null;
+    const shareCount = ['nfs', 'smb', 'iscsi'].includes(section) ? rows.length : null;
+    const snapCount = section === 'snapshots' ? rows.length : null;
+    const diskCount = section === 'disks' ? rows.length : null;
+    return { totalHosts, onlineHosts, poolCount, shareCount, snapCount, diskCount };
+  }, [hosts, section, rows]);
 
   const loadHosts = useCallback(async () => {
     const next = await listTrueNASHosts();
@@ -130,6 +143,21 @@ export default function TrueNASWorkspace() {
       variants={pageEnter}
     >
       <div className="sw-page-head"><div><span className="sw-eyebrow">TIER 2 · TRUENAS SCALE</span><h1>{current.label}</h1><p>{selected ? `${selected.name} · ${selected.base_url}` : 'Register a TrueNAS SCALE host to begin.'}</p></div><div className="sw-page-actions">{hostId && <button className="sw-button" onClick={() => void runTest()} disabled={busy}>Test connection</button>}{hostId && actionPaths[section] && <button className="sw-button sw-button-primary" onClick={() => setShowAction(true)} disabled={busy}>+ Create</button>}</div></div>
+      {hostId && (
+        <motion.section
+          className="tru-kpi-grid"
+          variants={kpiStagger}
+          initial="hidden"
+          animate="show"
+        >
+          <KpiCard label="Total hosts" value={kpi.totalHosts} delta="Registered TrueNAS SCALE hosts" accent="cyan" onClick={() => setSection('overview')} />
+          <KpiCard label="Online hosts" value={kpi.onlineHosts} delta="Connected in last 5 min" status={kpi.onlineHosts === kpi.totalHosts && kpi.totalHosts > 0 ? 'up' : kpi.onlineHosts === 0 ? 'down' : 'neutral'} accent="green" />
+          <KpiCard label="Pools" value={kpi.poolCount ?? '—'} delta="Loaded for this view" accent="indigo" onClick={() => setSection('pools')} />
+          <KpiCard label="Active shares" value={kpi.shareCount ?? '—'} delta="NFS + SMB + iSCSI" accent="violet" onClick={() => setSection('nfs')} />
+          <KpiCard label="Snapshots" value={kpi.snapCount ?? '—'} delta="Total in view" accent="amber" onClick={() => setSection('snapshots')} />
+          <KpiCard label="Disks" value={kpi.diskCount ?? '—'} delta="Disk health" accent="red" onClick={() => setSection('disks')} />
+        </motion.section>
+      )}
       {message && <div className="sw-alert sw-alert-success"><strong>Success</strong><span>{message}</span><button onClick={() => setMessage('')}>×</button></div>}{error && <div className="sw-alert sw-alert-error"><strong>Error</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
       {showHostForm && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Secure registration</span><h2>Connect a TrueNAS SCALE system</h2></div></div><form className="sw-form-grid" onSubmit={submitHost}><label className="sw-field"><span>Name</span><input required value={hostForm.name} onChange={(e) => setHostForm({ ...hostForm, name: e.target.value })} placeholder="e.g. storage-prod" /></label><label className="sw-field"><span>Base URL</span><input required value={hostForm.base_url} onChange={(e) => setHostForm({ ...hostForm, base_url: e.target.value })} placeholder="https://truenas.example.com" /></label><label className="sw-field"><span>Username</span><input value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} /></label><label className="sw-field"><span>Password</span><input type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} /></label><label className="sw-field"><span>API key (optional)</span><input type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} /></label><label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label><div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowHostForm(false)}>Cancel</button><button type="submit" className="sw-button sw-button-primary" disabled={busy}>Test and save</button></div></form></section>}
       {!hostId && <section className="sw-panel"><EmptyState

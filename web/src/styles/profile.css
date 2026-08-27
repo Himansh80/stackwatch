@@ -497,3 +497,8 @@
 .prof-skel-card { height:260px; }
 @media (max-width:1100px) { .prof-skel-row { grid-template-columns:1fr; } }
 
+
+/* TrueNAS workspace KPI strip */
+.tru-kpi-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin:18px 0 24px; }
+@media (max-width:1400px) { .tru-kpi-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media (max-width:700px) { .tru-kpi-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
