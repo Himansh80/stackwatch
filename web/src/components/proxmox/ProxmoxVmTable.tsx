@@ -14,6 +14,7 @@ import {
   type JsonObject,
 } from '../../lib/proxmox';
 import ProxmoxVmActions from './ProxmoxVmActions';
+import StatusPill from '../shared/StatusPill';
 
 interface Props {
   rows: ProxmoxResource[];
@@ -123,7 +124,7 @@ export default function ProxmoxVmTable({ rows, busy, onAction, onRowClick, empty
                   className={onRowClick ? 'px-vm-row-clickable' : ''}
                 >
                   <td>
-                    <span className={`px-status px-status-${accent}`}>{status || 'unknown'}</span>
+                    <StatusPill status={accent === 'green' ? 'up' : accent === 'slate' ? 'unknown' : accent === 'amber' ? 'stale' : 'down'} label={status || 'unknown'} size="sm" />
                   </td>
                   <td className="px-mono">{row.vmid}</td>
                   <td>
