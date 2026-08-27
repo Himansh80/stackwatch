@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
 import FlameGraph, { FlameSpan } from '../components/shared/FlameGraph';
 import StatusPill from '../components/shared/StatusPill';
+import KpiCard from '../components/shared/KpiCard';
 import { motion, pageEnter } from '../lib/motion';
 
 interface ServiceDetail {
@@ -116,20 +117,28 @@ export default function ApmServicePage() {
 
           {detail ? (
             <>
+              <Link to="/apm" className="apm-svc-back">← Back to services</Link>
+              <section className="dash-section">
+                <div className="apm-service-head">
+                  <h2 className="dash-section-title">{detail.name}</h2>
+                  <StatusPill
+                    status={detail.error_rate >= 0.05 ? 'crit' : detail.error_rate >= 0.01 ? 'warn' : 'ok'}
+                    label={detail.error_rate >= 0.05 ? 'Degraded' : detail.error_rate >= 0.01 ? 'Watch' : 'Healthy'}
+                    size="md"
+                  />
+                </div>
+                <div className="apm-svc-health">
+                  <KpiCard label="Requests / sec" value={detail.request_rate.toFixed(2)} delta={`${detail.language || 'unknown'} · ${detail.framework || '—'}`} accent="cyan" />
+                  <KpiCard label="Error rate" value={`${(detail.error_rate * 100).toFixed(2)}%`} delta={`${detail.environment || '—'} env`} accent={detail.error_rate >= 0.05 ? 'red' : 'green'} />
+                  <KpiCard label="P95 latency" value={detail.p95_latency > 0 ? `${Math.round(detail.p95_latency)}ms` : '—'} delta={detail.p95_latency >= 500 ? 'slow' : 'healthy'} accent="amber" />
+                </div>
+              </section>
+
               <section className="dash-section">
                 <div className="apm-service-meta">
                   <span className="apm-pill apm-pill-language">{detail.language || 'unknown'}</span>
                   <span className="apm-pill apm-pill-framework">{detail.framework || '—'}</span>
                   <span className="apm-pill apm-pill-env">{detail.environment || '—'}</span>
-                  <span className="apm-pill apm-pill-neutral">
-                    {detail.request_rate.toFixed(2)} req/s
-                  </span>
-                  <span className={`apm-pill ${detail.error_rate >= 0.05 ? 'apm-pill-error' : 'apm-pill-good'}`}>
-                    {(detail.error_rate * 100).toFixed(2)}% err
-                  </span>
-                  <span className={`apm-pill ${detail.p95_latency >= 500 ? 'apm-pill-warn' : 'apm-pill-good'}`}>
-                    p95 {detail.p95_latency > 0 ? `${Math.round(detail.p95_latency)}ms` : '—'}
-                  </span>
                 </div>
               </section>
 

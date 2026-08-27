@@ -3,6 +3,8 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
 import KpiCard from '../components/shared/KpiCard';
+import StatusPill from '../components/shared/StatusPill';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import TraceSummary, { TraceSummaryService } from '../components/shared/TraceSummary';
 import EmptyState from '../components/shared/EmptyState';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
@@ -67,6 +69,10 @@ export default function ApmPage() {
   const [registerForm, setRegisterForm] = useState({ name: '', language: 'go', framework: 'gin', environment: 'production' });
   const [registerBusy, setRegisterBusy] = useState(false);
   const [registerErr, setRegisterErr] = useState('');
+  // Rolling history for KPI sparklines + trend chart (last 24 polls × 30s = 12 min window).
+  const [tracesHistory, setTracesHistory] = useState<number[]>([]);
+  const [errorsHistory, setErrorsHistory] = useState<number[]>([]);
+  const [p95History, setP95History] = useState<number[]>([]);
 
   const load = useCallback(async () => {
     if (!getToken()) {
@@ -102,6 +108,20 @@ export default function ApmPage() {
         }),
       );
       setServiceMetrics(Object.fromEntries(metricsEntries));
+      // Append current sample to the rolling history (max 24 entries).
+      const m = Object.values(Object.fromEntries(metricsEntries));
+      const totalReqPerSec = m.reduce((acc, x) => acc + x.request_rate, 0);
+      const totalReqPerMin = totalReqPerSec * 60;
+      const errorsPerMin = m.reduce((acc, x) => acc + x.request_rate * x.error_rate, 0) * 60;
+      const p95Values = m.map((x) => x.p95_latency).filter((v) => v > 0).sort((a, b) => a - b);
+      const globalP95 = p95Values.length ? p95Values[Math.floor(p95Values.length * 0.95)] : 0;
+      const append = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      setTracesHistory((prev) => append(prev, Math.round(totalReqPerMin)));
+      setErrorsHistory((prev) => append(prev, errorsPerMin < 1 ? Number(errorsPerMin.toFixed(2)) : Math.round(errorsPerMin)));
+      setP95History((prev) => append(prev, Math.round(globalP95)));
     } catch (cause) {
       const msg = cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message || 'Unable to load APM data.';
       setError(msg);
@@ -216,12 +236,38 @@ export default function ApmPage() {
             <span className="dash-eyebrow">Last 5 minutes</span>
             <h2 className="dash-section-title">Service health at a glance</h2>
             <motion.div className="dash-kpi-strip" variants={kpiStagger} initial="hidden" animate="show">
-              <KpiCard label="Services" value={totals.services} accent="indigo" />
-              <KpiCard label="Traces/min" value={totals.tracesPerMin} accent="cyan" />
-              <KpiCard label="Errors/min" value={totals.errorsPerMin} accent="red" />
-              <KpiCard label="P95 global" value={totals.p95 > 0 ? `${totals.p95}ms` : '—'} accent="amber" />
+              <KpiCard label="Services" value={totals.services} accent="indigo" sparkline={tracesHistory.length > 0 ? tracesHistory.map(() => totals.services) : undefined} />
+              <KpiCard label="Traces/min" value={totals.tracesPerMin} accent="cyan" sparkline={tracesHistory} />
+              <KpiCard label="Errors/min" value={totals.errorsPerMin} accent="red" sparkline={errorsHistory} />
+              <KpiCard label="P95 global" value={totals.p95 > 0 ? `${totals.p95}ms` : '—'} accent="amber" sparkline={p95History} />
             </motion.div>
           </section>
+
+          {tracesHistory.length > 1 && (
+            <section className="apm-trend-grid">
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Traces / min</h3></div>
+                  <span className="dash-panel-context">last {tracesHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={tracesHistory} unit="/m" color="cyan" height={120} emptyMessage="Waiting for data…" />
+              </article>
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Errors / min</h3></div>
+                  <span className="dash-panel-context">last {errorsHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={errorsHistory} unit="/m" color="red" height={120} emptyMessage="No errors yet" />
+              </article>
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>P95 latency</h3></div>
+                  <span className="dash-panel-context">last {p95History.length} polls</span>
+                </div>
+                <TimeSeriesChart values={p95History} unit="ms" color="amber" height={120} emptyMessage="Waiting for latency data" />
+              </article>
+            </section>
+          )}
 
           {error ? (
             <div className="dash-error" role="alert">
