@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createTrueNASHost, deleteTrueNASHost, listTrueNASHosts, testTrueNASHost, truenasCall, TNHost, TNRow } from '../lib/truenas';
 import FilterBar from '../components/FilterBar';
 import EmptyState from '../components/shared/EmptyState';
+import StatusPill from '../components/shared/StatusPill';
 import { motion, pageEnter } from '../lib/motion';
 
 type Section = { id: string; label: string; path: string };
@@ -143,7 +144,7 @@ export default function TrueNASWorkspace() {
         subhead="Add a TrueNAS SCALE host to manage pools, datasets, shares, iSCSI, snapshots, disks, users, services, boot environments, and cloud sync from StackWatch."
         cta={{ label: 'Register first host', onClick: () => setShowHostForm(true) }}
       /></section>}
-      {hostId && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Live upstream response</span><h2>{busy ? 'Loading…' : `${rows.length} records`}</h2></div>{selected && <span className={`sw-status ${selected.status === 'online' ? 'status-good' : 'status-neutral'}`}>{selected.status ?? 'unknown'}</span>}</div>
+      {hostId && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Live upstream response</span><h2>{busy ? 'Loading…' : `${rows.length} records`}</h2></div>{selected && <StatusPill status={selected.status === 'online' ? 'up' : 'unknown'} label={selected.status ?? 'unknown'} size="sm" />}</div>
         <FilterBar search={search} onSearchChange={setSearch} placeholder={`Filter ${current.label.toLowerCase()} by name, ID, or any column…`} ariaLabel={`Search ${current.label}`} />
         {(() => {
           const q = search.trim().toLowerCase();

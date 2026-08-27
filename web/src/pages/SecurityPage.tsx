@@ -3,6 +3,7 @@ import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import ThreatCard from '../components/shared/ThreatCard';
 import ComplianceBar from '../components/shared/ComplianceBar';
+import StatusPill from '../components/shared/StatusPill';
 import { motion, pageEnter } from '../lib/motion';
 
 interface Threat {
@@ -224,19 +225,18 @@ export default function SecurityPage() {
                           <td><code>{r.rule_id}</code></td>
                           <td>{r.severity}</td>
                           <td>
-                            <span
-                              className={`dash-status ${
-                                r.status === 'pass'
-                                  ? 'dash-status-good'
-                                  : r.status === 'fail'
-                                  ? 'dash-status-bad'
-                                  : 'dash-status-warn'
-                              }`}
-                            >
-                              <span className="dash-status-dot" aria-hidden="true" />
-                              {r.status}
-                            </span>
-                          </td>
+                                                      <StatusPill
+                                                        status={
+                                                          r.status === 'pass'
+                                                            ? 'ok'
+                                                            : r.status === 'fail'
+                                                            ? 'crit'
+                                                            : 'warn'
+                                                        }
+                                                        label={r.status}
+                                                        size="sm"
+                                                      />
+                                                    </td>
                           <td>{r.description}</td>
                         </tr>
                       ))}
@@ -287,19 +287,18 @@ export default function SecurityPage() {
                     {siem.map((e) => (
                       <tr key={e.id}>
                         <td>
-                          <span
-                            className={`dash-status ${
-                              e.severity === 'critical' || e.severity === 'high'
-                                ? 'dash-status-bad'
-                                : e.severity === 'medium'
-                                ? 'dash-status-warn'
-                                : 'dash-status-good'
-                            }`}
-                          >
-                            <span className="dash-status-dot" aria-hidden="true" />
-                            {e.severity}
-                          </span>
-                        </td>
+                                                  <StatusPill
+                                                    status={
+                                                      e.severity === 'critical' || e.severity === 'high'
+                                                        ? 'crit'
+                                                        : e.severity === 'medium'
+                                                        ? 'warn'
+                                                        : 'ok'
+                                                    }
+                                                    label={e.severity}
+                                                    size="sm"
+                                                  />
+                                                </td>
                         <td><code>{e.event_type}</code></td>
                         <td><code>{e.source || '—'}</code></td>
                         <td>{e.message}</td>

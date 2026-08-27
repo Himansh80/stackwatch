@@ -4,6 +4,7 @@ import { ApiError, api, getToken } from '../lib/api';
 import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
 import SlaBadge from '../components/shared/SlaBadge';
+import StatusPill from '../components/shared/StatusPill';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 interface SynthTest {
@@ -296,13 +297,12 @@ export default function SyntheticsPage() {
                   {tests.map((t) => (
                     <tr key={t.id}>
                       <td>
-                        <span
-                          className={`dash-status ${t.enabled ? 'dash-status-good' : 'dash-status-warn'}`}
-                        >
-                          <span className="dash-status-dot" aria-hidden="true" />
-                          {t.enabled ? 'active' : 'paused'}
-                        </span>
-                      </td>
+                                              <StatusPill
+                                                status={t.enabled ? 'up' : 'stale'}
+                                                label={t.enabled ? 'active' : 'paused'}
+                                                size="sm"
+                                              />
+                                            </td>
                       <td>
                         <strong>{t.name}</strong>
                         <br />

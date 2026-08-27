@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
+import StatusPill from '../components/shared/StatusPill';
 import PipelineCard from '../components/shared/PipelineCard';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
@@ -219,10 +220,7 @@ export default function CicdPage() {
                         <td><code>{d.pipeline_id.slice(0, 8)}</code></td>
                         <td><strong>{d.service_name || d.service_id.slice(0, 8)}</strong></td>
                         <td>
-                          <span className="dash-status dash-status-muted">
-                            <span className="dash-status-dot" aria-hidden="true" />
-                            {d.environment}
-                          </span>
+                          <StatusPill status="unknown" label={d.environment} size="sm" />
                         </td>
                         <td><code>{d.version}</code></td>
                         <td><small>{new Date(d.deployed_at).toLocaleString()}</small></td>

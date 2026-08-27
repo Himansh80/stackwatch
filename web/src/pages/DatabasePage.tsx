@@ -3,6 +3,7 @@ import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import SlowQueryTable, { SlowQuery } from '../components/shared/SlowQueryTable';
+import StatusPill from '../components/shared/StatusPill';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 interface ConnectionPool {
@@ -235,10 +236,7 @@ export default function DatabasePage() {
                     return (
                       <article key={p.id} className="pool-card">
                         <div className="pool-card-head">
-                          <span className="dash-status dash-status-muted">
-                            <span className="dash-status-dot" aria-hidden="true" />
-                            {p.database}
-                          </span>
+                          <StatusPill status="unknown" label={p.database} size="sm" />
                           <strong className="pool-card-host"><code>{p.host}:{p.port}</code></strong>
                         </div>
                         <div className="pool-card-metrics">

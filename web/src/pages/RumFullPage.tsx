@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
 import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
+import StatusPill from '../components/shared/StatusPill';
 import ErrorGroupCard, { ErrorGroup } from '../components/shared/ErrorGroupCard';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
@@ -180,7 +181,7 @@ export default function RumFullPage() {
                       <td>{s.page_views}</td>
                       <td>{s.resources}</td>
                       <td>{s.web_vitals}</td>
-                      <td>{s.errors > 0 ? <span className="sw-status-bad">×{s.errors}</span> : '0'}</td>
+                      <td>{s.errors > 0 ? <StatusPill status="crit" label={`×${s.errors}`} size="sm" /> : <StatusPill status="ok" label="0" size="sm" />}</td>
                     </tr>
                   ))}
                 </tbody>

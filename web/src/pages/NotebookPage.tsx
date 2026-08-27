@@ -3,6 +3,7 @@ import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import NotebookEditor, { Notebook, NotebookCollaborator } from '../components/shared/NotebookEditor';
+import StatusPill from '../components/shared/StatusPill';
 import { motion, pageEnter, kpiStagger } from '../lib/motion';
 
 type Tab = 'mine' | 'shared' | 'all';
@@ -223,10 +224,11 @@ export default function NotebookPage() {
                     aria-label={`Open ${nb.title}`}
                   >
                     <div className="threat-card-top">
-                      <span className="dash-status dash-status-muted">
-                        <span className="dash-status-dot" aria-hidden="true" />
-                        {tab === 'mine' ? 'owner' : tab === 'shared' ? 'shared' : 'tenant'}
-                      </span>
+                      <StatusPill
+                                              status="unknown"
+                                              label={tab === 'mine' ? 'owner' : tab === 'shared' ? 'shared' : 'tenant'}
+                                              size="sm"
+                                            />
                       <strong className="threat-card-type">{nb.title || 'Untitled notebook'}</strong>
                       <span className="threat-card-time" title={nb.last_edited_at}>
                         {nb.last_edited_at ? new Date(nb.last_edited_at).toLocaleString() : '—'}

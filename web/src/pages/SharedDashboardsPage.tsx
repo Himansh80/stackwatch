@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
+import StatusPill from '../components/shared/StatusPill';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 type Tab = 'shared-with-me' | 'my-shares' | 'mentions';
@@ -162,10 +163,7 @@ export default function SharedDashboardsPage() {
                       aria-label={`Open ${d.dashboard_name}`}
                     >
                       <div className="threat-card-top">
-                        <span className="dash-status dash-status-muted">
-                          <span className="dash-status-dot" aria-hidden="true" />
-                          {d.permission}
-                        </span>
+                        <StatusPill status="unknown" label={d.permission} size="sm" />
                         <strong className="threat-card-type">{d.dashboard_name}</strong>
                         <span className="threat-card-time" title={d.created_at}>
                           {new Date(d.created_at).toLocaleString()}
@@ -216,10 +214,7 @@ export default function SharedDashboardsPage() {
                   {mentions.map((m) => (
                     <div key={m.id} className="threat-card">
                       <div className="threat-card-top">
-                        <span className="dash-status dash-status-muted">
-                          <span className="dash-status-dot" aria-hidden="true" />
-                          {m.context_type}
-                        </span>
+                        <StatusPill status="unknown" label={m.context_type} size="sm" />
                         <strong className="threat-card-type">@{m.mentioning_name}</strong>
                         <span className="threat-card-time" title={m.created_at}>
                           {new Date(m.created_at).toLocaleString()}
