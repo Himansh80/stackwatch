@@ -3,6 +3,8 @@ import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import IncidentCard, { Incident } from '../components/shared/IncidentCard';
 import KpiCard from '../components/shared/KpiCard';
+import StatusPill from '../components/shared/StatusPill';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, pageEnter, kpiStagger, useReducedMotion } from '../lib/motion';
 
 type Tab = 'open' | 'acknowledged' | 'resolved' | 'all';
@@ -26,10 +28,14 @@ type CreateSeverity = 'sev1' | 'sev2' | 'sev3' | 'sev4';
  */
 export default function IncidentsPage() {
   const _reduce = useReducedMotion();
-  const [tab, _setTab] = useState<Tab>('open');
+  const [tab, setTab] = useState<Tab>('open');
   const [error, setError] = useState('');
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [sevFilter, setSevFilter] = useState<SeverityFilter>('all');
+  // Rolling history for sparklines (last 24 polls = ~12 min window).
+  const [openHistory, setOpenHistory] = useState<number[]>([]);
+  const [sev1History, setSev1History] = useState<number[]>([]);
+  const [rateHistory, setRateHistory] = useState<number[]>([]);
 
   const [_creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
@@ -56,7 +62,18 @@ export default function IncidentsPage() {
         'GET',
         `/api/v1/incidents${qs ? `?${qs}` : ''}`,
       );
-      setIncidents(r.incidents || []);
+      const rows = r.incidents || [];
+      setIncidents(rows);
+      // Update rolling history — only count "open" / "sev1" so the
+      // trend isn't polluted by tab/filter selections.
+      const append = (prev: number[], next: number, max = 24) => {
+        const out = [...prev, next];
+        return out.length > max ? out.slice(out.length - max) : out;
+      };
+      setRateHistory((prev) => append(prev, rows.length));
+      if (tab === 'open') setOpenHistory((prev) => append(prev, rows.length));
+      const sev1 = rows.filter((i) => (i.severity || '').toLowerCase() === 'sev1').length;
+      setSev1History((prev) => append(prev, sev1));
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.friendlyMessage : (cause as Error).message);
     }
@@ -150,12 +167,14 @@ export default function IncidentsPage() {
               value={openKpiValue}
               status={openKpiValue > 0 ? 'crit' : 'up'}
               accent={openKpiValue > 0 ? 'red' : 'green'}
+              sparkline={openHistory}
             />
             <KpiCard
               label="Sev1 (all-time view)"
               value={sev1KpiValue}
               status={sev1KpiValue > 0 ? 'crit' : 'up'}
               accent={sev1KpiValue > 0 ? 'red' : 'green'}
+              sparkline={sev1History}
             />
             <KpiCard
               label="MTTR"
@@ -164,6 +183,38 @@ export default function IncidentsPage() {
               accent={counts.mttrMs === 0 ? 'indigo' : counts.mttrMs > 4 * 60 * 60 * 1000 ? 'red' : 'green'}
             />
           </motion.div>
+
+          {rateHistory.length > 1 && (
+            <section className="inc-trend">
+              <article className="dash-panel">
+                <div className="dash-panel-head">
+                  <div><span className="dash-eyebrow">Trend</span><h3>Incident rate ({tab === 'all' ? 'all' : tab})</h3></div>
+                  <span className="dash-panel-context">last {rateHistory.length} polls</span>
+                </div>
+                <TimeSeriesChart values={rateHistory} color="red" height={100} emptyMessage="Waiting for data…" />
+              </article>
+            </section>
+          )}
+
+          <div className="synth-filter-row inc-tabs">
+            {(['open', 'acknowledged', 'resolved', 'all'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`inc-tab ${tab === t ? 'active' : ''}`}
+                onClick={() => setTab(t)}
+              >
+                <StatusPill
+                  status={t === 'open' && openKpiValue > 0 ? 'crit' : t === 'acknowledged' ? 'warn' : t === 'resolved' ? 'ok' : 'unknown'}
+                  label={t.charAt(0).toUpperCase() + t.slice(1)}
+                  size="sm"
+                />
+                <span className="inc-tab-count">
+                  {t === 'open' ? openKpiValue : t === 'acknowledged' ? counts.ack : t === 'resolved' ? counts.resolved : incidents.length}
+                </span>
+              </button>
+            ))}
+          </div>
 
           <section className="dash-section">
             <span className="dash-eyebrow">Incidents</span>

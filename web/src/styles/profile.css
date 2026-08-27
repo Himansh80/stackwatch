@@ -548,3 +548,11 @@
 
 .apm-service-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
 .apm-service-head h2 { margin:0; }
+
+/* IncidentsPage tabs */
+.inc-trend { margin-top:16px; }
+.inc-tabs { display:flex; gap:8px; flex-wrap:wrap; padding:14px 0 4px; }
+.inc-tab { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border:1px solid var(--border); border-radius:999px; background:var(--bg); color:var(--muted); cursor:pointer; font-family:inherit; font-size:12px; }
+.inc-tab:hover { color:var(--text); border-color:#2a3e5d; }
+.inc-tab.active { background:var(--surface-2); color:var(--text); border-color:var(--accent); }
+.inc-tab-count { color:var(--muted); font-size:11px; font-weight:700; padding-left:6px; border-left:1px solid var(--border-soft); margin-left:4px; }

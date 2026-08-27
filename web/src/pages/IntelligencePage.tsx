@@ -3,6 +3,7 @@ import { ApiError, api, getToken } from '../lib/api';
 import AnomaliesSection from '../components/AnomaliesSection';
 import { AnomalyEvent } from '../components/shared/AnomalyChart';
 import KpiCard from '../components/shared/KpiCard';
+import StatusPill from '../components/shared/StatusPill';
 import PredictiveAlertsSection, {
   PredictiveAlert,
 } from '../components/PredictiveAlertsSection';
@@ -253,7 +254,21 @@ export default function IntelligencePage() {
                   className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
                   onClick={() => setTab(t)}
                 >
-                  {TAB_LABELS[t]}
+                  <StatusPill
+                    status={
+                      t === 'anomalies' && events.length > 0
+                        ? 'crit'
+                        : t === 'predictions' && predictiveAlerts.length > 0
+                        ? 'warn'
+                        : t === 'correlations' && correlationGroups.length > 0
+                        ? 'warn'
+                        : t === 'noise' && noiseRules.length > 0
+                        ? 'ok'
+                        : 'unknown'
+                    }
+                    label={TAB_LABELS[t]}
+                    size="sm"
+                  />
                 </button>
               ),
             )}
