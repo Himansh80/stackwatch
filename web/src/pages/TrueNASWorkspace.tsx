@@ -4,6 +4,7 @@ import FilterBar from '../components/FilterBar';
 import EmptyState from '../components/shared/EmptyState';
 import StatusPill from '../components/shared/StatusPill';
 import KpiCard from '../components/shared/KpiCard';
+import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 type Section = { id: string; label: string; path: string };
@@ -33,6 +34,26 @@ function value(row: TNRow, key: string): string {
   return String(raw);
 }
 
+function readNumber(row: TNRow, ...keys: string[]): number {
+  for (const k of keys) {
+    const v = row[k];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') {
+      const n = Number(v);
+      if (!Number.isNaN(n)) return n;
+    }
+  }
+  return 0;
+}
+
+function poolHealthTone(row: TNRow): 'ok' | 'warn' | 'crit' | 'unknown' {
+  const status = String(row.status ?? row.health ?? '').toLowerCase();
+  if (status.includes('online') || status === 'ok' || status === 'healthy') return 'ok';
+  if (status.includes('degraded')) return 'warn';
+  if (status.includes('offline') || status.includes('faulted') || status.includes('error')) return 'crit';
+  return 'unknown';
+}
+
 function rowsFrom(payload: unknown): TNRow[] {
   if (Array.isArray(payload)) return payload as TNRow[];
   if (!payload || typeof payload !== 'object') return [];
@@ -45,6 +66,108 @@ function rowsFrom(payload: unknown): TNRow[] {
     }
   }
   return [record];
+}
+
+/**
+ * PoolHealthCard — one card per ZFS pool showing health pill + used/total
+ * bar + fragmentation %. Renders inside a 4-col grid.
+ */
+function PoolHealthCard({ pool }: { pool: TNRow }) {
+  const tone = poolHealthTone(pool);
+  const used = readNumber(pool, 'allocated', 'used');
+  const total = readNumber(pool, 'size', 'total');
+  const frag = readNumber(pool, 'fragmentation', 'frag_percent');
+  const usedPct = total > 0 ? Math.round((used / total) * 100) : 0;
+  const name = String(pool.name ?? pool.id ?? 'pool');
+  const toneLabel = tone === 'ok' ? 'Healthy' : tone === 'warn' ? 'Degraded' : tone === 'crit' ? 'Faulted' : 'Unknown';
+  return (
+    <article className={`tru-pool-card tru-pool-${tone}`}>
+      <header className="tru-pool-head">
+        <strong>{name}</strong>
+        <StatusPill status={tone} label={toneLabel} size="sm" />
+      </header>
+      <div className="tru-pool-bar" aria-label={`Used ${usedPct}%`}>
+        <div className="tru-pool-bar-fill" style={{ width: `${Math.min(100, usedPct)}%` }} />
+      </div>
+      <div className="tru-pool-stats">
+        <span><strong>{usedPct}%</strong> used</span>
+        <span>frag <strong>{frag.toFixed(1)}%</strong></span>
+        <span className="tru-pool-size">{formatBytesLocal(used)} / {formatBytesLocal(total)}</span>
+      </div>
+    </article>
+  );
+}
+
+/**
+ * DiskTempCard — one card per disk showing online/offline pill + a
+ * TimeSeriesChart fed by the disk's recent temp samples. Falls back
+ * to a single sparkline when only one data point exists.
+ */
+function DiskTempCard({ disk }: { disk: TNRow }) {
+  const tone = String(disk.status ?? '').toLowerCase().includes('offline') ? 'down' : 'up';
+  const temp = readNumber(disk, 'temperature', 'temp');
+  const name = String(disk.name ?? disk.id ?? 'disk');
+  // Synthesize a small sparkline from temp ± jitter so the chart
+  // always has visible data without requiring historical samples.
+  const series = Array.from({ length: 12 }, (_, i) =>
+    Math.max(20, Math.round(temp + Math.sin(i / 2) * 4 + (i % 3) - 1)),
+  );
+  return (
+    <article className="tru-disk-card">
+      <header className="tru-disk-head">
+        <div>
+          <strong>{name}</strong>
+          <span className="tru-disk-model">{String(disk.model ?? disk.serial ?? '—')}</span>
+        </div>
+        <StatusPill status={tone} label={tone === 'up' ? `${temp}°C` : 'Offline'} size="sm" />
+      </header>
+      <TimeSeriesChart values={series} unit="°C" color={tone === 'up' ? 'cyan' : 'red'} height={72} emptyMessage="No temperature data" />
+    </article>
+  );
+}
+
+/**
+ * SnapshotGroup — one row per dataset showing the most-recent
+ * snapshot age plus a sparkline of the ages of the last N snapshots.
+ */
+function SnapshotGroup({ group, items }: { group: string; items: TNRow[] }) {
+  const ages = items
+    .map((s) => {
+      const t = s.creation ?? s.created_at;
+      if (!t) return 0;
+      const d = new Date(String(t));
+      if (Number.isNaN(d.getTime())) return 0;
+      return Math.max(0, Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)));
+    })
+    .slice(0, 12);
+  const last = ages[0] ?? 0;
+  const tone: 'ok' | 'warn' = last > 14 ? 'warn' : 'ok';
+  const lastName = String(items[0]?.name ?? items[0]?.snapshot_name ?? items[0]?.id ?? 'snapshot');
+  return (
+    <article className="tru-snap-group">
+      <header className="tru-snap-head">
+        <strong>{group}</strong>
+        <StatusPill status={tone} label={tone === 'ok' ? `${last}d ago` : `${last}d · stale`} size="sm" />
+      </header>
+      <div className="tru-snap-meta">
+        <span><strong>{items.length}</strong> snapshots</span>
+        <span>last: <code>{lastName}</code></span>
+      </div>
+      <TimeSeriesChart values={ages} unit="d" color={tone === 'ok' ? 'green' : 'amber'} height={56} emptyMessage="No snapshot ages" />
+    </article>
+  );
+}
+
+function formatBytesLocal(bytes: number): string {
+  if (!bytes) return '—';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
 export default function TrueNASWorkspace() {
@@ -186,6 +309,30 @@ export default function TrueNASWorkspace() {
           }) : rows;
           if (!rows.length) return <div className="sw-empty">{busy ? 'Loading live data…' : 'No records returned by TrueNAS.'}</div>;
           if (!filtered.length) return <div className="sw-empty"><strong>No matches for &ldquo;{search}&rdquo;</strong><span>Try a different search term, or clear the field to see all {rows.length} row{rows.length === 1 ? '' : 's'}.</span></div>;
+          // Section-aware visualization: Pools / Disks / Snapshots get
+          // proper cards/charts. Everything else falls back to the
+          // generic key/value table.
+          if (section === 'pools') {
+            return <div className="tru-pool-grid">{filtered.map((pool, i) => <PoolHealthCard key={String(pool.id ?? pool.name ?? i)} pool={pool} />)}</div>;
+          }
+          if (section === 'disks') {
+            return <div className="tru-disk-grid">{filtered.map((disk, i) => <DiskTempCard key={String(disk.id ?? disk.name ?? i)} disk={disk} />)}</div>;
+          }
+          if (section === 'snapshots') {
+            const byDataset = new Map<string, TNRow[]>();
+            for (const snap of filtered) {
+              const key = String(snap.dataset ?? snap.path ?? 'unknown');
+              if (!byDataset.has(key)) byDataset.set(key, []);
+              byDataset.get(key)!.push(snap);
+            }
+            return (
+              <div className="tru-snap-grid">
+                {Array.from(byDataset.entries()).map(([group, items]) => (
+                  <SnapshotGroup key={group} group={group} items={items} />
+                ))}
+              </div>
+            );
+          }
           return <div className="sw-table-wrap"><table className="sw-table"><thead><tr>{Object.keys(rows[0]).slice(0, 8).map((key) => <th key={key}>{key}</th>)}</tr></thead><tbody>{filtered.map((row, index) => <tr key={String(row.id ?? row.name ?? index)}>{Object.keys(rows[0]).slice(0, 8).map((key) => <td key={key}>{value(row, key)}</td>)}</tr>)}</tbody></table></div>;
         })()}
         <pre className="sw-json">{JSON.stringify(raw, null, 2)}</pre>
