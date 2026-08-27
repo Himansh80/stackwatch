@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
 import ErrorGroupCard, { ErrorGroup } from '../components/shared/ErrorGroupCard';
@@ -40,13 +38,12 @@ type SessionSort = 'last_seen' | 'errors' | 'page_views' | 'started_at';
 
 export default function RumFullPage() {
   const nav = useNavigate();
-  const logout = useLogout();
   const [sessions, setSessions] = useState<RUMSession[]>([]);
   const [errorGroups, setErrorGroups] = useState<ErrorGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sessionSort, setSessionSort] = useState<SessionSort>('last_seen');
-  const [window, setWindow] = useState<'1h' | '24h' | '7d'>('24h');
+  const [window, _setWindow] = useState<'1h' | '24h' | '7d'>('24h');
 
   const load = useCallback(async () => {
     if (!getToken()) {
@@ -106,41 +103,6 @@ export default function RumFullPage() {
   }, [sessions, errorGroups]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="rum"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'apm', 'logs', 'rum']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Observability</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">RUM</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {sessions.length} session{sessions.length === 1 ? '' : 's'}
-                  {' · '}
-                  {errorGroups.length} error group{errorGroups.length === 1 ? '' : 's'}
-                </span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <select
-              className="sw-button"
-              value={window}
-              onChange={(e) => setWindow(e.target.value as '1h' | '24h' | '7d')}
-              aria-label="Time window"
-            >
-              <option value="1h">Last 1 hour</option>
-              <option value="24h">Last 24 hours</option>
-              <option value="7d">Last 7 days</option>
-            </select>
-          </div>
-        </header>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           <section className="dash-section">
             <span className="dash-eyebrow">Live</span>
@@ -240,7 +202,5 @@ export default function RumFullPage() {
             )}
           </section>
         </motion.div>
-      </main>
-    </div>
   );
 }

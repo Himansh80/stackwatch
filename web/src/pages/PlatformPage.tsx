@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, api, me } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import { motion, pageEnter } from '../lib/motion';
 
 // Tier 11 Phase 8 — Platform & Commerce unified 6-tab
@@ -41,7 +39,6 @@ const TABS: Array<{ key: TabKey; label: string; subtitle: string }> = [
 ];
 
 export default function PlatformPage() {
-  const onLogout = useLogout();
   const [active, setActive] = useState<TabKey>('deploy');
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [error, setError] = useState('');
@@ -96,9 +93,6 @@ export default function PlatformPage() {
   }, [active, isPlatformAdmin, backend]);
 
   return (
-    <div className="dash-shell">
-      <AppSidebar active="dashboard" onLogout={onLogout} />
-      <main className="dash-main">
         <motion.div initial="hidden" animate="show" variants={pageEnter} className="space-y-4">
           <header className="flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -145,8 +139,6 @@ export default function PlatformPage() {
 
           <section>{content}</section>
         </motion.div>
-      </main>
-    </div>
   );
 }
 

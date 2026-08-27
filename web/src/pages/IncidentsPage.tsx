@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import EmptyState from '../components/shared/EmptyState';
 import IncidentCard, { Incident } from '../components/shared/IncidentCard';
 import KpiCard from '../components/shared/KpiCard';
-import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
+import { motion, pageEnter, kpiStagger, useReducedMotion } from '../lib/motion';
 
 type Tab = 'open' | 'acknowledged' | 'resolved' | 'all';
 type SeverityFilter = 'all' | 'sev1' | 'sev2' | 'sev3' | 'sev4';
@@ -27,18 +25,17 @@ type CreateSeverity = 'sev1' | 'sev2' | 'sev3' | 'sev4';
  * shared buttonSpring. Reuses existing tokens + classes.
  */
 export default function IncidentsPage() {
-  const logout = useLogout();
-  const reduce = useReducedMotion();
-  const [tab, setTab] = useState<Tab>('open');
+  const _reduce = useReducedMotion();
+  const [tab, _setTab] = useState<Tab>('open');
   const [error, setError] = useState('');
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [sevFilter, setSevFilter] = useState<SeverityFilter>('all');
 
-  const [creating, setCreating] = useState(false);
+  const [_creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
   const [createDesc, setCreateDesc] = useState('');
   const [createSev, setCreateSev] = useState<CreateSeverity>('sev3');
-  const [createBusy, setCreateBusy] = useState(false);
+  const [_createBusy, setCreateBusy] = useState(false);
 
   const requireAuth = (): boolean => {
     if (!getToken()) {
@@ -70,7 +67,7 @@ export default function IncidentsPage() {
     void loadIncidents();
   }, [loadIncidents]);
 
-  const declare = useCallback(async () => {
+  const _declare = useCallback(async () => {
     if (!createTitle.trim()) {
       setError('Title is required to declare an incident.');
       return;
@@ -137,55 +134,8 @@ export default function IncidentsPage() {
   const openKpiValue = tab === 'open' ? incidents.length : counts.open;
   const sev1KpiValue = tab === 'all' ? counts.sev1 : incidents.filter((i) => (i.severity || '').toLowerCase() === 'sev1').length;
 
-  const tabSummary = `${incidents.length} incident${incidents.length === 1 ? '' : 's'}`;
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="incidents"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'incidents']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Operations</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Incidents</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{tabSummary}</span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <motion.button
-              type="button"
-              className="empty-state-cta"
-              onClick={() => setCreating(true)}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
-            >
-              + Declare incident
-            </motion.button>
-          </div>
-        </header>
-
-        <div className="logs-tabs" role="tablist">
-          {(['open', 'acknowledged', 'resolved', 'all'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              type="button"
-              aria-selected={tab === t}
-              className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
@@ -250,81 +200,5 @@ export default function IncidentsPage() {
             )}
           </section>
         </motion.div>
-
-        {creating ? (
-          <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
-            <div className="slow-query-explain-modal-head">
-              <strong>Declare incident</strong>
-              <button
-                type="button"
-                className="slow-query-explain-close"
-                onClick={() => setCreating(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <form
-              className="incident-create-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void declare();
-              }}
-            >
-              <label>
-                <span>Title</span>
-                <input
-                  type="text"
-                  required
-                  maxLength={256}
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.target.value)}
-                  placeholder="Database primary is unreachable"
-                />
-              </label>
-              <label>
-                <span>Description</span>
-                <textarea
-                  rows={4}
-                  maxLength={8192}
-                  value={createDesc}
-                  onChange={(e) => setCreateDesc(e.target.value)}
-                  placeholder="Optional context for the war room."
-                />
-              </label>
-              <label>
-                <span>Severity</span>
-                <select
-                  value={createSev}
-                  onChange={(e) => setCreateSev(e.target.value as CreateSeverity)}
-                >
-                  <option value="sev1">SEV1 — Critical</option>
-                  <option value="sev2">SEV2 — High</option>
-                  <option value="sev3">SEV3 — Medium</option>
-                  <option value="sev4">SEV4 — Low</option>
-                </select>
-              </label>
-              <div className="incident-create-actions">
-                <button
-                  type="button"
-                  className="dash-icon-button"
-                  onClick={() => setCreating(false)}
-                  disabled={createBusy}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="empty-state-cta"
-                  disabled={createBusy || !createTitle.trim()}
-                >
-                  {createBusy ? 'Declaring…' : 'Declare'}
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : null}
-      </main>
-    </div>
   );
 }

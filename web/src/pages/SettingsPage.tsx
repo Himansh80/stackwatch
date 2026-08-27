@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, clearToken, getToken, setToken } from '../lib/api';
-import ProfileMenu from '../components/ProfileMenu';
 import PasswordInput from '../components/PasswordInput';
 import PasswordField from '../components/PasswordField';
 import { friendlyPasswordMessage } from '../lib/password';
@@ -147,44 +146,12 @@ export default function SettingsPage() {
     }
   }
 
-  function logout() {
+  function _logout() {
     clearToken();
     nav('/login');
   }
 
   return (
-    <div className="dash-app">
-      <aside className="dash-sidebar">
-        <Link className="dash-brand" to="/dashboard">
-          <span className="dash-brand-mark">S</span>
-          <span><strong>StackWatch</strong><small>Infrastructure control plane</small></span>
-        </Link>
-        <div className="dash-nav-section"><span className="dash-nav-heading">Workspace</span>
-          <Link className="dash-nav-item" to="/dashboard"><span>⌂</span>Overview</Link>
-          <Link className="dash-nav-item dash-nav-active" to="/settings"><span>⚙</span>Settings</Link>
-          <Link className="dash-nav-item" to="/billing"><span>$</span>Billing</Link>
-        </div>
-        <div className="dash-nav-section"><span className="dash-nav-heading">Infrastructure</span>
-          <Link className="dash-nav-item" to="/proxmox"><span>◈</span>Proxmox</Link>
-          <Link className="dash-nav-item" to="/truenas"><span>▤</span>TrueNAS</Link>
-        </div>
-        <div className="dash-sidebar-bottom">
-          <button className="dash-sidebar-logout" onClick={logout}>↪ Sign out</button>
-        </div>
-      </aside>
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Settings</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">{tenant?.name || 'Workspace'}</strong>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <button className="dash-icon-button" onClick={() => window.location.reload()} aria-label="Refresh page" title="Refresh page">↻</button>
-            <ProfileMenu firstName={tenant?.name ? tenant.name.split(' ')[0] : 'there'} fullName={tenant?.name || ''} tenantName={tenant?.name || 'Workspace'} initials={(tenant?.name || '?').charAt(0).toUpperCase()} />
-          </div>
-        </header>
         <motion.div
           className="dash-content"
           initial="hidden"
@@ -290,7 +257,5 @@ export default function SettingsPage() {
             </>
           )}
         </motion.div>
-      </main>
-    </div>
   );
 }

@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import LogSearchTab from '../components/logs/LogSearchTab';
 import LogMonitorsTab, { LogMonitor } from '../components/logs/LogMonitorsTab';
 import LogArchivesTab, { LogArchive, LogRehydration } from '../components/logs/LogArchivesTab';
@@ -25,8 +23,7 @@ type Tab = 'search' | 'retention' | 'archives' | 'monitors' | 'patterns';
  * cheap and avoids unnecessary 401s when the user lands on the page.
  */
 export default function LogsFullPage() {
-  const logout = useLogout();
-  const [tab, setTab] = useState<Tab>('search');
+  const [tab, _setTab] = useState<Tab>('search');
   const [error, setError] = useState('');
   const [logs, setLogs] = useState<LogEntryData[]>([]);
   const [monitors, setMonitors] = useState<LogMonitor[]>([]);
@@ -116,7 +113,7 @@ export default function LogsFullPage() {
     }
   }, []);
 
-  const summary = (() => {
+  const _summary = (() => {
     if (tab === 'search') return `${logs.length} entries`;
     if (tab === 'monitors') return `${monitors.length} monitor${monitors.length === 1 ? '' : 's'}`;
     if (tab === 'archives') return `${archives.length} archive${archives.length === 1 ? '' : 's'}`;
@@ -125,40 +122,6 @@ export default function LogsFullPage() {
   })();
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="logs"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'apm', 'logs']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Observability</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Logs</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{summary}</span>
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <div className="logs-tabs" role="tablist">
-          {(['search', 'monitors', 'archives', 'retention', 'patterns'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              type="button"
-              aria-selected={tab === t}
-              className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {tab === 'search' ? (
             <LogSearchTab entries={logs} busy={searchBusy} error={error} onSearch={handleSearch} />
@@ -176,7 +139,5 @@ export default function LogsFullPage() {
             <LogPatternsTab patterns={patterns} />
           ) : null}
         </motion.div>
-      </main>
-    </div>
   );
 }

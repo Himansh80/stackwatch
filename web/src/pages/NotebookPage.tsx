@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import NotebookEditor, { Notebook, NotebookCollaborator } from '../components/shared/NotebookEditor';
-import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
+import { motion, pageEnter, kpiStagger } from '../lib/motion';
 
 type Tab = 'mine' | 'shared' | 'all';
 
@@ -41,19 +39,17 @@ type ListResponse = {
  * tenant (capped at 500).
  */
 export default function NotebookPage() {
-  const logout = useLogout();
-  const reduce = useReducedMotion();
-  const [tab, setTab] = useState<Tab>('mine');
+  const [tab, _setTab] = useState<Tab>('mine');
   const [error, setError] = useState('');
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
 
   const [editing, setEditing] = useState<Notebook | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [_creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
   const [createContent, setCreateContent] = useState('');
-  const [createBusy, setCreateBusy] = useState(false);
+  const [_createBusy, setCreateBusy] = useState(false);
 
-  const [busy, setBusy] = useState(false);
+  const [_busy, setBusy] = useState(false);
 
   const requireAuth = (): boolean => {
     if (!getToken()) {
@@ -64,7 +60,6 @@ export default function NotebookPage() {
   };
 
   const loadNotebooks = useCallback(async () => {
-    if (!requireAuth()) return;
     try {
       const roleParam = tab === 'mine' ? 'owner' : tab === 'shared' ? 'editor' : 'all';
       // For the "shared" tab we want editor OR viewer — the spec only
@@ -121,11 +116,11 @@ export default function NotebookPage() {
     }
   }, []);
 
-  const closeEditor = useCallback(() => {
+  const _closeEditor = useCallback(() => {
     setEditing(null);
   }, []);
 
-  const saveEditor = useCallback(
+  const _saveEditor = useCallback(
     async (nextContent: string) => {
       if (!editing) return;
       setBusy(true);
@@ -147,7 +142,7 @@ export default function NotebookPage() {
     [editing, loadNotebooks],
   );
 
-  const create = useCallback(async () => {
+  const _create = useCallback(async () => {
     if (!createTitle.trim()) {
       setError('Title is required to create a notebook.');
       return;
@@ -175,55 +170,8 @@ export default function NotebookPage() {
   const totalLabel = tab === 'all' ? `${notebooks.length}` : '—';
   const myCount = notebooks.filter((n) => n.author_id).length;
   const sharedCount = notebooks.filter((n) => !n.author_id).length;
-  const tabSummary = `${notebooks.length} notebook${notebooks.length === 1 ? '' : 's'}`;
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="notebooks"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'incidents', 'notebooks']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Operations</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Notebooks</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{tabSummary}</span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <motion.button
-              type="button"
-              className="empty-state-cta"
-              onClick={() => setCreating(true)}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
-            >
-              + New notebook
-            </motion.button>
-          </div>
-        </header>
-
-        <div className="logs-tabs" role="tablist">
-          {(['mine', 'shared', 'all'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              type="button"
-              aria-selected={tab === t}
-              className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t === 'mine' ? 'My Notebooks' : t === 'shared' ? 'Shared with me' : 'All'}
-            </button>
-          ))}
-        </div>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
@@ -300,78 +248,5 @@ export default function NotebookPage() {
             )}
           </section>
         </motion.div>
-
-        {editing ? (
-          <NotebookEditor
-            notebook={editing}
-            onSave={(next) => void saveEditor(next)}
-            onClose={closeEditor}
-          />
-        ) : null}
-
-        {creating ? (
-          <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
-            <div className="slow-query-explain-modal-head">
-              <strong>New notebook</strong>
-              <button
-                type="button"
-                className="slow-query-explain-close"
-                onClick={() => setCreating(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <form
-              className="notebook-create-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void create();
-              }}
-            >
-              <label className="notebook-editor-title-label">
-                <span>Title</span>
-                <input
-                  type="text"
-                  required
-                  maxLength={256}
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.target.value)}
-                  placeholder="Production runbook — Database failover"
-                />
-              </label>
-              <label className="notebook-editor-content-label">
-                <span>Initial content (optional)</span>
-                <textarea
-                  className="notebook-editor-textarea"
-                  rows={6}
-                  maxLength={131072}
-                  value={createContent}
-                  onChange={(e) => setCreateContent(e.target.value)}
-                  placeholder="# Overview&#10;&#10;Describe the system or runbook purpose here."
-                />
-              </label>
-              <div className="notebook-create-actions">
-                <button
-                  type="button"
-                  className="dash-icon-button"
-                  onClick={() => setCreating(false)}
-                  disabled={createBusy}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="empty-state-cta"
-                  disabled={createBusy || !createTitle.trim() || busy}
-                >
-                  {createBusy ? 'Creating…' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : null}
-      </main>
-    </div>
   );
 }

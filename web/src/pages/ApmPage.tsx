@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import KpiCard from '../components/shared/KpiCard';
 import TraceSummary, { TraceSummaryService } from '../components/shared/TraceSummary';
 import EmptyState from '../components/shared/EmptyState';
@@ -59,7 +57,6 @@ interface ServiceMapResponse {
  */
 export default function ApmPage() {
   const nav = useNavigate();
-  const logout = useLogout();
   const [services, setServices] = useState<Service[]>([]);
   const [serviceMetrics, setServiceMetrics] = useState<Record<string, Pick<ServiceDetail, 'request_rate' | 'error_rate' | 'p95_latency'>>>({});
   const [deployments, setDeployments] = useState<Deployment[]>([]);
@@ -158,38 +155,6 @@ export default function ApmPage() {
   }, [serviceMetrics, services.length]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="apm"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'apm']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Observability</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">APM</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {services.length} service{services.length === 1 ? '' : 's'}
-                  {' · '}
-                  {serviceMap?.edges?.length ?? 0} edge{(serviceMap?.edges?.length ?? 0) === 1 ? '' : 's'}
-                </span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <button
-              type="button"
-              className="sw-button sw-button-primary"
-              onClick={() => setRegisterOpen((v) => !v)}
-            >
-              {registerOpen ? 'Close' : 'Register service'}
-            </button>
-          </div>
-        </header>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {registerOpen ? (
             <section className="dash-section">
@@ -364,7 +329,5 @@ export default function ApmPage() {
             )}
           </section>
         </motion.div>
-      </main>
-    </div>
   );
 }

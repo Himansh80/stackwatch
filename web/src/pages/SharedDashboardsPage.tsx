@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
-import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
+import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 type Tab = 'shared-with-me' | 'my-shares' | 'mentions';
 
@@ -53,9 +51,7 @@ type ListMentionsResponse = { mentions?: Mention[]; total?: number; unread_count
  * with a clear copy block. The endpoint can be added in a follow-up speckit.
  */
 export default function SharedDashboardsPage() {
-  const logout = useLogout();
-  const reduce = useReducedMotion();
-  const [tab, setTab] = useState<Tab>('shared-with-me');
+  const [tab, _setTab] = useState<Tab>('shared-with-me');
   const [error, setError] = useState('');
   const [shared, setShared] = useState<SharedDashboard[]>([]);
   const [mentions, setMentions] = useState<Mention[]>([]);
@@ -116,53 +112,6 @@ export default function SharedDashboardsPage() {
   const unreadCount = useMemo(() => mentions.filter((m) => !m.read_at).length, [mentions]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="shared"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'incidents', 'notebooks', 'shared']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Operations</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Collaboration</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{shared.length + unreadCount} items</span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <motion.button
-              type="button"
-              className="empty-state-cta"
-              disabled
-              title="Sharing is available from the dashboard view"
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
-            >
-              + Share dashboard
-            </motion.button>
-          </div>
-        </header>
-
-        <div className="logs-tabs" role="tablist">
-          {(['shared-with-me', 'my-shares', 'mentions'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              type="button"
-              aria-selected={tab === t}
-              className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t === 'shared-with-me' ? 'Shared with me' : t === 'my-shares' ? 'My shares' : `Mentions${unreadCount > 0 ? ` · ${unreadCount}` : ''}`}
-            </button>
-          ))}
-        </div>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
@@ -300,7 +249,5 @@ export default function SharedDashboardsPage() {
             </section>
           ) : null}
         </motion.div>
-      </main>
-    </div>
   );
 }

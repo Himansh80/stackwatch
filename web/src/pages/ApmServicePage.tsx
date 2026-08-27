@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import FlameGraph, { FlameSpan } from '../components/shared/FlameGraph';
 import StatusPill from '../components/shared/StatusPill';
 import { motion, pageEnter } from '../lib/motion';
@@ -44,7 +42,6 @@ interface TraceRow {
  * Bottom: recent traces table
  */
 export default function ApmServicePage() {
-  const logout = useLogout();
   const [params] = useSearchParams();
   const serviceId = params.get('id') || '';
   const [detail, setDetail] = useState<ServiceDetail | null>(null);
@@ -112,25 +109,6 @@ export default function ApmServicePage() {
   }
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="apm"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'apm']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">APM service</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">{detail?.name || '…'}</strong>
-              <span className="dash-greeting-clock">
-                <Link to="/apm" className="apm-back-link">← Back to services</Link>
-              </span>
-            </div>
-          </div>
-        </header>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? (
             <div className="dash-error" role="alert">{error}</div>
@@ -202,7 +180,5 @@ export default function ApmServicePage() {
             <p className="dash-section-lede">Loading service detail…</p>
           ) : null}
         </motion.div>
-      </main>
-    </div>
   );
 }

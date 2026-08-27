@@ -55,3 +55,9 @@ secrets/
 .cache/
 web/__pycache__/
 web/dist/
+
+# Ruflo local secrets and runtime data
+.env.*.local
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/

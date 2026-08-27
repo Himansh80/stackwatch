@@ -21,6 +21,10 @@ interface KpiCardProps {
   accent?: KpiAccent;
   /** Optional sparkline series; rendered in the same tone as the accent. */
   sparkline?: number[];
+  /** Optional trend arrow: up/down/flat — shows next to delta. */
+  trend?: 'up' | 'down' | 'flat';
+  /** Optional click handler — if provided, the card becomes a button. */
+  onClick?: () => void;
 }
 
 /** Map accent → CSS class suffix used by `.dash-metric-*` rules in
@@ -68,16 +72,17 @@ export default function KpiCard({
   status = 'neutral',
   accent,
   sparkline,
+  trend,
+  onClick,
 }: KpiCardProps) {
   const reduce = useReducedMotion();
   const resolvedAccent: KpiAccent = accent ?? STATUS_TO_ACCENT[status];
   const toneClass = ACCENT_TO_CLASS[resolvedAccent];
-  return (
-    <motion.article
-      className={`dash-metric dash-metric-${toneClass}`}
-      variants={kpiEnter}
-      whileHover={reduce ? undefined : cardLift}
-    >
+  const interactive = Boolean(onClick);
+  const trendGlyph = trend === 'up' ? '↑' : trend === 'down' ? '↓' : trend === 'flat' ? '→' : '';
+  const TrendEl = trendGlyph ? <span className={`dash-metric-trend dash-metric-trend-${trend}`}>{trendGlyph}</span> : null;
+  const inner = (
+    <>
       <span className="dash-metric-stripe" aria-hidden="true" />
       {(icon || label) && (
         <div className="dash-metric-top">
@@ -91,7 +96,36 @@ export default function KpiCard({
           <Sparkline values={sparkline} tone={toneClass === 'cyan' ? 'cyan' : (toneClass as 'indigo' | 'green' | 'amber' | 'red')} />
         ) : null}
       </div>
-      {delta ? <span className="dash-metric-hint">{delta}</span> : null}
+      {(delta || TrendEl) ? (
+        <span className="dash-metric-hint">
+          {TrendEl}
+          {delta}
+        </span>
+      ) : null}
+    </>
+  );
+  if (interactive) {
+    return (
+      <motion.button
+        type="button"
+        className={`dash-metric dash-metric-${toneClass} dash-metric-clickable`}
+        variants={kpiEnter}
+        whileHover={reduce ? undefined : cardLift}
+        whileTap={reduce ? undefined : { scale: 0.97 }}
+        onClick={onClick}
+        aria-label={`${label}: ${value}`}
+      >
+        {inner}
+      </motion.button>
+    );
+  }
+  return (
+    <motion.article
+      className={`dash-metric dash-metric-${toneClass}`}
+      variants={kpiEnter}
+      whileHover={reduce ? undefined : cardLift}
+    >
+      {inner}
     </motion.article>
   );
 }

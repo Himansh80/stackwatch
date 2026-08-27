@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, health, me } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import ProfileMenu from '../components/ProfileMenu';
-import CommandPalette from '../components/CommandPalette';
-import FilterBar from '../components/FilterBar';
-import TimeWidget from '../components/TimeWidget';
 import SkeletonCard from '../components/dashboard/SkeletonCard';
 import TrendChart from '../components/dashboard/TrendChart';
 import HostList from '../components/dashboard/HostList';
@@ -13,12 +8,11 @@ import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
 import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import ErrorBar from '../components/dashboard/ErrorBar';
-import { motion, kpiStagger, pageEnter } from '../lib/motion';
-import AppSidebar from '../components/AppSidebar';
+import { motion, kpiStagger } from '../lib/motion';
 import EmptyState from '../components/shared/EmptyState';
 import { HeartIcon, NetworkIcon, PlayIcon, ServerIcon } from '../components/icons';
-import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, pxGet, formatBytes, formatPercent } from '../lib/proxmox';
-import { greetingFor, formatRelative } from '../lib/clock';
+import { listFrom, objectFrom, ProxmoxHost, ProxmoxResource, formatBytes, formatPercent } from '../lib/proxmox';
+import { formatRelative } from '../lib/clock';
 
 type Json = Record<string, unknown>;
 
@@ -67,31 +61,20 @@ const isRunning = (row: ProxmoxResource): boolean => {
 /**
  * Dashboard — top-level route at /dashboard.
  *
- * Owns data loading, top-level state (snapshot, error, history),
- * Cmd+K binding, and the page shell (sidebar + topbar). Every
- * visible section is delegated to a component in
- * `components/dashboard/` so this file stays a thin shell.
- *
- * Motion: the content area wraps in `pageEnter` so the page
- * fades + lifts in on mount. Inside, the KPI strip uses its
- * own `kpiStagger` parent + child `kpiEnter` on each card.
+ * NOTE (2026-08-26): Previously rendered its own sidebar + topbar +
+ * CommandPalette. Those now live in AppShell (which wraps every
+ * authenticated route via App.tsx). Dashboard just renders page content.
  */
 export default function Dashboard() {
-  const logout = useLogout();
-  const abortRef = useRef<AbortController | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot>(emptySnapshot);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(() => new Date());
-  // Rolling history of metric values for sparklines. Capped at 30
-  // samples (~30 minutes at the 60s refresh cadence) so the
-  // sparkline gives useful shape without unbounded memory growth.
+  const abortRef = useRef<AbortController | null>(null);
   const [history, setHistory] = useState<{ hosts: number[]; nodes: number[]; running: number[]; cpu: number[] }>({
     hosts: [], nodes: [], running: [], cpu: [],
   });
-  // Command palette open state (Cmd+K / Ctrl+K).
-  const [paletteOpen, setPaletteOpen] = useState(false);
   // Search query for the workloads inventory list.
   const [search, setSearch] = useState('');
 
@@ -103,54 +86,57 @@ export default function Dashboard() {
     // unmounted component, and surface an 'unauthorized' error before
     // the route swap happens.
     abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const [healthData, meData, hostsData, alertsData] = await Promise.all([
-        health({ signal: ctrl.signal }),
-        me({ signal: ctrl.signal }),
-        api<{ hosts?: ProxmoxHost[] }>('GET', '/api/v1/proxmox/hosts', undefined, true, { signal: ctrl.signal }),
-        // Alerts endpoint may not exist yet on this build — catch and
-        // degrade to an empty array rather than failing the whole load.
-        api<{ alerts?: Alert[] }>('GET', '/api/v1/alerts?state=open&limit=200', undefined, true, { signal: ctrl.signal }).catch(() => ({ alerts: [] })),
+      const [healthRes, meRes] = await Promise.all([
+        health().catch(() => null),
+        me().catch(() => null),
       ]);
-      const hosts = hostsData.hosts || [];
-      const primary = hosts[0];
-      const [nodesPayload, resourcePayload] = primary
-        ? await Promise.all([pxGet(primary.id, '/nodes'), pxGet(primary.id, '/cluster/resources')])
-        : [{}, {}];
-      const resources = listFrom(resourcePayload, 'resources', 'vms') as ProxmoxResource[];
-      const runningCount = resources.filter(isRunning).length;
-      const avgCpu = resources.length
-        ? resources.map((r) => Number(r.cpu)).filter(Number.isFinite).reduce((a, b) => a + b, 0) / resources.length
-        : 0;
+      const [clusterResources, clusterStatus, hostsRes] = await Promise.all([
+              api('GET', '/api/v1/proxmox/cluster/resources').catch(() => null),
+              api('GET', '/api/v1/proxmox/cluster/status').catch(() => null),
+              api<ProxmoxHost[]>('GET', '/api/v1/proxmox/hosts').catch(() => null),
+            ]);
+      const resources = listFrom(objectFrom(clusterResources)?.data, 'resources') as ProxmoxResource[];
+      const nodes = listFrom(clusterStatus?.data, 'nodes') as Json[];
+      const hosts = (hostsRes as ProxmoxHost[] | null) || [];
+      const firing = (Array.isArray(objectFrom(healthRes)?.alerts)
+        ? (objectFrom(healthRes).alerts as Alert[])
+        : []) as Alert[];
       setSnapshot({
         hosts,
-        nodes: listFrom(nodesPayload, 'nodes'),
+        nodes,
         resources,
-        health: objectFrom(healthData),
-        user: objectFrom(meData.user),
-        tenant: objectFrom(meData.tenant),
-        alerts: alertsData.alerts || [],
+        health: objectFrom(healthRes),
+        user: objectFrom(meRes),
+        tenant: objectFrom(objectFrom(meRes))?.tenant as Json,
+        alerts: firing,
       });
-      setLastUpdated(new Date());
       setHistory((prev) => ({
-        hosts: [...prev.hosts, hosts.length].slice(-30),
-        nodes: [...prev.nodes, listFrom(nodesPayload, 'nodes').length].slice(-30),
-        running: [...prev.running, runningCount].slice(-30),
-        cpu: [...prev.cpu, avgCpu * 100].slice(-30),
+        hosts: appendBounded(prev.hosts, hosts.length, 24),
+        nodes: appendBounded(prev.nodes, nodes.length, 24),
+        running: appendBounded(prev.running, resources.filter(isRunning).length, 24),
+        cpu: appendBounded(
+          prev.cpu,
+          averageCpu(resources),
+          24,
+        ),
       }));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to load the live dashboard.');
+      setLastUpdated(new Date());
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        setError((err as Error).message || 'Failed to load dashboard');
+      }
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadDashboard();
-    const timer = window.setInterval(() => void loadDashboard(), 30000);
-    const clockTimer = window.setInterval(() => setNow(new Date()), 30 * 1000);
+    loadDashboard();
+    const timer = window.setInterval(loadDashboard, 30000);
+    const clockTimer = window.setInterval(() => setNow(new Date()), 1000);
     return () => {
       window.clearInterval(timer);
       window.clearInterval(clockTimer);
@@ -158,215 +144,157 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Cmd+K / Ctrl+K — open the command palette. Bound globally so it
-  // works from any focused input.
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        setPaletteOpen(true);
-      }
-      if (event.key === 'Escape' && paletteOpen) {
-        setPaletteOpen(false);
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [paletteOpen]);
-
   const running = useMemo(() => snapshot.resources.filter(isRunning).length, [snapshot.resources]);
-  const stopped = useMemo(
-    () => snapshot.resources.filter((row) => text(row.status, '').toLowerCase() === 'stopped').length,
-    [snapshot.resources],
-  );
-  const tenantName = text(value(snapshot.tenant, 'name'), 'Workspace');
-  const userName = text(value(snapshot.user, 'full_name'), text(value(snapshot.user, 'email'), 'Operator'));
-  const firstName = (userName || '').split(' ')[0] || 'Operator';
-  const firingAlerts = snapshot.alerts.filter((a) => a.state === 'open' || a.state === 'firing').length;
-  const apiHealthStatus = String(value(snapshot.health, 'status') || '');
-
-  // Filter resources by the search query — matches name, type, vmid, status.
-  const filteredResources = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return snapshot.resources;
-    return snapshot.resources.filter((row) => {
-      const haystack = `${text(row.name)} ${text(row.type)} ${text(row.vmid)} ${text(row.status)}`.toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [snapshot.resources, search]);
+    const stopped = useMemo(
+      () => snapshot.resources.filter((row) => text(row.status, '').toLowerCase() === 'stopped').length,
+      [snapshot.resources],
+    );
+    const apiHealthStatus = text(value(snapshot.health, 'ok') === true ? 'ok' : value(snapshot.health, 'ok') === false ? 'down' : '');
+    const userName = text(value(snapshot.user, 'full_name'), text(value(snapshot.user, 'email'), 'Operator'));
+    const filteredResources = useMemo(() => {
+      const q = search.trim().toLowerCase();
+      if (!q) return snapshot.resources;
+      return snapshot.resources.filter((r) =>
+        [text(r.name), text(r.type), text(r.status), text(r.node)]
+          .join(' ')
+          .toLowerCase()
+          .includes(q),
+      );
+    }, [snapshot.resources, search]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-              active="dashboard"
-              onLogout={logout}
-              apiVersion={text(value(snapshot.health, 'version'), 'StackWatch API')}
-              firingAlerts={firingAlerts}
+    <div className="dash-page">
+      {error && <ErrorBar error={error} onRetry={() => void loadDashboard()} />}
+      <WelcomeHeader userName={userName} lastUpdated={lastUpdated} formatRelative={formatRelative} now={now} />
+      <motion.section
+        className="dash-metric-grid"
+        variants={kpiStagger}
+        initial="hidden"
+        animate="show"
+      >
+        {loading && !snapshot.hosts.length ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          <>
+            <KpiCard label="Connected hosts" value={snapshot.hosts.length} delta="Registered control planes" accent="cyan" icon={<ServerIcon />} sparkline={history.hosts} />
+            <KpiCard label="Compute nodes" value={snapshot.nodes.length} delta="Across your Proxmox fabric" accent="indigo" icon={<NetworkIcon />} sparkline={history.nodes} />
+            <KpiCard label="Running workloads" value={running} delta={`${stopped} stopped`} accent="green" icon={<PlayIcon />} sparkline={history.running} />
+            <KpiCard
+              label="API health"
+              value={apiHealthStatus || '—'}
+              delta={text(value(snapshot.health, 'version'), 'StackWatch API')}
+              status={apiHealthStatus === 'ok' ? 'up' : 'down'}
+              icon={<HeartIcon />}
+              sparkline={history.cpu.map((c) => Math.min(100, c))}
             />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Hello, {firstName}</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">{greetingFor(now)}.</strong>
-              <span className="dash-greeting-live" title="You are live" aria-label="Live">
-                <span className="dash-live-dot" aria-hidden />
-                <span className="dash-greeting-live-text">Live</span>
-              </span>
+          </>
+        )}
+      </motion.section>
+      <section className="dash-grid-main">
+        <article className="dash-panel dash-chart-panel">
+          <div className="dash-panel-head">
+            <div>
+              <span className="dash-eyebrow">Live telemetry</span>
+              <h3>Workload pressure</h3>
             </div>
+            <span className="dash-panel-context">Current snapshot</span>
           </div>
-          <div className="dash-topbar-center">
-            <button
-              className="dash-topbar-search"
-              onClick={() => setPaletteOpen(true)}
-              title="Search & navigate (Cmd+K)"
-              aria-label="Open command palette"
-            >
-              <span className="dash-topbar-search-icon" aria-hidden="true">⌕</span>
-              <span className="dash-topbar-search-placeholder">Search & navigate…</span>
-              <kbd className="dash-topbar-search-kbd">⌘</kbd>
-              <kbd className="dash-topbar-search-kbd">K</kbd>
-            </button>
+          <TrendChart resources={snapshot.resources} />
+        </article>
+        <article className="dash-panel">
+          <div className="dash-panel-head">
+            <div>
+              <span className="dash-eyebrow">Operations</span>
+              <h3>Infrastructure status</h3>
+            </div>
+            <span className="dash-panel-context">{snapshot.hosts.length} host{snapshot.hosts.length === 1 ? '' : 's'}</span>
           </div>
-          <div className="dash-top-actions">
-            <TimeWidget />
-            <button
-              className="dash-icon-button"
-              onClick={() => window.location.reload()}
-              aria-label="Refresh page"
-              title="Refresh page"
-            >↻</button>
-            <ProfileMenu
-              firstName={firstName}
-              fullName={userName}
-              tenantName={tenantName}
-              initials={userName.charAt(0).toUpperCase()}
+          <HostList hosts={snapshot.hosts} />
+        </article>
+      </section>
+      <section className="dash-panel">
+        <div className="dash-panel-head">
+          <div>
+            <span className="dash-eyebrow">Compute inventory</span>
+            <h3>Workloads and resources</h3>
+          </div>
+          <div className="dash-panel-controls">
+            <input
+              className="dash-search"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search workloads by name, type, or status…"
+              aria-label="Search workloads"
             />
+            <Link className="dash-text-link" to="/proxmox-vms">Open full workspace →</Link>
           </div>
-        </header>
-        <motion.div
-          className="dash-content"
-          initial="hidden"
-          animate="show"
-          variants={pageEnter}
-        >
-          {error && <ErrorBar error={error} onRetry={() => void loadDashboard()} />}
-          <WelcomeHeader userName={userName} lastUpdated={lastUpdated} formatRelative={formatRelative} now={now} />
-          <motion.section
-            className="dash-metric-grid"
-            variants={kpiStagger}
-            initial="hidden"
-            animate="show"
-          >
-            {loading && !snapshot.hosts.length ? (
-              <>
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-              </>
-            ) : (
-              <>
-                <KpiCard label="Connected hosts" value={snapshot.hosts.length} delta="Registered control planes" accent="cyan" icon={<ServerIcon />} sparkline={history.hosts} />
-                <KpiCard label="Compute nodes" value={snapshot.nodes.length} delta="Across your Proxmox fabric" accent="indigo" icon={<NetworkIcon />} sparkline={history.nodes} />
-                <KpiCard label="Running workloads" value={running} delta={`${stopped} stopped`} accent="green" icon={<PlayIcon />} sparkline={history.running} />
-                <KpiCard
-                  label="API health"
-                  value={apiHealthStatus || '—'}
-                  delta={text(value(snapshot.health, 'version'), 'StackWatch API')}
-                  status={apiHealthStatus === 'ok' ? 'up' : 'down'}
-                  icon={<HeartIcon />}
-                  sparkline={history.cpu.map((c) => Math.min(100, c))}
-                />
-              </>
-            )}
-          </motion.section>
-          <section className="dash-grid-main">
-            <article className="dash-panel dash-chart-panel">
-              <div className="dash-panel-head">
-                <div>
-                  <span className="dash-eyebrow">Live telemetry</span>
-                  <h3>Workload pressure</h3>
+        </div>
+        {filteredResources.length ? (
+          <div className="dash-resource-grid">
+            {filteredResources.slice(0, 12).map((resource, index) => (
+              <div className="dash-resource-card" key={String(resource.id || resource.vmid || index)}>
+                <div className="dash-resource-head">
+                  <span className="dash-resource-type">{text(resource.type, 'resource')}</span>
+                  <StatusPill status={resource.status ?? ''} />
                 </div>
-                <span className="dash-panel-context">Current snapshot</span>
-              </div>
-              <TrendChart resources={snapshot.resources} />
-            </article>
-            <article className="dash-panel">
-              <div className="dash-panel-head">
-                <div>
-                  <span className="dash-eyebrow">Operations</span>
-                  <h3>Infrastructure status</h3>
+                <strong>{text(resource.name, `Workload ${text(resource.vmid, String(index + 1))}`)}</strong>
+                <div className="dash-resource-meta">
+                  <span>
+                    CPU <b>{typeof resource.cpu === 'number' ? formatPercent(resource.cpu) : '—'}</b>
+                  </span>
+                  <span>
+                    RAM <b>{formatBytes(resource.mem)}</b>
+                  </span>
                 </div>
-                <span className="dash-panel-context">{snapshot.hosts.length} host{snapshot.hosts.length === 1 ? '' : 's'}</span>
               </div>
-              <HostList hosts={snapshot.hosts} />
-            </article>
-          </section>
-          <section className="dash-panel">
-            <div className="dash-panel-head">
-              <div>
-                <span className="dash-eyebrow">Compute inventory</span>
-                <h3>Workloads and resources</h3>
-              </div>
-              <div className="dash-panel-controls">
-                <FilterBar
-                  search={search}
-                  onSearchChange={setSearch}
-                  placeholder="Search workloads by name, type, or status..."
-                  ariaLabel="Search workloads"
-                />
-                <Link className="dash-text-link" to="/proxmox">Open full workspace →</Link>
-              </div>
-            </div>
-            {filteredResources.length ? (
-              <div className="dash-resource-grid">
-                {filteredResources.slice(0, 12).map((resource, index) => (
-                  <div className="dash-resource-card" key={String(resource.id || resource.vmid || index)}>
-                    <div className="dash-resource-head">
-                      <span className="dash-resource-type">{text(resource.type, 'resource')}</span>
-                      <StatusPill status={resource.status ?? ''} />
-                    </div>
-                    <strong>{text(resource.name, `Workload ${text(resource.vmid, String(index + 1))}`)}</strong>
-                    <div className="dash-resource-meta">
-                      <span>
-                        CPU <b>{typeof resource.cpu === 'number' ? formatPercent(resource.cpu) : '—'}</b>
-                      </span>
-                      <span>
-                        RAM <b>{formatBytes(resource.mem)}</b>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : search ? (
-              <EmptyState
-                illustration={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3.5-3.5" />
-                  </svg>
-                }
-                headline={`No workloads match “${search}”`}
-                subhead={`Try a different search term, or clear the search to see all ${snapshot.resources.length} workload${snapshot.resources.length === 1 ? '' : 's'}.`}
-                cta={{ label: 'Clear search', onClick: () => setSearch('') }}
-              />
-            ) : (
-              <EmptyState
-                illustration={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="5" width="18" height="12" rx="2" />
-                    <path d="M8 21h8M12 17v4" />
-                  </svg>
-                }
-                headline="No workloads reported"
-                subhead="The dashboard will populate as soon as the connected host returns resource inventory."
-              />
-            )}
-          </section>
-        </motion.div>
-      </main>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+            ))}
+          </div>
+        ) : search ? (
+          <EmptyState
+            illustration={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            }
+            headline={`No workloads match “${search}”`}
+            subhead={`Try a different search term, or clear the search to see all ${snapshot.resources.length} workload${snapshot.resources.length === 1 ? '' : 's'}.`}
+            cta={{ label: 'Clear search', onClick: () => setSearch('') }}
+          />
+        ) : (
+          <EmptyState
+            illustration={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="12" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+            }
+            headline="No workloads reported"
+            subhead="The dashboard will populate as soon as the connected host returns resource inventory."
+          />
+        )}
+      </section>
     </div>
   );
+}
+
+function appendBounded(values: number[], next: number, max: number): number[] {
+  const out = [...values, next];
+  if (out.length > max) out.splice(0, out.length - max);
+  return out;
+}
+
+function averageCpu(resources: ProxmoxResource[]): number {
+  let total = 0;
+  let count = 0;
+  for (const r of resources) {
+    if (typeof r.cpu === 'number') { total += r.cpu; count += 1; }
+  }
+  return count === 0 ? 0 : Math.round((total / count) * 10) / 10;
 }

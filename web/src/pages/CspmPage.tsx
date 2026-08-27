@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import CspmSeverityBadge from '../components/shared/CspmSeverityBadge';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
@@ -45,7 +43,6 @@ type ResolvedFilter = 'open' | 'resolved' | 'all';
  * two cards enter with a 50ms gap. Reuses existing tokens.
  */
 export default function CspmPage() {
-  const logout = useLogout();
   const [error, setError] = useState('');
   const [resources, setResources] = useState<CspmResource[]>([]);
   const [findings, setFindings] = useState<CspmFinding[]>([]);
@@ -100,28 +97,6 @@ export default function CspmPage() {
   }, [loadFindings]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="cspm"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'cspm']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Observability</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">CSPM</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {resources.length} resource{resources.length === 1 ? '' : 's'} ·{' '}
-                  {findings.length} finding{findings.length === 1 ? '' : 's'}
-                </span>
-              </span>
-            </div>
-          </div>
-        </header>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
@@ -237,7 +212,5 @@ export default function CspmPage() {
             )}
           </section>
         </motion.div>
-      </main>
-    </div>
   );
 }

@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import EmptyState from '../components/shared/EmptyState';
 import ThreatCard from '../components/shared/ThreatCard';
 import ComplianceBar from '../components/shared/ComplianceBar';
@@ -61,8 +59,7 @@ type Tab = 'threats' | 'compliance' | 'siem' | 'audit';
  * Motion: pageEnter on the page. ThreatCard uses tokens (no hex).
  */
 export default function SecurityPage() {
-  const logout = useLogout();
-  const [tab, setTab] = useState<Tab>('threats');
+  const [tab, _setTab] = useState<Tab>('threats');
   const [error, setError] = useState('');
 
   const [threats, setThreats] = useState<Threat[]>([]);
@@ -127,7 +124,7 @@ export default function SecurityPage() {
     else if (tab === 'siem') void loadSiem();
   }, [tab, loadThreats, loadCompliance, loadSiem]);
 
-  const tabSummary = (() => {
+  const _tabSummary = (() => {
     if (tab === 'threats') return `${threats.length} threat${threats.length === 1 ? '' : 's'}`;
     if (tab === 'compliance') return `${frameworks.length} framework${frameworks.length === 1 ? '' : 's'}`;
     if (tab === 'siem') return `${siem.length} event${siem.length === 1 ? '' : 's'}`;
@@ -135,40 +132,6 @@ export default function SecurityPage() {
   })();
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="security"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'security']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Observability</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Security</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{tabSummary}</span>
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <div className="logs-tabs" role="tablist">
-          {(['threats', 'compliance', 'siem', 'audit'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              type="button"
-              aria-selected={tab === t}
-              className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
@@ -361,7 +324,5 @@ export default function SecurityPage() {
             </section>
           ) : null}
         </motion.div>
-      </main>
-    </div>
   );
 }

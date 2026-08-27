@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
+import { motion, kpiStagger, pageEnter } from '../lib/motion';
 import SsoSection from '../components/SsoSection';
 import type { SsoProviderRow } from '../components/shared/SsoProviderCard';
 import ScimSection from '../components/ScimSection';
@@ -19,7 +18,6 @@ import type { ComplianceReportRow } from '../components/shared/ComplianceReportC
 import EnterpriseOrgsSection from '../components/EnterpriseOrgsSection';
 import type { EnterpriseOrgRow } from '../components/EnterpriseOrgsSection';
 import KpiCard from '../components/shared/KpiCard';
-import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
 
 /**
  * EnterprisePage — Tier 9 (D9) Security & Enterprise surface at /enterprise.
@@ -77,8 +75,6 @@ interface ComplianceSchedulesResp { schedules?: ComplianceScheduleRow[]; total?:
 interface OrgsListResp { orgs?: EnterpriseOrgRow[]; total?: number; }
 
 export default function EnterprisePage() {
-  const logout = useLogout();
-  const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('sso');
   const [error, setError] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
@@ -193,49 +189,6 @@ export default function EnterprisePage() {
   }, [ssoProviders, scimTokens, rbacRoles, auditArchives, complianceReports, orgs]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="enterprise"
-        onLogout={logout}
-        show={[
-          'dashboard', 'billing', 'profile', 'settings',
-          'proxmox', 'truenas',
-          'incidents', 'notebooks', 'intelligence', 'enterprise',
-        ]}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Enterprise</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">
-                SSO + SCIM + RBAC + audit + compliance + org hierarchy
-              </strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {headerKpis.activeSso} SSO · {headerKpis.scimTokens} SCIM ·
-                  {headerKpis.rbacRoles} roles · {headerKpis.auditArchives} archives ·
-                  {headerKpis.orgs} orgs
-                </span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <motion.button
-              type="button"
-              className="empty-state-cta"
-              onClick={() => void onExport()}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
-              disabled={busy || exportBusy}
-              title="Enterprise export (placeholder — future Tier 9.x endpoint)"
-            >
-              {exportBusy ? 'Exporting…' : '⤓ Export'}
-            </motion.button>
-          </div>
-        </header>
-
         <motion.div
           className="dash-page"
           initial="hidden"
@@ -353,7 +306,5 @@ export default function EnterprisePage() {
             />
           ) : null}
         </motion.div>
-      </main>
-    </div>
   );
 }

@@ -1,36 +1,58 @@
-import { motion, statusPulse, useReducedMotion } from '../../lib/motion';
+export type StatusValue = 'up' | 'stale' | 'down' | 'unknown' | 'ok' | 'warn' | 'crit' | (string & {});
+
+interface StatusPillProps {
+  /** Status drives the dot color. */
+  status: StatusValue;
+  /** Optional label. If omitted, the status string itself is rendered. */
+  label?: string;
+  /** Size preset. */
+  size?: 'sm' | 'md' | 'lg';
+  /** Show only the dot (no label). */
+  iconOnly?: boolean;
+  /** Optional aria-label override for accessibility. */
+  ariaLabel?: string;
+}
+
+const STATUS_LABEL: Record<StatusValue, string> = {
+  up: 'Online',
+  ok: 'OK',
+  stale: 'Stale',
+  down: 'Offline',
+  warn: 'Warning',
+  crit: 'Critical',
+  unknown: 'Unknown',
+};
 
 /**
- * StatusPill — small colored badge used in host rows.
+ * StatusPill — colored dot + label, sized sm/md/lg.
  *
- * Color derives from the host's status string ('good' / 'warn' /
- * 'bad'). When the resolved tone is 'bad' the dot pulses via the
- * shared `statusPulse` variant — Datadog's "the room is on fire"
- * signal. The pulse is suppressed when the user has reduced-motion
- * enabled so the dot stays solid.
+ * Used for server status, alert severity, host health, etc.
+ * Single source of truth for status color mapping across the app.
+ *
+ * Visual contract:
+ *   - dot: 8px (sm) / 10px (md) / 12px (lg), filled with status color
+ *   - label: 11px (sm) / 12px (md) / 14px (lg), uppercase, letter-spaced
+ *   - pill: inline-flex, transparent bg, 8px gap
+ *   - "Online" → green; "Stale" → amber; "Offline" → red; "Critical" → red;
+ *     "Warning" → amber; "OK" → green; "Unknown" → gray
  */
-export default function StatusPill({ status }: { status: string }) {
-  const reduce = useReducedMotion();
-  const tone =
-    status === 'online' || status === 'good' || status === 'up'
-      ? 'good'
-      : status === 'warn' || status === 'degraded'
-      ? 'warn'
-      : status === 'bad' || status === 'down' || status === 'offline' || status === 'crit'
-      ? 'bad'
-      : 'good';
-  const label = status || 'unknown';
-  // Only the 'bad' tone gets the breathing dot — warn keeps a
-  // static dot so we don't visually shout at every degraded host.
-  const Dot = tone === 'bad' && !reduce ? motion.span : 'span';
-  const dotProps =
-    tone === 'bad' && !reduce
-      ? { animate: statusPulse.animate, transition: statusPulse.transition }
-      : {};
+export default function StatusPill({
+  status,
+  label,
+  size = 'md',
+  iconOnly = false,
+  ariaLabel,
+}: StatusPillProps) {
+  const resolved = STATUS_LABEL[status];
+  const text = label ?? resolved;
   return (
-    <span className={`dash-status dash-status-${tone}`}>
-      <Dot className="dash-status-dot" aria-hidden="true" {...dotProps} />
-      {label}
+    <span
+      className={`status-pill status-pill-${size} status-pill-${status}`}
+      role="status"
+      aria-label={ariaLabel ?? text}
+    >
+      <span className="status-pill-dot" aria-hidden="true" />
+      {iconOnly ? null : <span className="status-pill-label">{text}</span>}
     </span>
   );
 }

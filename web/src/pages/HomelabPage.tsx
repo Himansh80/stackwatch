@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
-import GlobalSearch from '../components/homelab/GlobalSearch';
+import { motion, pageEnter } from '../lib/motion';
 import HomelabGrid from '../components/homelab/HomelabGrid';
 import HomelabKpiStrip from '../components/homelab/HomelabKpiStrip';
-import { motion, buttonSpring, pageEnter, useReducedMotion } from '../lib/motion';
 
 /**
  * HomelabPage — Tier 10 Phase 1 (H1 — Widget Framework + Page shell).
@@ -86,8 +83,6 @@ interface HomelabPrefs {
 }
 
 export default function HomelabPage() {
-  const logout = useLogout();
-  const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('overview');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -195,72 +190,6 @@ export default function HomelabPage() {
   const activePhaseHint = TAB_PHASE_HINTS[tab];
 
   return (
-    <div className="dash-app" data-theme={prefs?.theme || 'auto'}>
-      <AppSidebar
-        active="homelab"
-        onLogout={logout}
-        show={[
-          'dashboard',
-          'homelab',
-          'billing',
-          'profile',
-          'settings',
-          'incidents',
-          'notebooks',
-          'intelligence',
-          'enterprise',
-        ]}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Homelab</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">
-                Personal dashboard — pinned services, notes, calendar, media
-              </strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {prefs ? `${prefs.refresh_seconds}s refresh · ${prefs.default_landing} landing` : 'Loading…'}
-                </span>
-              </span>
-            </div>
-            {/* Phase 7 — global search bar. Lives in the topbar
-                under the greeting (not a tab) so it's reachable
-                from any tab context. 300ms debounce on the backend
-                suggestions keeps the keystroke loop responsive. */}
-            <div className="dash-topbar-search">
-              <GlobalSearch onNavigate={onSearchNavigate} />
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <motion.button
-              type="button"
-              className="empty-state-cta"
-              onClick={onRefresh}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
-              disabled={busy}
-              title="Reload homelab data"
-            >
-              ↻ Refresh
-            </motion.button>
-            <motion.button
-              type="button"
-              className="empty-state-cta"
-              onClick={() => void onResetLayout()}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
-              disabled={busy}
-              title="Reset widget layout to defaults (preferences preserved)"
-            >
-              ⤓ Reset layout
-            </motion.button>
-          </div>
-        </header>
-
         <motion.div
           className="dash-page"
           initial="hidden"
@@ -317,7 +246,5 @@ export default function HomelabPage() {
             </div>
           )}
         </motion.div>
-      </main>
-    </div>
   );
 }

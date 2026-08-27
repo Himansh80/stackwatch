@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import AnomaliesSection from '../components/AnomaliesSection';
 import { AnomalyEvent } from '../components/shared/AnomalyChart';
 import KpiCard from '../components/shared/KpiCard';
@@ -15,7 +13,7 @@ import NoiseReductionSection, {
 } from '../components/NoiseReductionSection';
 import { SnoozeRow } from '../components/shared/SnoozeHistoryPanel';
 import RcaPanel, { RcaHint } from '../components/shared/RcaPanel';
-import { motion, buttonSpring, kpiStagger, pageEnter, useReducedMotion } from '../lib/motion';
+import { motion, pageEnter, kpiStagger, useReducedMotion } from '../lib/motion';
 
 /**
  * IntelligencePage — Tier 8 (D9) Intelligence & Alerting surface at /intelligence.
@@ -70,11 +68,9 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 export default function IntelligencePage() {
-  const logout = useLogout();
-  const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('anomalies');
   const [error, setError] = useState('');
-  const [exportBusy, setExportBusy] = useState(false);
+  const [_exportBusy, setExportBusy] = useState(false);
 
   // Shared state — loaded once on mount, fed to whichever section
   // owns the active tab. The other tabs' sections won't render but
@@ -147,7 +143,7 @@ export default function IntelligencePage() {
   // Export button handler — calls /intelligence/export and triggers
   // a browser download. We use a hidden anchor with the `download`
   // attribute so the filename is preserved across browsers.
-  const onExport = useCallback(async () => {
+  const _onExport = useCallback(async () => {
     if (!requireAuth()) return;
     setExportBusy(true);
     try {
@@ -200,54 +196,6 @@ export default function IntelligencePage() {
   }, [correlationGroups]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="intelligence"
-        onLogout={logout}
-        show={[
-          'dashboard',
-          'billing',
-          'profile',
-          'settings',
-          'proxmox',
-          'truenas',
-          'incidents',
-          'notebooks',
-          'intelligence',
-        ]}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Intelligence</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">
-                Anomaly detection + predictive alerts + correlation + noise reduction
-              </strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {events.length} events · {models.length} models · {correlationGroups.length}{' '}
-                  correlation groups · {noiseRules.length} noise rules
-                </span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <motion.button
-              type="button"
-              className="empty-state-cta"
-              onClick={() => void onExport()}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
-              disabled={busy || exportBusy}
-              title="Download intelligence-export-YYYY-MM-DD.json (last 7 days)"
-            >
-              {exportBusy ? 'Exporting…' : '⤓ Export'}
-            </motion.button>
-          </div>
-        </header>
-
         <motion.div
           className="dash-page"
           initial="hidden"
@@ -361,7 +309,5 @@ export default function IntelligencePage() {
             />
           ) : null}
         </motion.div>
-      </main>
-    </div>
   );
 }

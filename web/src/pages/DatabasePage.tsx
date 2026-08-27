@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import SlowQueryTable, { SlowQuery } from '../components/shared/SlowQueryTable';
@@ -49,7 +47,6 @@ type DbFilter = 'all' | 'postgres' | 'mysql' | 'mariadb' | 'mongodb';
  * existing tokens + classes. No new motion variants.
  */
 export default function DatabasePage() {
-  const logout = useLogout();
   const [tab, setTab] = useState<Tab>('slow');
   const [error, setError] = useState('');
 
@@ -136,40 +133,6 @@ export default function DatabasePage() {
       : `${pools.length} pool${pools.length === 1 ? '' : 's'}`;
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="database"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'database']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Observability</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Database</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{tabSummary}</span>
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <div className="logs-tabs" role="tablist">
-          {(['slow', 'pools', 'top'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              type="button"
-              aria-selected={tab === t}
-              className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t === 'slow' ? 'Slow Queries' : t === 'pools' ? 'Connection Pools' : 'Top Queries'}
-            </button>
-          ))}
-        </div>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
@@ -324,7 +287,5 @@ export default function DatabasePage() {
             </section>
           ) : null}
         </motion.div>
-      </main>
-    </div>
   );
 }

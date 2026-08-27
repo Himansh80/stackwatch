@@ -1,10 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, clearToken, getToken, me } from '../lib/api';
-import ProfileMenu from '../components/ProfileMenu';
-import CommandPalette from '../components/CommandPalette';
-import TimeWidget from '../components/TimeWidget';
-import AppSidebar from '../components/AppSidebar';
+import { motion, pageEnter } from '../lib/motion';
 import HeroCard from '../components/profile/HeroCard';
 import IdentityPanel, { buildIdentityRows, copyToClipboard } from '../components/profile/IdentityPanel';
 import WorkspacePanel from '../components/profile/WorkspacePanel';
@@ -12,7 +9,6 @@ import NameFormPanel from '../components/profile/NameFormPanel';
 import SecurityPanel from '../components/profile/SecurityPanel';
 import TokensPanel from '../components/profile/TokensPanel';
 import { api } from '../lib/api';
-import { motion, pageEnter } from '../lib/motion';
 
 type Profile = {
   email: string;
@@ -42,11 +38,6 @@ const emptyProfile: Profile = {
   tenant_plan: '',
 };
 
-/**
- * Role tone — visual treatment of the role badge. super_admin gets
- * the warm "elevated" tone; admin/operator get blue; everything else
- * stays neutral.
- */
 function roleTone(role: string): 'admin' | 'operator' | 'viewer' | 'neutral' {
   const lower = role.toLowerCase();
   if (lower === 'super_admin' || lower === 'owner') return 'admin';
@@ -55,14 +46,6 @@ function roleTone(role: string): 'admin' | 'operator' | 'viewer' | 'neutral' {
   return 'neutral';
 }
 
-/**
- * ProfilePage — top-level route at /profile.
- *
- * Owns: profile fetch, name-edit form state, avatar-upload state,
- * copied-field indicator, tokens panel state, Cmd+K binding,
- * logout. All visible sections delegate to components in
- * `components/profile/`.
- */
 export default function ProfilePage() {
   const nav = useNavigate();
   const [profile, setProfile] = useState<Profile>(emptyProfile);
@@ -70,17 +53,12 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Name-edit form state
   const [nameDraft, setNameDraft] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
   const [nameMessage, setNameMessage] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
 
-  // Inline panels
-  const [showTokens, setShowTokens] = useState(false);
-
-  // Cmd+K palette open state
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [showTokens, _setShowTokens] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,25 +102,9 @@ export default function ProfilePage() {
     };
   }, []);
 
-  // Keep the name form in sync with the loaded profile.
   useEffect(() => {
     setNameDraft(profile.full_name);
   }, [profile.full_name]);
-
-  // Cmd+K / Ctrl+K opens the global command palette.
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        setPaletteOpen(true);
-      }
-      if (event.key === 'Escape' && paletteOpen) {
-        setPaletteOpen(false);
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [paletteOpen]);
 
   async function onSaveName(event: FormEvent) {
     event.preventDefault();
@@ -183,60 +145,23 @@ export default function ProfilePage() {
     }
   }
 
-  function logout() {
+  function onLogout() {
     clearToken();
     nav('/login');
   }
 
-  const initials = (profile.full_name || profile.email || '?').slice(0, 1).toUpperCase();
   const tone = roleTone(profile.role);
+  const initials = profile.full_name
+    ?.split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   const identityRows = buildIdentityRows(profile);
-  const nameUnchanged = nameDraft.trim() === profile.full_name;
+  const nameUnchanged = nameDraft === profile.full_name;
 
   return (
-    <div className="dash-app">
-      <AppSidebar active="profile" onLogout={logout} show={['dashboard', 'profile', 'billing', 'settings']} />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Your account</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">{profile.full_name || 'Profile'}</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">{profile.email || 'no email on file'}</span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-topbar-center">
-            <button
-              className="dash-topbar-search"
-              onClick={() => setPaletteOpen(true)}
-              title="Search & navigate (Cmd+K)"
-              aria-label="Open command palette"
-            >
-              <span className="dash-topbar-search-icon" aria-hidden="true">⌕</span>
-              <span className="dash-topbar-search-placeholder">Search & navigate…</span>
-              <kbd className="dash-topbar-search-kbd">⌘</kbd>
-              <kbd className="dash-topbar-search-kbd">K</kbd>
-            </button>
-          </div>
-          <div className="dash-top-actions">
-            <TimeWidget />
-            <button
-              className="dash-icon-button"
-              onClick={() => window.location.reload()}
-              aria-label="Refresh page"
-              title="Refresh page"
-            >↻</button>
-            <ProfileMenu
-              firstName={(profile.full_name || '').split(' ')[0] || 'there'}
-              fullName={profile.full_name}
-              tenantName={profile.tenant_name}
-              initials={initials}
-              avatarUrl={profile.avatar_url}
-            />
-          </div>
-        </header>
         <motion.div
           className="dash-content"
           initial="hidden"
@@ -267,8 +192,7 @@ export default function ProfilePage() {
                 onAvatarUploaded={(dataUrl) => setProfile((p) => ({ ...p, avatar_url: dataUrl }))}
                 onAvatarRemoved={() => setProfile((p) => ({ ...p, avatar_url: '' }))}
               />
-
-              <section className="prof-grid-main">
+              <div className="prof-grid">
                 <IdentityPanel rows={identityRows} onCopy={onCopy} copiedField={copiedField} />
                 <WorkspacePanel
                   tenantName={profile.tenant_name}
@@ -278,44 +202,26 @@ export default function ProfilePage() {
                   role={profile.role}
                   tone={tone}
                 />
-              </section>
-
-              <section className="prof-grid-main">
-                <NameFormPanel
-                  draft={nameDraft}
-                  onDraftChange={(next) => {
-                    setNameDraft(next);
-                    setNameError(null);
-                    setNameMessage(null);
-                  }}
-                  onSubmit={onSaveName}
-                  onDiscard={() => {
-                    setNameDraft(profile.full_name);
-                    setNameError(null);
-                    setNameMessage(null);
-                  }}
-                  saving={nameSaving}
-                  unchanged={nameUnchanged || !nameDraft.trim()}
-                  error={nameError}
-                  message={nameMessage}
-                />
-                <div>
-                  <SecurityPanel
-                    onSignOut={logout}
-                    onToggleTokens={() => setShowTokens((v) => !v)}
-                    tokensOpen={showTokens}
-                    tokenCount={0}
-                  />
-                  <TokensPanel open={showTokens} />
-                </div>
-              </section>
-
-              <p className="dash-foot-note">Email and tenant ID are tied to your account — change them via your administrator.</p>
+              </div>
+              <NameFormPanel
+                draft={nameDraft}
+                onDraftChange={setNameDraft}
+                onSubmit={onSaveName}
+                onDiscard={() => setNameDraft(profile.full_name)}
+                saving={nameSaving}
+                unchanged={nameUnchanged}
+                error={nameError}
+                message={nameMessage}
+              />
+              <SecurityPanel
+                onSignOut={onLogout}
+                onToggleTokens={() => _setShowTokens((v) => !v)}
+                tokensOpen={showTokens}
+                tokenCount={0}
+              />
+              {showTokens && <TokensPanel open={showTokens} />}
             </>
           )}
         </motion.div>
-      </main>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </div>
   );
 }

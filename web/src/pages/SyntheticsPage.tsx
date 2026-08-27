@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
-import { useLogout } from '../lib/useLogout';
-import AppSidebar from '../components/AppSidebar';
 import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
 import SlaBadge from '../components/shared/SlaBadge';
@@ -34,7 +32,6 @@ interface SynthTest {
  * SlaBadge uses tokens (no hex colors).
  */
 export default function SyntheticsPage() {
-  const logout = useLogout();
   const [tests, setTests] = useState<SynthTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -139,38 +136,6 @@ export default function SyntheticsPage() {
   }, [tests]);
 
   return (
-    <div className="dash-app">
-      <AppSidebar
-        active="synthetics"
-        onLogout={logout}
-        show={['dashboard', 'billing', 'profile', 'settings', 'proxmox', 'truenas', 'synthetics']}
-      />
-      <main className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-greeting">
-            <span className="dash-greeting-eyebrow">Observability</span>
-            <div className="dash-greeting-row">
-              <strong className="dash-greeting-text">Synthetics</strong>
-              <span className="dash-greeting-clock">
-                <span className="dash-greeting-clock-time">
-                  {tests.length} test{tests.length === 1 ? '' : 's'}
-                  {' · '}
-                  {kpis.passing} active
-                </span>
-              </span>
-            </div>
-          </div>
-          <div className="dash-top-actions">
-            <button
-              type="button"
-              className="sw-button sw-button-primary"
-              onClick={() => setCreateOpen((v) => !v)}
-            >
-              {createOpen ? 'Close' : 'New test'}
-            </button>
-          </div>
-        </header>
-
         <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
           {createOpen ? (
             <section className="dash-section">
@@ -377,7 +342,5 @@ export default function SyntheticsPage() {
             )}
           </section>
         </motion.div>
-      </main>
-    </div>
   );
 }

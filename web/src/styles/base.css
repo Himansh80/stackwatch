@@ -1,169 +1,265 @@
-/* base.css — design tokens, body, base form elements, universal rules. Imported first. */
+/*
+ * base.css — universal rules + legacy token aliases.
+ *
+ * New design system lives in tokens.css (loaded FIRST in main.tsx).
+ * This file:
+ *   1. Maps legacy --bg / --accent / etc. to the new --color-* tokens,
+ *      so the existing styles/*.css files that reference --bg etc.
+ *      keep working without breaking this phase.
+ *   2. Defines universal element resets (body, button, input, etc.)
+ *      using the new tokens.
+ *   3. Holds base typography rules.
+ *
+ * Migration plan: in follow-on UI changes, each page-specific CSS file
+ * will be rewritten to consume the new tokens directly, and this file
+ * will lose the legacy aliases.
+ */
 
 :root {
-  /* ------- Color tokens -------
-     Surface ramp goes bg -> surface -> surface-2 -> surface-3 (each
-     step slightly lighter, used for cards, popovers, hovered cards).
-     Border is split into border / border-soft so cards have a subtle
-     rest state and a clear hover state. */
-  --bg: #070b14;
-  --surface: #101725;
-  --surface-2: #161f33;
-  --surface-3: #1d2840;
-  --border: #1e3048;
-  --border-soft: #182740;
-  --text: #f1f5fb;
-  --text-soft: #c1cad9;
-  --muted: #8294ae;
-  --muted-soft: #5b6c87;
-  /* Accent (cyan) drives CTAs, links, and the "live" indicator.
-     Plus a paired indigo for secondary accents. */
-  --accent: #22d3ee;
-  --accent-soft: rgba(34, 211, 238, 0.15);
-  --accent-strong: #06b6d4;
+  /* ============================================================
+   * LEGACY TOKEN ALIASES — keep current CSS files working
+   * DO NOT use these names in new code; use the --color-* etc.
+   * tokens from tokens.css instead.
+   * ============================================================ */
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-elevated);
+  --surface-3: var(--color-surface-hover);
+  --border: var(--color-border-strong);
+  --border-soft: var(--color-border);
+  --text: var(--color-text);
+  --text-soft: var(--color-text-muted);
+  --muted: var(--color-text-muted);
+  --muted-soft: var(--color-text-subtle);
+  --accent: var(--color-primary);
+  --accent-soft: var(--color-primary-muted);
+  --accent-strong: var(--color-primary-active);
   --indigo: #818cf8;
   --indigo-soft: rgba(129, 140, 248, 0.15);
-  /* Status colors match the Datadog convention: green ok, amber warn,
-     red crit, with text-soft variants for use on filled backgrounds. */
-  --green: #10b981;
-  --green-soft: rgba(16, 185, 129, 0.15);
-  --green-text: #34d399;
-  --amber: #f59e0b;
-  --amber-soft: rgba(245, 158, 11, 0.15);
-  --amber-text: #fbbf24;
-  --red: #ef4444;
-  --red-soft: rgba(239, 68, 68, 0.15);
-  --red-text: #fca5a5;
+  --green: var(--color-success);
+  --green-soft: var(--color-success-muted);
+  --green-text: var(--color-success-hover);
+  --amber: var(--color-warning);
+  --amber-soft: var(--color-warning-muted);
+  --amber-text: var(--color-warning-hover);
+  --red: var(--color-error);
+  --red-soft: var(--color-error-muted);
+  --red-text: var(--color-error-hover);
   --violet: #a78bfa;
   --violet-soft: rgba(167, 139, 250, 0.15);
-  /* Spacing + radius */
-  --radius: 10px;
-  --radius-sm: 6px;
-  --radius-lg: 14px;
-  /* Shadows used by elevated surfaces (cards, popovers, menus, modals).
-     --shadow-sm is the card rest state; --shadow-md/lg escalate for
-     hover and overlays. */
-  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 18px 42px rgba(0, 0, 0, 0.45);
-  /* Motion + chart tokens (Phase 1 of 002-polish-motion-datadog-ui).
-     --motion-page is the default page-enter transition used by every
-     route; --chart-stroke unifies SVG line widths for sparklines and
-     time-series charts. */
-  --motion-page: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  --radius: var(--radius-lg);
+  --radius-sm: var(--radius-sm);
+  --radius-lg: var(--radius-xl);
+
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+
+  --motion-page: var(--motion-page, var(--duration-medium) var(--ease-out));
   --chart-stroke: 1.5px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Oxygen, Ubuntu, sans-serif;
-  /* Base font size + smoothing so the UI feels like a real product
-     instead of an internal tool. */
-  font-size: 14px;
+
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-* { box-sizing: border-box; }
+/* ============================================================
+ * RESET — modern minimal reset
+ * ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body, #root { height: 100%; }
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.5;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: var(--leading-normal);
+  font-family: var(--font-sans);
 }
 
-/* Subtle text-selection color so highlight doesn't look like a bad link. */
-::selection { background: var(--accent-soft); color: var(--text); }
-
-.login-shell {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+/* Selection color matches accent */
+::selection {
+  background: var(--color-primary-muted);
+  color: var(--color-text);
 }
 
-.login-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 32px;
+/* Remove default focus outline; we apply our own below */
+:focus { outline: none; }
+
+/* Visible focus ring (a11y) */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+ * TYPOGRAPHY — base element rules
+ * ============================================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tighter);
+}
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+h5 { font-size: var(--text-md); }
+h6 { font-size: var(--text-base); }
+
+p { margin: 0; }
+
+a {
+  color: var(--color-text-link);
+  text-decoration: none;
+  transition: color var(--duration-base) var(--ease-out);
+}
+a:hover { color: var(--color-primary-hover); }
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+pre {
+  margin: 0;
+  background: var(--color-bg);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+}
+
+/* Tabular numbers for any element with [data-tabular] */
+[data-tabular] {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+/* ============================================================
+ * FORM ELEMENTS — universal
+ * ============================================================ */
+
+label {
+  display: block;
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+}
+
+input, select, textarea {
   width: 100%;
-  max-width: 380px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-family: inherit;
+  transition: border-color var(--duration-base) var(--ease-out),
+              box-shadow var(--duration-base) var(--ease-out);
 }
 
-.login-card h1 { margin: 0 0 4px; font-size: 22px; }
-.subtitle { color: var(--muted); margin: 0 0 24px; font-size: 13px; }
-
-label { display: block; margin: 12px 0 6px; font-size: 12px; color: var(--muted); }
-
-input {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 14px;
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
 }
 
-input:focus { outline: none; border-color: var(--accent); }
+input::placeholder, textarea::placeholder {
+  color: var(--color-text-disabled);
+}
 
 button {
-  margin-top: 20px;
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--accent);
-  color: #0a0e1a;
-  border: none;
-  border-radius: var(--radius);
-  font-weight: 600;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 
 button:disabled { opacity: 0.6; cursor: wait; }
 
+/* ============================================================
+ * UTILITY CLASSES — minimal, only what's reused ≥5 times
+ * ============================================================ */
+
 .error {
-  margin-top: 12px;
-  padding: 8px 10px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid var(--red);
-  border-radius: var(--radius);
-  color: var(--red);
-  font-size: 13px;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-error-muted);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error-hover);
+  font-size: var(--text-sm);
 }
 
 .hint {
-  margin-top: 16px;
-  font-size: 12px;
-  color: var(--muted);
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
-
 .hint code {
-  background: var(--bg);
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--color-bg);
+  padding: 1px var(--space-1);
+  border-radius: var(--radius-sm);
 }
 
-.dashboard {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px;
+/* ============================================================
+ * SCROLLBAR — subtle dark scrollbar
+ * ============================================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-subtle);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) var(--color-bg);
 }
 
-.dashboard header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
+/* ============================================================
+ * SKIP LINK — keyboard a11y
+ * ============================================================ */
 
-.dashboard header button { width: auto; margin: 0; padding: 8px 16px; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-.card h3 { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
-pre { margin: 0; background: var(--bg); padding: 12px; border-radius: var(--radius); font-size: 12px; overflow-x: auto; }
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-semibold);
+  z-index: var(--z-tooltip);
+  transform: translateY(-200%);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
 
 /* Tier 1 Proxmox workspace */
 .sw-shell { min-height: 100vh; background: #080c16; color: #e7edf7; }

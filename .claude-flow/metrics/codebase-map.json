@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-08-26T18:38:26.632Z",
+  "projectRoot": "C:\\Users\\himan\\HermesProjects\\stackwatch",
+  "structure": {
+    "hasPackageJson": false,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1787769506632
+}

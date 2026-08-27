@@ -3,6 +3,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+// Tokens load FIRST so all other CSS can consume them via var(--*).
+import './styles/tokens.css';
+import './styles/shell.css';
 import './styles.css';
 import './styles-tier2.css';
 import './styles/proxmox.css';

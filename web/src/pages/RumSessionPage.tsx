@@ -46,7 +46,7 @@ interface WaterfallPayload {
 }
 
 export default function RumSessionPage() {
-  const logout = useLogout();
+  const _logout = useLogout();
   const [params] = useSearchParams();
   const sessionId = params.get('id') || '';
   const [header, setHeader] = useState<SessionHeader | null>(null);
