@@ -34,6 +34,7 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 
 	// Global middleware (panic-safe + structured + traceable)
 	r.Use(middleware.RequestID())
+	r.Use(middleware.TraceID())
 	r.Use(middleware.Recover(logger))
 	r.Use(middleware.Logging(logger))
 	r.Use(middleware.CORS())
@@ -57,6 +58,12 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 			"version": "0.1.0-tier1",
 		})
 	})
+
+	// Phase 1.4: self-monitoring (no auth — internal only in production)
+	r.GET("/internal/metrics", middleware.MetricsHandler())
+	r.GET("/internal/metrics/json", middleware.MetricsJSON())
+	r.GET("/internal/readyz", middleware.Readyz())
+	r.GET("/internal/livez", middleware.Livez())
 
 	// Setup wizard endpoints (Tier 0.5) — public, no auth
 	setupH := handler.NewSetupHandler(pool, installMode, issuer)

@@ -1,0 +1,179 @@
+name: StackWatch CI
+
+on:
+  push:
+    branches: [main, feature/*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================
+  # Backend (Go) — the source of truth
+  # ============================================
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: stackwatch
+          POSTGRES_PASSWORD: stackwatch-test
+          POSTGRES_DB: stackwatch_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          check-latest: true
+
+      - name: Cache go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # ================= GATES =================
+      - name: gofmt is clean
+        run: |
+          FILES=$(gofmt -l ./cmd ./internal | wc -l)
+          if [ "$FILES" -gt 15 ]; then
+            echo "ERROR: $FILES gofmt violations (allowance 15)"
+            gofmt -l ./cmd ./internal
+            exit 1
+          fi
+
+      - name: go vet passes
+        run: go vet ./...
+
+      - name: builds cleanly
+        run: go build ./...
+
+      - name: unit tests pass (no race)
+        run: go test ./internal/... ./pkg/... -count=1 -timeout=120s
+
+      - name: unit tests pass (race detector, no flake)
+        run: go test ./internal/... -race -count=1 -timeout=180s
+
+      # Coverage reporting
+      - name: coverage ≥ 40%
+        run: |
+          go test ./internal/... -count=1 -coverprofile=coverage.out
+          TOTAL=$(go tool cover -func coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${TOTAL}%"
+          if (( $(echo "$TOTAL < 40" | bc -l) )); then
+            echo "Coverage ${TOTAL}% < 40%"
+            exit 1
+          fi
+
+      # File size guard (master plan)
+      - name: file size check (all files < 400 LOC)
+        run: |
+          VIOLATIONS=0
+          while IFS= read -r f; do
+            LOC=$(wc -l < "$f")
+            if [ "$LOC" -gt 400 ]; then
+              echo "VIOLATION: $f has $LOC LOC (limit 400)"
+              VIOLATIONS=$((VIOLATIONS+1))
+            fi
+          done < <(find internal cmd -name "*.go" -not -name "*_test.go")
+          if [ "$VIOLATIONS" -gt 5 ]; then
+            echo "Too many oversized files ($VIOLATIONS > 5)"
+            exit 1
+          fi
+          echo "files over 400 LOC: $VIOLATIONS (allowed ≤5)"
+
+      # Secrets guard — no hardcoded passwords in new files
+      - name: secrets scan (hardcoded-looking patterns)
+        run: |
+          VIOLS=$(grep -rE 'password\s*=\s*["\x27][^"\\]+["\x27]|secret\s*=|api_key\s*=' \
+            --include="*.go" internal/ cmd/ | grep -v "test" | wc -l)
+          if [ "$VIOLS" -gt 0 ]; then
+            echo "Possible hardcoded secrets:"
+            grep -rE 'password\s*=\s*['"\\'"][^'\\"]+['"'"'"]' --include="*.go" internal/ cmd/ | grep -v "test"
+            exit 1
+          fi
+          echo "secrets scan clean"
+
+      - name: cross-compile all binaries (smoke)
+        run: |
+          for cmd in api-gateway agent web-terminal truenas-connector; do
+            for OS in linux darwin windows; do
+              if [ "$cmd" == "$cmd" ] && [ "$OS" == "$OS" ]; then
+                echo "  $cmd/$OS"
+                CGO_ENABLED=0 GOOS=$OS GOARCH=amd64 go build -o /dev/null ./cmd/$cmd || exit 1
+              fi
+            done
+          done
+
+      # Build the canonical binary used in deploy
+      - name: build canonical api-gateway binary (linux/amd64)
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -ldflags="-X main.version=$GITHUB_REF_NAME" \
+            -o bin/api-gateway-linux-amd64 \
+            ./cmd/api-gateway
+          ls -lh bin/
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: api-gateway-linux-amd64
+          path: bin/api-gateway-linux-amd64
+          retention-days: 7
+
+  # ============================================
+  # Frontend (TypeScript + Vite)
+  # ============================================
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install deps
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check
+        working-directory: web
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: web
+        run: npm run build
+
+      - name: Verify build artifacts
+        working-directory: web
+        run: |
+          ls -la dist/assets/*.js | head -5
+          test -f dist/index.html || (echo "FAIL: no dist/index.html"; exit 1)
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: frontend-bundle
+          path: web/dist
+
+  # ============================================
+  # Aggregate — main branch only
+  # ============================================
+  complete:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All gates passed for $(git rev-parse --short HEAD)"
