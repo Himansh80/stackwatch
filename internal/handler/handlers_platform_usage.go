@@ -13,16 +13,17 @@
 // worker lives in internal/platform/usage_meter.go.
 //
 // Why these endpoints:
-//   RecordUsageEvent is the write path — every billable action
-//   (server created, alert fired, dashboard panel rendered, etc.)
-//   INSERTs one row into platform_usage_events. The body is
-//   restricted to a fixed allowlist of event_kind values so a
-//   caller can't invent new billable dimensions.
-//   GetUsageCurrent / GetUsageHistory / GetUsageSummary are the
-//   read path — they scan platform_usage_aggregates (the rollup
-//   table) so the dashboard stays fast even with millions of raw
-//   events. GetUsageExport streams the raw events as CSV so a
-//   finance team can slice the data in Excel.
+//
+//	RecordUsageEvent is the write path — every billable action
+//	(server created, alert fired, dashboard panel rendered, etc.)
+//	INSERTs one row into platform_usage_events. The body is
+//	restricted to a fixed allowlist of event_kind values so a
+//	caller can't invent new billable dimensions.
+//	GetUsageCurrent / GetUsageHistory / GetUsageSummary are the
+//	read path — they scan platform_usage_aggregates (the rollup
+//	table) so the dashboard stays fast even with millions of raw
+//	events. GetUsageExport streams the raw events as CSV so a
+//	finance team can slice the data in Excel.
 //
 // Auth & tenancy: every endpoint requires a JWT (carried by the
 // router's RequireAuth middleware). Tenant isolation is enforced

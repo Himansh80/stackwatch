@@ -69,7 +69,7 @@ func validateNoteTags(tags []string) error {
 }
 
 // validateNoteBody enforces the body length cap. Empty body is OK
-// (the column default is ''). The cap protects the dashboard from
+// (the column default is ”). The cap protects the dashboard from
 // a user accidentally pasting in a 10 MB document.
 func validateNoteBody(body string) error {
 	if len(body) > notesMaxBodyChars {

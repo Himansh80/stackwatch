@@ -257,15 +257,40 @@ export default function TrueNASWorkspace() {
     finally { setBusy(false); }
   }
 
-  return <div className="sw-shell">
-    <header className="sw-topbar"><div className="sw-brand"><div className="sw-brand-mark">S</div><div>StackWatch<span className="sw-product-label">TrueNAS control plane</span></div></div><div className="sw-host-picker"><span>TrueNAS host</span><select value={hostId} onChange={(event) => setHostId(event.target.value)}><option value="">Select host</option>{hosts.map((host) => <option key={host.id} value={host.id}>{host.name} · {host.base_url}</option>)}</select></div><div className="sw-top-actions"><button className="sw-button sw-button-primary" onClick={() => setShowHostForm((open) => !open)}>+ Add TrueNAS</button><a className="sw-button" href="/">Proxmox</a></div></header>
-    <div className="sw-layout"><aside className="sw-sidebar"><div className="sw-side-title">TrueNAS control</div>{sections.map((item) => <button key={item.id} className={`sw-nav-item ${section === item.id ? 'active' : ''}`} onClick={() => setSection(item.id)}><span>◆</span>{item.label}</button>)}<div className="sw-side-note"><strong>TIER 2</strong><span>TrueNAS SCALE</span><small>JSON-RPC over WebSocket. Destructive actions remain explicit and confirmation-backed.</small></div></aside><motion.main
-      className="sw-main"
-      initial="hidden"
-      animate="show"
-      variants={pageEnter}
-    >
-      <div className="sw-page-head"><div><span className="sw-eyebrow">TIER 2 · TRUENAS SCALE</span><h1>{current.label}</h1><p>{selected ? `${selected.name} · ${selected.base_url}` : 'Register a TrueNAS SCALE host to begin.'}</p></div><div className="sw-page-actions">{hostId && <button className="sw-button" onClick={() => void runTest()} disabled={busy}>Test connection</button>}{hostId && actionPaths[section] && <button className="sw-button sw-button-primary" onClick={() => setShowAction(true)} disabled={busy}>+ Create</button>}</div></div>
+  return (
+    <>
+      <div className="px-page-head">
+        <div>
+          <span className="px-eyebrow">TIER 2 · TRUENAS SCALE</span>
+          <h1 className="px-page-title">{current.label}</h1>
+          <p className="px-page-sub">{selected ? `${selected.name} · ${selected.base_url}` : 'Register a TrueNAS SCALE host to begin.'}</p>
+        </div>
+        <div className="px-page-actions">
+          <select
+            className="px-host-select"
+            aria-label="Active TrueNAS host"
+            value={hostId}
+            onChange={(event) => setHostId(event.target.value)}
+          >
+            <option value="">Select host</option>
+            {hosts.map((host) => (
+              <option key={host.id} value={host.id}>
+                {host.name} · {host.base_url}
+              </option>
+            ))}
+          </select>
+          {hostId && <button className="px-button px-button-primary" onClick={() => void runTest()} disabled={busy}>
+            Test connection
+          </button>}
+          {hostId && actionPaths[section] && <button className="px-button px-button-primary" onClick={() => setShowAction(true)} disabled={busy}>
+            + Create
+          </button>}
+          <button className="px-button px-button-primary" onClick={() => setShowHostForm((open) => !open)}>
+            + Add TrueNAS
+          </button>
+        </div>
+      </div>
+
       {hostId && (
         <motion.section
           className="tru-kpi-grid"
@@ -281,63 +306,68 @@ export default function TrueNASWorkspace() {
           <KpiCard label="Disks" value={kpi.diskCount ?? '—'} delta="Disk health" accent="red" onClick={() => setSection('disks')} />
         </motion.section>
       )}
-      {message && <div className="sw-alert sw-alert-success"><strong>Success</strong><span>{message}</span><button onClick={() => setMessage('')}>×</button></div>}{error && <div className="sw-alert sw-alert-error"><strong>Error</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
-      {showHostForm && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Secure registration</span><h2>Connect a TrueNAS SCALE system</h2></div></div><form className="sw-form-grid" onSubmit={submitHost}><label className="sw-field"><span>Name</span><input required value={hostForm.name} onChange={(e) => setHostForm({ ...hostForm, name: e.target.value })} placeholder="e.g. storage-prod" /></label><label className="sw-field"><span>Base URL</span><input required value={hostForm.base_url} onChange={(e) => setHostForm({ ...hostForm, base_url: e.target.value })} placeholder="https://truenas.example.com" /></label><label className="sw-field"><span>Username</span><input value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} /></label><label className="sw-field"><span>Password</span><input type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} /></label><label className="sw-field"><span>API key (optional)</span><input type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} /></label><label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label><div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowHostForm(false)}>Cancel</button><button type="submit" className="sw-button sw-button-primary" disabled={busy}>Test and save</button></div></form></section>}
-      {!hostId && <section className="sw-panel"><EmptyState
-        illustration={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <ellipse cx="12" cy="6" rx="9" ry="3" />
-            <path d="M3 6v6c0 1.66 4.03 3 9 3s9-1.34 9-3V6" />
-            <path d="M3 12v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6" />
-          </svg>
-        }
-        headline="No TrueNAS host registered"
-        subhead="Add a TrueNAS SCALE host to manage pools, datasets, shares, iSCSI, snapshots, disks, users, services, boot environments, and cloud sync from StackWatch."
-        cta={{ label: 'Register first host', onClick: () => setShowHostForm(true) }}
-      /></section>}
-      {hostId && <section className="sw-panel"><div className="sw-panel-head"><div><span className="sw-eyebrow">Live upstream response</span><h2>{busy ? 'Loading…' : `${rows.length} records`}</h2></div>{selected && <StatusPill status={selected.status === 'online' ? 'up' : 'unknown'} label={selected.status ?? 'unknown'} size="sm" />}</div>
-        <FilterBar search={search} onSearchChange={setSearch} placeholder={`Filter ${current.label.toLowerCase()} by name, ID, or any column…`} ariaLabel={`Search ${current.label}`} />
-        {(() => {
-          const q = search.trim().toLowerCase();
-          const filtered = q ? rows.filter((row) => {
-            for (const key in row) {
-              const v = row[key];
-              if (v === null || v === undefined) continue;
-              if (String(v).toLowerCase().includes(q)) return true;
+      {message && <div className="sw-alert sw-alert-success"><strong>Success</strong><span>{message}</span><button onClick={() => setMessage('')}>×</button></div>}
+      {error && <div className="sw-alert sw-alert-error"><strong>Error</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
+      {showHostForm && (
+        <section className="sw-panel">
+          <div className="sw-panel-head">
+            <div><span className="sw-eyebrow">Secure registration</span><h2>Connect a TrueNAS SCALE system</h2></div>
+          </div>
+          <form className="sw-form-grid" onSubmit={submitHost}>
+            <label className="sw-field"><span>Name</span><input required value={hostForm.name} onChange={(e) => setHostForm({ ...hostForm, name: e.target.value })} placeholder="e.g. storage-prod" /></label>
+            <label className="sw-field"><span>Base URL</span><input required value={hostForm.base_url} onChange={(e) => setHostForm({ ...hostForm, base_url: e.target.value })} placeholder="https://truenas.example.com" /></label>
+            <label className="sw-field"><span>Username</span><input value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} /></label>
+            <label className="sw-field"><span>Password</span><input type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} /></label>
+            <label className="sw-field"><span>API key (optional)</span><input type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} /></label>
+            <label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label>
+            <div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowHostForm(false)}>Cancel</button><button type="submit" className="sw-button sw-button-primary" disabled={busy}>Test and save</button></div>
+          </form>
+        </section>
+      )}
+      {!hostId && (
+        <section className="sw-panel">
+          <EmptyState
+            illustration={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <ellipse cx="12" cy="6" rx="9" ry="3" />
+                <path d="M3 6v6c0 1.66 4.03 3 9 3s9-1.34 9-3V6" />
+                <path d="M3 12v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6" />
+              </svg>
             }
-            return false;
-          }) : rows;
-          if (!rows.length) return <div className="sw-empty">{busy ? 'Loading live data…' : 'No records returned by TrueNAS.'}</div>;
-          if (!filtered.length) return <div className="sw-empty"><strong>No matches for &ldquo;{search}&rdquo;</strong><span>Try a different search term, or clear the field to see all {rows.length} row{rows.length === 1 ? '' : 's'}.</span></div>;
-          // Section-aware visualization: Pools / Disks / Snapshots get
-          // proper cards/charts. Everything else falls back to the
-          // generic key/value table.
-          if (section === 'pools') {
-            return <div className="tru-pool-grid">{filtered.map((pool, i) => <PoolHealthCard key={String(pool.id ?? pool.name ?? i)} pool={pool} />)}</div>;
-          }
-          if (section === 'disks') {
-            return <div className="tru-disk-grid">{filtered.map((disk, i) => <DiskTempCard key={String(disk.id ?? disk.name ?? i)} disk={disk} />)}</div>;
-          }
-          if (section === 'snapshots') {
-            const byDataset = new Map<string, TNRow[]>();
-            for (const snap of filtered) {
-              const key = String(snap.dataset ?? snap.path ?? 'unknown');
-              if (!byDataset.has(key)) byDataset.set(key, []);
-              byDataset.get(key)!.push(snap);
-            }
-            return (
-              <div className="tru-snap-grid">
-                {Array.from(byDataset.entries()).map(([group, items]) => (
-                  <SnapshotGroup key={group} group={group} items={items} />
-                ))}
-              </div>
-            );
-          }
-          return <div className="sw-table-wrap"><table className="sw-table"><thead><tr>{Object.keys(rows[0]).slice(0, 8).map((key) => <th key={key}>{key}</th>)}</tr></thead><tbody>{filtered.map((row, index) => <tr key={String(row.id ?? row.name ?? index)}>{Object.keys(rows[0]).slice(0, 8).map((key) => <td key={key}>{value(row, key)}</td>)}</tr>)}</tbody></table></div>;
-        })()}
-        <pre className="sw-json">{JSON.stringify(raw, null, 2)}</pre>
-      </section>}
-      {hostId && <div className="sw-danger-zone"><div><strong>Remove saved connection</strong><span>This removes StackWatch credentials only; it does not delete anything on TrueNAS.</span></div><button className="sw-button sw-button-danger" onClick={() => void removeHost()} disabled={busy}>Remove host</button></div>}
-      {showAction && <div className="sw-modal-backdrop"><div className="sw-modal"><div className="sw-panel-head"><div><span className="sw-eyebrow">Authenticated mutation</span><h2>Create {current.label}</h2></div></div><form onSubmit={runAction}><textarea className="sw-json-editor" value={actionJSON} onChange={(e) => setActionJSON(e.target.value)} spellCheck={false} /><div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowAction(false)}>Cancel</button><button className="sw-button sw-button-primary" disabled={busy}>Submit action</button></div></form></div></div>}
-    </motion.main></div></div>;
-}
+            headline="No TrueNAS host registered"
+            subhead="Add a TrueNAS SCALE host to manage pools, datasets, shares, iSCSI, snapshots, disks, users, services, boot environments, and cloud sync from StackWatch."
+            cta={{ label: 'Register first host', onClick: () => setShowHostForm(true) }}
+          />
+        </section>
+      )}
+      {hostId && (
+        <section className="sw-panel">
+          <div className="sw-panel-head">
+            <div><span className="sw-eyebrow">Live upstream response</span><h2>{busy ? 'Loading…' : `${rows.length} records`}</h2></div>
+            {selected && <StatusPill status={selected.status === 'online' ? 'up' : 'unknown'} label={selected.status ?? 'unknown'} size="sm" />}
+          </div>
+          <FilterBar search={search} onSearchChange={setSearch} placeholder={`Filter ${current.label.toLowerCase()} by name, ID, or any column…`} ariaLabel={`Search ${current.label}`} />
+          <DataTable
+            rows={rows}
+            search={search}
+            empty={busy ? 'Loading live resources…' : `No ${current.label.toLowerCase()} found.`}
+            columns={columnsFor(section)}
+          />
+        </section>
+      )}
+      {showAction && current && (
+        <div className="sw-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="sw-modal">
+            <div className="sw-panel-head">
+              <div><span className="sw-eyebrow">Authenticated mutation</span><h2>Create {current.label}</h2></div>
+              <button className="sw-button" onClick={() => setShowAction(false)}>Close</button>
+            </div>
+            <form onSubmit={runAction}>
+              <textarea className="sw-json-editor" value={actionJSON} onChange={(e) => setActionJSON(e.target.value)} spellCheck={false} />
+              <div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowAction(false)}>Cancel</button><button className="sw-button sw-button-primary" disabled={busy}>Submit action</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>);
+    }

@@ -2,12 +2,13 @@
 // handler.PollMediaServerAndInsertState wrapper.
 //
 // Endpoints polled:
-//   GET /Library/Media/Recent?limit=10
-//     → recent additions (Jellyfin returns the 10 most-recently-
-//       added items across all libraries)
-//   GET /Sessions
-//     → active playback sessions (Jellyfin returns a flat array
-//       of NowPlayingItem-embedded session records)
+//
+//	GET /Library/Media/Recent?limit=10
+//	  → recent additions (Jellyfin returns the 10 most-recently-
+//	    added items across all libraries)
+//	GET /Sessions
+//	  → active playback sessions (Jellyfin returns a flat array
+//	    of NowPlayingItem-embedded session records)
 //
 // Auth: Jellyfin inherited Emby's auth scheme — both use the
 // X-Emby-Token request header. The token is case-sensitive in
@@ -62,7 +63,7 @@ type jellyfinSession struct {
 	} `json:"PlayState"`
 	NowPlayingItem *struct {
 		Name         string `json:"Name"`
-		RunTimeTicks int64 `json:"RunTimeTicks"`
+		RunTimeTicks int64  `json:"RunTimeTicks"`
 		Type         string `json:"Type"`
 	} `json:"NowPlayingItem"`
 	Client      string `json:"Client"`

@@ -44,14 +44,14 @@ type samlAssertion struct {
 // samlXML is the on-wire shape we unmarshal into. Includes nested
 // AudienceRestriction so we can verify our entity_id is listed.
 type samlXML struct {
-	XMLName            xml.Name              `xml:"Assertion"`
-	ID                  string                `xml:"ID,attr"`
-	Version             string                `xml:"Version,attr"`
-	IssueInstant        string                `xml:"IssueInstant,attr"`
-	Issuer              samlIssuerXML         `xml:"Issuer"`
-	Subject             samlSubjectXML        `xml:"Subject"`
-	Conditions          samlConditionsXML     `xml:"Conditions"`
-	AttributeStatement  samlAttrStatementXML  `xml:"AttributeStatement"`
+	XMLName            xml.Name             `xml:"Assertion"`
+	ID                 string               `xml:"ID,attr"`
+	Version            string               `xml:"Version,attr"`
+	IssueInstant       string               `xml:"IssueInstant,attr"`
+	Issuer             samlIssuerXML        `xml:"Issuer"`
+	Subject            samlSubjectXML       `xml:"Subject"`
+	Conditions         samlConditionsXML    `xml:"Conditions"`
+	AttributeStatement samlAttrStatementXML `xml:"AttributeStatement"`
 }
 
 type samlIssuerXML struct {
@@ -128,7 +128,7 @@ func parseSAMLAssertion(raw []byte, expectedAudience, x509PEM string) (*samlAsse
 	// NotBefore: 60s clock-skew tolerance.
 	if a.Conditions.NotBefore != "" {
 		t, err := time.Parse(time.RFC3339, a.Conditions.NotBefore)
-		if err == nil && time.Now().Add(60 * time.Second).Before(t) {
+		if err == nil && time.Now().Add(60*time.Second).Before(t) {
 			return nil, fmt.Errorf("assertion not valid yet (NotBefore %s)", a.Conditions.NotBefore)
 		}
 	}

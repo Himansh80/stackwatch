@@ -91,9 +91,10 @@ type homelabLayoutResponse struct {
 // defaultHomelabLayout is the canonical first-run grid.
 //
 // Layout (12-col grid, row units of ~80px):
-//   Row 0: [KPI strip — 12 col wide, 1 row tall]        (full-width KPI)
-//   Row 1: [Services — 6 col, 4 rows] [Notes — 6 col, 4 rows]
-//   Row 2: [Todos — 12 col wide, 2 rows]                (full-width todos)
+//
+//	Row 0: [KPI strip — 12 col wide, 1 row tall]        (full-width KPI)
+//	Row 1: [Services — 6 col, 4 rows] [Notes — 6 col, 4 rows]
+//	Row 2: [Todos — 12 col wide, 2 rows]                (full-width todos)
 //
 // Future Phases add more widget types — this default will expand.
 // The widget `type` strings here MUST match the constants in the
@@ -155,8 +156,8 @@ func GetHomelabLayout(pool *db.Pool) gin.HandlerFunc {
 		}
 
 		var (
-			rawLayout  []byte
-			updatedAt  *string
+			rawLayout []byte
+			updatedAt *string
 		)
 		err := pool.Pgx().QueryRow(c.Request.Context(),
 			`SELECT layout::text, updated_at::text
@@ -311,9 +312,9 @@ func PutHomelabLayout(pool *db.Pool) gin.HandlerFunc {
 // committing the reset via DELETE /homelab/prefs/layout.
 //
 // Hard-coded here rather than fetched from a config table because:
-//   1. It is a stable, versioned piece of UI affordance — changes
-//      ship with the binary.
-//   2. It avoids an extra DB call on every "reset to defaults" click.
+//  1. It is a stable, versioned piece of UI affordance — changes
+//     ship with the binary.
+//  2. It avoids an extra DB call on every "reset to defaults" click.
 func GetHomelabLayoutDefaults(_ *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		kernel.RespondOK(c, gin.H{

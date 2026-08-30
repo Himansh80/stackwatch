@@ -123,6 +123,10 @@ func buildRouter(ctx context.Context, logger *slog.Logger, pool *db.Pool, issuer
 	cicdWebhook.POST("/github", handler.GitHubCICDWebhook(pool))
 	cicdWebhook.POST("/gitlab", handler.GitLabCICDWebhook(pool))
 
+	// Public ingest endpoint (no JWT, uses API key or ingest key from header).
+	// Agent sends heartbeat + metrics here.
+	r.POST("/api/v1/ingest/heartbeat", handler.IngestHeartbeat(pool))
+
 	// Public SSO callback routes (no JWT — IdP-issued code/assertion).
 	// Registered on the public engine (not the protected group) so
 	// users coming from an IdP can land on /sso/initiate and

@@ -318,4 +318,3 @@ func CreateBackupAndEncrypt(
 	)
 	return backupID, nil
 }
-

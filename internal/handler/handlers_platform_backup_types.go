@@ -50,24 +50,24 @@ import "time"
 // match the column names so a future endpoint can switch to
 // straight json.Marshal over the row without re-mapping.
 type backupRow struct {
-	ID                 string     `json:"id"`
-	TenantID           string     `json:"tenant_id"`
-	CreatedByUserID    *string    `json:"created_by_user_id,omitempty"`
-	BackupKind         string     `json:"backup_kind"`
-	Status             string     `json:"status"`
-	FilePath           *string    `json:"file_path,omitempty"`
-	FileSizeBytes      int64      `json:"file_size_bytes"`
-	UncompressedBytes  int64      `json:"uncompressed_bytes"`
-	TableCount         int        `json:"table_count"`
-	RowCount           int64      `json:"row_count"`
-	EncryptionAlgo     string     `json:"encryption_algo"`
-	SHA256Plaintext    *string    `json:"sha256_plaintext,omitempty"`
-	SHA256Ciphertext   *string    `json:"sha256_ciphertext,omitempty"`
-	StartedAt          time.Time  `json:"started_at"`
-	CompletedAt        *time.Time `json:"completed_at,omitempty"`
-	ErrorMessage       *string    `json:"error_message,omitempty"`
-	ExpiresAt          *time.Time `json:"expires_at,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
+	ID                string     `json:"id"`
+	TenantID          string     `json:"tenant_id"`
+	CreatedByUserID   *string    `json:"created_by_user_id,omitempty"`
+	BackupKind        string     `json:"backup_kind"`
+	Status            string     `json:"status"`
+	FilePath          *string    `json:"file_path,omitempty"`
+	FileSizeBytes     int64      `json:"file_size_bytes"`
+	UncompressedBytes int64      `json:"uncompressed_bytes"`
+	TableCount        int        `json:"table_count"`
+	RowCount          int64      `json:"row_count"`
+	EncryptionAlgo    string     `json:"encryption_algo"`
+	SHA256Plaintext   *string    `json:"sha256_plaintext,omitempty"`
+	SHA256Ciphertext  *string    `json:"sha256_ciphertext,omitempty"`
+	StartedAt         time.Time  `json:"started_at"`
+	CompletedAt       *time.Time `json:"completed_at,omitempty"`
+	ErrorMessage      *string    `json:"error_message,omitempty"`
+	ExpiresAt         *time.Time `json:"expires_at,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
 }
 
 // backupJobRow mirrors one row of platform_backup_jobs. Today
@@ -75,16 +75,16 @@ type backupRow struct {
 // worker; not exposed on a route — the dashboard reads it via
 // the backup list rollup).
 type backupJobRow struct {
-	ID             string     `json:"id"`
-	TenantID       string     `json:"tenant_id"`
-	Frequency      string     `json:"frequency"`
-	RetentionDays  int        `json:"retention_days"`
-	Enabled        bool       `json:"enabled"`
-	LastRunAt      *time.Time `json:"last_run_at,omitempty"`
-	LastRunStatus  *string    `json:"last_run_status,omitempty"`
-	LastBackupID   *string    `json:"last_backup_id,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID            string     `json:"id"`
+	TenantID      string     `json:"tenant_id"`
+	Frequency     string     `json:"frequency"`
+	RetentionDays int        `json:"retention_days"`
+	Enabled       bool       `json:"enabled"`
+	LastRunAt     *time.Time `json:"last_run_at,omitempty"`
+	LastRunStatus *string    `json:"last_run_status,omitempty"`
+	LastBackupID  *string    `json:"last_backup_id,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 // backupCreateReq is the optional body for POST /backup/create.
@@ -103,27 +103,27 @@ type backupCreateReq struct {
 // status here so the UI doesn't need a second fetch to render
 // "we're working on it".
 type backupCreateResp struct {
-	BackupID    string `json:"backup_id"`
-	Status      string `json:"status"`        // pending | running
-	AuditURL    string `json:"audit_url"`     // /api/v1/platform/backup/{id}
-	NextStep    string `json:"next_step"`     // poll_list | wait
+	BackupID string `json:"backup_id"`
+	Status   string `json:"status"`    // pending | running
+	AuditURL string `json:"audit_url"` // /api/v1/platform/backup/{id}
+	NextStep string `json:"next_step"` // poll_list | wait
 }
 
 // backupDeleteResp is the immediate reply for DELETE /backup/:id.
 // Mirrors the platform_backups row that was removed so a UI
 // that cached the row can drop it without a refetch.
 type backupDeleteResp struct {
-	BackupID  string `json:"backup_id"`
-	TenantID  string `json:"tenant_id"`
-	Status    string `json:"status"`         // deleted
-	Removed   bool   `json:"removed"`        // true if a row was actually removed
+	BackupID string `json:"backup_id"`
+	TenantID string `json:"tenant_id"`
+	Status   string `json:"status"`  // deleted
+	Removed  bool   `json:"removed"` // true if a row was actually removed
 }
 
 // backupListResp is the JSON for GET /backup/list. The Dashboard
 // renders the summary strip from Summary + the row list from
 // Backups in a single fetch.
 type backupListResp struct {
-	Backups []backupRow    `json:"backups"`
+	Backups []backupRow       `json:"backups"`
 	Summary backupListSummary `json:"summary"`
 }
 
@@ -131,11 +131,11 @@ type backupListResp struct {
 // dashboard. Computed in SQL (COUNT + SUM + MAX) so the API
 // stays a single round-trip.
 type backupListSummary struct {
-	TotalBackups       int     `json:"total_backups"`
-	LastBackupAt       *time.Time `json:"last_backup_at,omitempty"`
-	LastBackupStatus   *string `json:"last_backup_status,omitempty"`
-	TotalStorageBytes  int64   `json:"total_storage_bytes"`
-	TotalRows          int64   `json:"total_rows"`
+	TotalBackups      int        `json:"total_backups"`
+	LastBackupAt      *time.Time `json:"last_backup_at,omitempty"`
+	LastBackupStatus  *string    `json:"last_backup_status,omitempty"`
+	TotalStorageBytes int64      `json:"total_storage_bytes"`
+	TotalRows         int64      `json:"total_rows"`
 }
 
 // backupRestoreResp is the immediate reply for POST
@@ -144,11 +144,11 @@ type backupListSummary struct {
 // polls /backup/list to observe the (separately-created)
 // audit row.
 type backupRestoreResp struct {
-	RestoreID  string `json:"restore_id"`
-	BackupID   string `json:"backup_id"`
-	Status     string `json:"status"`        // pending
-	NextStep   string `json:"next_step"`     // poll_list
-	AuditNote  string `json:"audit_note"`    // every attempt logged
+	RestoreID string `json:"restore_id"`
+	BackupID  string `json:"backup_id"`
+	Status    string `json:"status"`     // pending
+	NextStep  string `json:"next_step"`  // poll_list
+	AuditNote string `json:"audit_note"` // every attempt logged
 }
 
 // =====================================================================
@@ -161,7 +161,7 @@ type backupRestoreResp struct {
 // 'system' value is left for a future backup-of-platform-tables
 // hook (PL5 does not produce or accept 'system' rows today).
 var allowedBackupKinds = map[string]struct{}{
-	"manual":   {},
+	"manual":    {},
 	"scheduled": {},
 }
 

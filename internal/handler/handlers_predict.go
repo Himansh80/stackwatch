@@ -177,13 +177,13 @@ func PredictAccuracy(pool *db.Pool) gin.HandlerFunc {
 			confidence = 1.0
 		}
 		resp := gin.H{
-			"metric_name":      metricName,
-			"mape":             avgMAPE,
-			"rmse":             avgRMSE,
-			"sample_count":     count,
-			"confidence":       confidence,
-			"last_evaluated":   lastEval,
-			"model_type":       modelType,
+			"metric_name":    metricName,
+			"mape":           avgMAPE,
+			"rmse":           avgRMSE,
+			"sample_count":   count,
+			"confidence":     confidence,
+			"last_evaluated": lastEval,
+			"model_type":     modelType,
 		}
 		c.JSON(200, resp)
 	}
@@ -232,12 +232,9 @@ func AckPredictiveAlert(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		kernel.RespondOK(c, gin.H{
-			"alert_id":     alertID.String(),
-			"status":       "acknowledged",
-			"ack_user_id":  claims.UserID.String(),
+			"alert_id":    alertID.String(),
+			"status":      "acknowledged",
+			"ack_user_id": claims.UserID.String(),
 		})
 	}
 }
-
-
-

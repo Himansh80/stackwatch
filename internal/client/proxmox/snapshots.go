@@ -11,12 +11,12 @@ import (
 
 // VMSnapshot represents a single VM snapshot returned by Proxmox.
 type VMSnapshot struct {
-	Name        string `json:"name"`               // snapshot name
-	Date        string `json:"date,omitempty"`     // ISO-ish date from Proxmox
-	VMState     bool   `json:"vmstate,omitempty"`  // whether RAM state was captured
+	Name        string `json:"name"`              // snapshot name
+	Date        string `json:"date,omitempty"`    // ISO-ish date from Proxmox
+	VMState     bool   `json:"vmstate,omitempty"` // whether RAM state was captured
 	Description string `json:"description,omitempty"`
 	Parent      string `json:"parent,omitempty"`
-	Size        int64  `json:"size,omitempty"`     // approximate on-disk size in bytes
+	Size        int64  `json:"size,omitempty"` // approximate on-disk size in bytes
 }
 
 // VMSnapshotCreateSpec is the body for POST .../snapshot.

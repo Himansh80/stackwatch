@@ -10,7 +10,7 @@ import (
 // SdnZone is one SDN zone.
 type SdnZone struct {
 	Zone   string `json:"zone"`
-	Type   string `json:"type,omitempty"`   // simple, vlan, vxlan, qinq, evpn
+	Type   string `json:"type,omitempty"` // simple, vlan, vxlan, qinq, evpn
 	Bridge string `json:"bridge,omitempty"`
 	IPAM   string `json:"ipam,omitempty"`
 	DHCP   string `json:"dhcp,omitempty"`

@@ -62,8 +62,10 @@ const rateLimitMaxBodyKeys = 16
 // the middleware is enforcing.
 //
 // 200 → ratelimitMeResp{tenant_id, plan, limit_per_minute,
-//                       current_window_count, remaining,
-//                       reset_at_seconds, blocked_until_seconds}.
+//
+//	current_window_count, remaining,
+//	reset_at_seconds, blocked_until_seconds}.
+//
 // 401 → no JWT.
 func GetMyRateLimit(limiter *platform.Limiter, plans platform.PlanResolver) gin.HandlerFunc {
 	return func(c *gin.Context) {

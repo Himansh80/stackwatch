@@ -183,9 +183,9 @@ func ListHomelabRssFeeds(pool *db.Pool) gin.HandlerFunc {
 		for rows.Next() {
 			var (
 				id, tID, uID, name, feedURL, category, createdAt, updatedAt string
-				enabled                                                   bool
-				lastPolled, lastStatus, lastError                          *string
-				unread                                                    int
+				enabled                                                     bool
+				lastPolled, lastStatus, lastError                           *string
+				unread                                                      int
 			)
 			if serr := rows.Scan(&id, &tID, &uID, &name, &feedURL, &category,
 				&enabled, &lastPolled, &lastStatus, &lastError,

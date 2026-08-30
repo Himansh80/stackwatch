@@ -23,19 +23,19 @@ type pushDeviceRow struct {
 
 // pushLogRow mirrors the push_log table.
 type pushLogRow struct {
-	ID            string
-	TenantID      string
-	DeviceID      string
-	AlertID       string
-	Title         string
-	Body          string
-	Data          map[string]any
-	Status        string // 'queued'|'sent'|'failed'|'skipped'
-	FCMMessageID  string
-	APNsID        string
-	SentAt        *time.Time
-	ErrorMessage  string
-	CreatedAt     time.Time
+	ID           string
+	TenantID     string
+	DeviceID     string
+	AlertID      string
+	Title        string
+	Body         string
+	Data         map[string]any
+	Status       string // 'queued'|'sent'|'failed'|'skipped'
+	FCMMessageID string
+	APNsID       string
+	SentAt       *time.Time
+	ErrorMessage string
+	CreatedAt    time.Time
 }
 
 // fcmMessage is the FCM legacy HTTP payload (we use legacy for simplicity

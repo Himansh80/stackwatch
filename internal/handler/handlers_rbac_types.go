@@ -20,17 +20,19 @@
 // up-front seed when there are many tenants.
 //
 // Permission allowlist (`builtinPermissions`):
-//   Every role's `permissions` array is a slice of strings in the
-//   format "<resource>:<verb>" (e.g. "servers:read", "alerts:write").
-//   Handlers refuse any string not on this allowlist so a hand-crafted
-//   payload can't smuggle in junk like "admin:*" or "system:root".
+//
+//	Every role's `permissions` array is a slice of strings in the
+//	format "<resource>:<verb>" (e.g. "servers:read", "alerts:write").
+//	Handlers refuse any string not on this allowlist so a hand-crafted
+//	payload can't smuggle in junk like "admin:*" or "system:root".
 //
 // Effective-permissions cache (`effectivePermCache`):
-//   The check endpoint is on the hot path (every page load, every
-//   gated API call). To avoid hammering the DB, we cache the union
-//   of permissions per (tenant_id, user_id) for 60 seconds. The cache
-//   is invalidated when any role definition changes (PATCH role) or
-//   when an assignment is added/removed for the affected user.
+//
+//	The check endpoint is on the hot path (every page load, every
+//	gated API call). To avoid hammering the DB, we cache the union
+//	of permissions per (tenant_id, user_id) for 60 seconds. The cache
+//	is invalidated when any role definition changes (PATCH role) or
+//	when an assignment is added/removed for the affected user.
 package handler
 
 import (

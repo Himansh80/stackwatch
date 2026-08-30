@@ -8,22 +8,24 @@
 // tenant-creation choreography.
 //
 // Why a transaction:
-//   A crash between the tenant INSERT and the user INSERT would
-//   leave a tenant with no admin user — a half-created account
-//   that no one can sign into. Wrapping the three statements in
-//   a tx guarantees either all three succeed or none of them
-//   do. The tx.Rollback on early-return is a defensive belt-
-//   and-braces against an err path that doesn't commit —
-//   pgx auto-rolls-back on tx.Close so it's redundant but
-//   harmless.
+//
+//	A crash between the tenant INSERT and the user INSERT would
+//	leave a tenant with no admin user — a half-created account
+//	that no one can sign into. Wrapping the three statements in
+//	a tx guarantees either all three succeed or none of them
+//	do. The tx.Rollback on early-return is a defensive belt-
+//	and-braces against an err path that doesn't commit —
+//	pgx auto-rolls-back on tx.Close so it's redundant but
+//	harmless.
 //
 // Why clear the verification_token on UPDATE:
-//   Once consumed, the token should be unguessable / unplayable.
-//   Setting it to NULL shrinks the partial index (so a replay
-//   returns 404 instead of 409) AND removes the only thing that
-//   could re-activate the row. Status='verified' is a separate
-//   signal, but the token itself being NULL is what makes the
-//   row truly single-use.
+//
+//	Once consumed, the token should be unguessable / unplayable.
+//	Setting it to NULL shrinks the partial index (so a replay
+//	returns 404 instead of 409) AND removes the only thing that
+//	could re-activate the row. Status='verified' is a separate
+//	signal, but the token itself being NULL is what makes the
+//	row truly single-use.
 package handler
 
 import (
@@ -46,10 +48,11 @@ import (
 // frontend can drop the user straight into the dashboard.
 //
 // On failure:
-//   400 — missing/short token
-//   404 — token does not exist (or already used)
-//   409 — signup exists but is already verified (token was
-//         already consumed — the user can simply log in)
+//
+//	400 — missing/short token
+//	404 — token does not exist (or already used)
+//	409 — signup exists but is already verified (token was
+//	      already consumed — the user can simply log in)
 //
 // On success: 201 + verifyResp{token (JWT), tenant_id, user_id, email, role}.
 func VerifySignup(pool *db.Pool, issuer *auth.Issuer) gin.HandlerFunc {

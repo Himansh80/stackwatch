@@ -11,28 +11,29 @@
 // internal/platform/deploy.go.
 //
 // Why two of three are protected and one is public:
-//   The create-token + stats endpoints are tenant-scoped — only
-//   the tenant's admins can mint new tokens or see install
-//   activity. The install-script endpoint MUST be public because
-//   a freshly-installed Linux box has no JWT yet; the token
-//   itself IS the credential. Same pattern Tier 9 uses for SCIM
-//   2.0 (handlers_scim_public.go registered separately via
-//   mountEnterprisePublicRoutes).
+//
+//	The create-token + stats endpoints are tenant-scoped — only
+//	the tenant's admins can mint new tokens or see install
+//	activity. The install-script endpoint MUST be public because
+//	a freshly-installed Linux box has no JWT yet; the token
+//	itself IS the credential. Same pattern Tier 9 uses for SCIM
+//	2.0 (handlers_scim_public.go registered separately via
+//	mountEnterprisePublicRoutes).
 //
 // Token lifecycle (mirrors the spec PL1 + §"Migration 042: PL1
 // tables"):
-//   1. Admin calls POST /install-token with optional label.
-//   2. Handler returns 201 + {token, expires_at, id} where
-//      `token` is the plaintext shown ONCE.
-//   3. Admin pastes the rendered curl one-liner into a fresh
-//      Linux box, which calls GET /install-script with the
-//      token in the query string.
-//   4. PUBLIC endpoint bcrypt-validates the token, marks
-//      used_at = now() + used_by_ip = caller, and returns the
-//      bash script with the token + backend baked in.
-//   5. Replays of step 4 get 410 Gone — the token is one-time use.
-//   6. After 1h un-used tokens are rejected by LookupInstallToken's
-//      "expires_at > now()" filter.
+//  1. Admin calls POST /install-token with optional label.
+//  2. Handler returns 201 + {token, expires_at, id} where
+//     `token` is the plaintext shown ONCE.
+//  3. Admin pastes the rendered curl one-liner into a fresh
+//     Linux box, which calls GET /install-script with the
+//     token in the query string.
+//  4. PUBLIC endpoint bcrypt-validates the token, marks
+//     used_at = now() + used_by_ip = caller, and returns the
+//     bash script with the token + backend baked in.
+//  5. Replays of step 4 get 410 Gone — the token is one-time use.
+//  6. After 1h un-used tokens are rejected by LookupInstallToken's
+//     "expires_at > now()" filter.
 package handler
 
 import (
@@ -143,18 +144,21 @@ func labelOrNil(s string) *string {
 // snippet the admin generated).
 //
 // Query params:
-//   token   — required, the plaintext returned by POST /install-token
-//   backend — required, the URL the installer will POST heartbeats to
-//             (e.g. https://smarthomelab.fun or http://192.168.0.115:8080)
+//
+//	token   — required, the plaintext returned by POST /install-token
+//	backend — required, the URL the installer will POST heartbeats to
+//	          (e.g. https://smarthomelab.fun or http://192.168.0.115:8080)
 //
 // On success:
-//   200 with a Content-Type: text/x-shellscript body containing
-//   the bash script, then the row is marked used_at = now() +
-//   used_by_ip = c.ClientIP().
+//
+//	200 with a Content-Type: text/x-shellscript body containing
+//	the bash script, then the row is marked used_at = now() +
+//	used_by_ip = c.ClientIP().
 //
 // On failure:
-//   400 — missing token / backend
-//   410 — token not found (already used, expired, or never existed)
+//
+//	400 — missing token / backend
+//	410 — token not found (already used, expired, or never existed)
 func GetInstallScript(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := strings.TrimSpace(c.Query("token"))
@@ -224,11 +228,12 @@ sudo /tmp/stackwatch-installer install --backend '%s' --token '%s'
 // render the four numbers in one round-trip.
 //
 // Counts:
-//   installs_24h  — used_at >= now() - 24h
-//   installs_7d   — used_at >= now() -  7d
-//   installs_30d  — used_at >= now() - 30d
-//   tokens_active — used_at IS NULL AND expires_at > now()
-//   tokens_total  — all rows for the tenant (cumulative)
+//
+//	installs_24h  — used_at >= now() - 24h
+//	installs_7d   — used_at >= now() -  7d
+//	installs_30d  — used_at >= now() - 30d
+//	tokens_active — used_at IS NULL AND expires_at > now()
+//	tokens_total  — all rows for the tenant (cumulative)
 func GetInstallStats(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)

@@ -323,14 +323,14 @@ func (c *Client) UpdateVMConfig(ctx context.Context, node string, vmid int, spec
 
 // VMNetworkInterface describes one interface inside a VM (from QEMU guest agent).
 type VMNetworkInterface struct {
-	Name          string   `json:"name"`
-	HardwareAddr  string   `json:"hardware-address,omitempty"`
-	IPAddresses   []struct {
-		IPAddress    string `json:"ip-address"`
+	Name         string `json:"name"`
+	HardwareAddr string `json:"hardware-address,omitempty"`
+	IPAddresses  []struct {
+		IPAddress     string `json:"ip-address"`
 		IPAddressType string `json:"ip-address-type"`
-		Prefix       int    `json:"prefix"`
+		Prefix        int    `json:"prefix"`
 	} `json:"ip-addresses"`
-	MTU   int    `json:"mtu,omitempty"`
+	MTU   int `json:"mtu,omitempty"`
 	Stats struct {
 		RXBytes int64 `json:"rx-bytes"`
 		TXBytes int64 `json:"tx-bytes"`

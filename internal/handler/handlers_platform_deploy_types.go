@@ -30,7 +30,7 @@ const installTokenLifetime = 1 * time.Hour
 // admin dashboard render. The regex keeps it boring: letters,
 // digits, space, dash, underscore.
 //
-//   ^[A-Za-z0-9 _-]{0,64}$
+//	^[A-Za-z0-9 _-]{0,64}$
 const allowedLabelChars = `^[A-Za-z0-9 _-]{0,64}$`
 
 // installTokenRow is the JSON shape returned by:
@@ -39,17 +39,18 @@ const allowedLabelChars = `^[A-Za-z0-9 _-]{0,64}$`
 //     exactly once)
 //   - GET /api/v1/platform/deploy/stats (one row per active
 //     token when joined with stats later)
+//
 // and the row shape stored in deploy_install_tokens (the SQL
 // SELECT in installTokenLookup mirrors these field names — the
 // `label` column is nullable so it's a pointer).
 type installTokenRow struct {
-	ID         string     `json:"id"`
-	TenantID   string     `json:"tenant_id"`
-	CreatedAt  time.Time  `json:"created_at"`
-	ExpiresAt  time.Time  `json:"expires_at"`
-	UsedAt     *time.Time `json:"used_at,omitempty"`
-	UsedByIP   *string    `json:"used_by_ip,omitempty"`
-	Label      *string    `json:"label,omitempty"`
+	ID        string     `json:"id"`
+	TenantID  string     `json:"tenant_id"`
+	CreatedAt time.Time  `json:"created_at"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	UsedAt    *time.Time `json:"used_at,omitempty"`
+	UsedByIP  *string    `json:"used_by_ip,omitempty"`
+	Label     *string    `json:"label,omitempty"`
 	// Token is ONLY populated on the create response. Never on
 	// list / lookup — it's the one-time plaintext.
 	Token string `json:"token,omitempty"`

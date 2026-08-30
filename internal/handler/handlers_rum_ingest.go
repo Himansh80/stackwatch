@@ -258,7 +258,7 @@ func IngestRUMLongTask(pool *db.Pool) gin.HandlerFunc {
 // rumErrorReq is the body shape for POST /rum/errors. fingerprint is
 // mandatory — the SDK computes it from the stack trace.
 type rumErrorReq struct {
-	SessionID  string `json:"session_id" binding:"required,min=1,max=128"`
+	SessionID   string `json:"session_id" binding:"required,min=1,max=128"`
 	Fingerprint string `json:"fingerprint" binding:"required,min=1,max=128"`
 	Message     string `json:"message" binding:"required,min=1,max=2048"`
 	StackTrace  string `json:"stack_trace" binding:"max=32768"`

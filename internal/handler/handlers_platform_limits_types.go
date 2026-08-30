@@ -16,9 +16,11 @@
 // catalog without depending on the handler package.
 //
 // Why these shapes:
+//
 //   - planDefinitionResp mirrors a catalog row directly. The
 //     pricing page needs display_name + monthly_price_cents
-//     + every cap; the row IS the API.
+//
+//   - every cap; the row IS the API.
 //
 //   - tenantLimitsReq is the PATCH body — plan_name +
 //     optional overrides. The handler validates plan_name is
@@ -45,19 +47,19 @@ package handler
 // fields the pricing page does not need (id, is_builtin,
 // sort_order). Kept narrow so the pricing API stays stable.
 type planDefinitionResp struct {
-	Name                string   `json:"name"`
-	DisplayName         string   `json:"display_name"`
-	MonthlyPriceCents   int      `json:"monthly_price_cents"`
-	Currency            string   `json:"currency"`
-	MaxServers          int      `json:"max_servers"`
-	MaxAlerts           int      `json:"max_alerts"`
-	MaxDashboards       int      `json:"max_dashboards"`
-	MaxTeamMembers      int      `json:"max_team_members"`
-	DataRetentionDays   int      `json:"data_retention_days"`
-	MetricsRetentionDays int     `json:"metrics_retention_days"`
-	StorageGBLimit      int64    `json:"storage_gb_limit"`
-	APICallsPerMinute   int      `json:"api_calls_per_minute"`
-	Features            []string `json:"features"`
+	Name                 string   `json:"name"`
+	DisplayName          string   `json:"display_name"`
+	MonthlyPriceCents    int      `json:"monthly_price_cents"`
+	Currency             string   `json:"currency"`
+	MaxServers           int      `json:"max_servers"`
+	MaxAlerts            int      `json:"max_alerts"`
+	MaxDashboards        int      `json:"max_dashboards"`
+	MaxTeamMembers       int      `json:"max_team_members"`
+	DataRetentionDays    int      `json:"data_retention_days"`
+	MetricsRetentionDays int      `json:"metrics_retention_days"`
+	StorageGBLimit       int64    `json:"storage_gb_limit"`
+	APICallsPerMinute    int      `json:"api_calls_per_minute"`
+	Features             []string `json:"features"`
 }
 
 // planDefinitionListResp is the JSON shape for
@@ -83,24 +85,24 @@ type tenantLimitsReq struct {
 //   - KPI strip (every cap from the row)
 //   - Override chips (each entry in CustomOverrides)
 type tenantLimitsResp struct {
-	TenantID           string            `json:"tenant_id"`
-	PlanName           string            `json:"plan_name"`
-	PlanDisplayName    string            `json:"plan_display_name"`
-	MonthlyPriceCents  int               `json:"monthly_price_cents"`
-	Currency           string            `json:"currency"`
-	MaxServers         int               `json:"max_servers"`
-	MaxAlerts          int               `json:"max_alerts"`
-	MaxDashboards      int               `json:"max_dashboards"`
-	MaxTeamMembers     int               `json:"max_team_members"`
-	DataRetentionDays  int               `json:"data_retention_days"`
-	MetricsRetentionDays int             `json:"metrics_retention_days"`
-	StorageGBLimit     int64             `json:"storage_gb_limit"`
-	APICallsPerMinute  int               `json:"api_calls_per_minute"`
-	Features           []string          `json:"features"`
-	Suspended          bool              `json:"suspended"`
-	SuspendReason      string            `json:"suspend_reason,omitempty"`
-	TrialEndsAt        *string           `json:"trial_ends_at,omitempty"`
-	CustomOverrides    map[string]int64  `json:"custom_overrides"`
+	TenantID             string           `json:"tenant_id"`
+	PlanName             string           `json:"plan_name"`
+	PlanDisplayName      string           `json:"plan_display_name"`
+	MonthlyPriceCents    int              `json:"monthly_price_cents"`
+	Currency             string           `json:"currency"`
+	MaxServers           int              `json:"max_servers"`
+	MaxAlerts            int              `json:"max_alerts"`
+	MaxDashboards        int              `json:"max_dashboards"`
+	MaxTeamMembers       int              `json:"max_team_members"`
+	DataRetentionDays    int              `json:"data_retention_days"`
+	MetricsRetentionDays int              `json:"metrics_retention_days"`
+	StorageGBLimit       int64            `json:"storage_gb_limit"`
+	APICallsPerMinute    int              `json:"api_calls_per_minute"`
+	Features             []string         `json:"features"`
+	Suspended            bool             `json:"suspended"`
+	SuspendReason        string           `json:"suspend_reason,omitempty"`
+	TrialEndsAt          *string          `json:"trial_ends_at,omitempty"`
+	CustomOverrides      map[string]int64 `json:"custom_overrides"`
 }
 
 // limitsCheckReq is the body for POST /limits/check. `action`
@@ -129,15 +131,15 @@ type limitsCheckResp struct {
 // sub-object per resource family so the dashboard renders a
 // 5-tile strip in a single .map() over the keys.
 type limitsUsageResp struct {
-	PlanName        string                `json:"plan_name"`
-	PlanDisplayName string                `json:"plan_display_name"`
-	Servers         limitsUsageMetric     `json:"servers"`
-	Alerts          limitsUsageMetric     `json:"alerts"`
-	Dashboards      limitsUsageMetric     `json:"dashboards"`
-	TeamMembers     limitsUsageMetric     `json:"team_members"`
-	StorageGB       limitsUsageMetric     `json:"storage_gb"`
-	APICallsPerMin  limitsUsageMetric     `json:"api_calls_per_min"`
-	Warnings        []string              `json:"warnings"`
+	PlanName        string            `json:"plan_name"`
+	PlanDisplayName string            `json:"plan_display_name"`
+	Servers         limitsUsageMetric `json:"servers"`
+	Alerts          limitsUsageMetric `json:"alerts"`
+	Dashboards      limitsUsageMetric `json:"dashboards"`
+	TeamMembers     limitsUsageMetric `json:"team_members"`
+	StorageGB       limitsUsageMetric `json:"storage_gb"`
+	APICallsPerMin  limitsUsageMetric `json:"api_calls_per_min"`
+	Warnings        []string          `json:"warnings"`
 }
 
 // limitsUsageMetric is one KPI cell. Percent is rounded to 0-100
@@ -157,10 +159,10 @@ type limitsUsageMetric struct {
 // POST /limits/check. Adding an action means adding it here
 // + in the handler's switch + in limitsUsageMetric projection.
 var allowedLimitActions = map[string]struct{}{
-	"create_server":   {},
-	"create_alert":    {},
+	"create_server":    {},
+	"create_alert":     {},
 	"create_dashboard": {},
-	"invite_member":   {},
+	"invite_member":    {},
 }
 
 // allowedOverrideKeys restricts custom_overrides keys on PATCH

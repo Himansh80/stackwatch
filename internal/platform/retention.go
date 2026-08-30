@@ -185,17 +185,17 @@ func (w *RetentionWorker) tick(parentCtx context.Context) {
 	defer rows.Close()
 
 	type tenantJob struct {
-		id          uuid.UUID
-		planName    string
-		overrides   []byte
+		id        uuid.UUID
+		planName  string
+		overrides []byte
 	}
 	var jobs []tenantJob
 	for rows.Next() {
 		var (
-			tid        uuid.UUID
-			plan       string
-			overrides  []byte
-			suspended  *time.Time
+			tid       uuid.UUID
+			plan      string
+			overrides []byte
+			suspended *time.Time
 		)
 		if err := rows.Scan(&tid, &plan, &overrides, &suspended); err != nil {
 			continue
@@ -247,23 +247,26 @@ func (w *RetentionWorker) tick(parentCtx context.Context) {
 // table must not block the rest.
 //
 // Why each table is its own DELETE (not a UNION):
-//   The data tables live in different schemas / namespaces
-//   (some Tier 0, some Tier 7). UNION would force a shared
-//   schema introspection query that's brittle to migrate.
-//   Independent DELETEs are explicit + easy to read.
+//
+//	The data tables live in different schemas / namespaces
+//	(some Tier 0, some Tier 7). UNION would force a shared
+//	schema introspection query that's brittle to migrate.
+//	Independent DELETEs are explicit + easy to read.
 //
 // Why IF EXISTS on each table name:
-//   Not every installation has every table — a freshly-cut
-//   dev DB might not yet have alert_history. The worker must
-//   not 500 on the first run after migration 040. IF EXISTS
-//   means the DELETE no-ops with a 0-row count, which we
-//   already log as "no rows deleted".
+//
+//	Not every installation has every table — a freshly-cut
+//	dev DB might not yet have alert_history. The worker must
+//	not 500 on the first run after migration 040. IF EXISTS
+//	means the DELETE no-ops with a 0-row count, which we
+//	already log as "no rows deleted".
 //
 // Why DO block-level transaction (not one big TX):
-//   A single TX holding a write lock across all DELETEs would
-//   pin hot tables for minutes. Independent statements let
-//   other writers (alert.fired handlers, etc.) interleave
-//   between our DELETEs.
+//
+//	A single TX holding a write lock across all DELETEs would
+//	pin hot tables for minutes. Independent statements let
+//	other writers (alert.fired handlers, etc.) interleave
+//	between our DELETEs.
 func (w *RetentionWorker) purgeTenant(ctx context.Context, tenantID uuid.UUID, cutoff time.Time) int64 {
 	// Each entry: (table, time column). Match the documented
 	// schema — if a future table needs retention, add it here.

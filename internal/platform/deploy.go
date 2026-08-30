@@ -2,16 +2,17 @@
 // (speckit change 009-tier11-platform-commerce) domain logic.
 //
 // Why a new package (not internal/homelab/):
-//   internal/homelab/ owns Tier 10 — Homelab Dashboard endpoints.
-//   Tier 11 is a separate, larger tier (8 sub-features PL1-PL8,
-//   8 DB tables, ~30 routes, 6 background workers). Splitting
-//   it into its own package boundary:
-//     - keeps homelab's per-user scope intact (no leak of tenant-
-//       wide admin code into the homelab surface)
-//     - lets Tier 11 grow without crowding the homelab tree
-//     - matches the Tier 9 pattern (internal/handler/handlers_*_*.go
-//       + internal/auth + internal/db) — domain packages hold
-//       logic, handler packages hold HTTP wiring
+//
+//	internal/homelab/ owns Tier 10 — Homelab Dashboard endpoints.
+//	Tier 11 is a separate, larger tier (8 sub-features PL1-PL8,
+//	8 DB tables, ~30 routes, 6 background workers). Splitting
+//	it into its own package boundary:
+//	  - keeps homelab's per-user scope intact (no leak of tenant-
+//	    wide admin code into the homelab surface)
+//	  - lets Tier 11 grow without crowding the homelab tree
+//	  - matches the Tier 9 pattern (internal/handler/handlers_*_*.go
+//	    + internal/auth + internal/db) — domain packages hold
+//	    logic, handler packages hold HTTP wiring
 //
 // Phase 1 ships the deploy helper (this file). Future phases add:
 //
@@ -42,6 +43,7 @@ import (
 // /storage split means:
 //   - bcrypt-hash at rest (cost 10, same as api_keys + scim_tokens)
 //   - "swi_<43 base64url chars>" in the bash one-liner
+//
 // The prefix is grep-able in audit logs and makes accidental
 // copy-paste into the wrong field (e.g. a SCIM token box) easy
 // to catch.
@@ -60,13 +62,13 @@ const InstallTokenPlaintextLength = 32
 // shape in handlers_platform_deploy_types.go (which has a
 // `Token string` field for the one-time create response).
 type installTokenRow struct {
-	ID         uuid.UUID
-	TenantID   uuid.UUID
-	CreatedAt  time.Time
-	ExpiresAt  time.Time
-	UsedAt     *time.Time
-	UsedByIP   *string
-	Label      *string
+	ID        uuid.UUID
+	TenantID  uuid.UUID
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	UsedByIP  *string
+	Label     *string
 }
 
 // GenerateInstallToken mints a fresh install token for the given
@@ -143,13 +145,13 @@ func LookupInstallToken(ctx context.Context, plaintext string, pool *db.Pool) (*
 	var matched *installTokenRow
 	for rows.Next() {
 		var (
-			id       uuid.UUID
-			tid      uuid.UUID
-			created  time.Time
-			expires  time.Time
-			usedAt   *time.Time
-			usedIP   *string
-			label    *string
+			id      uuid.UUID
+			tid     uuid.UUID
+			created time.Time
+			expires time.Time
+			usedAt  *time.Time
+			usedIP  *string
+			label   *string
 		)
 		if err := rows.Scan(&id, &tid, &created, &expires, &usedAt, &usedIP, &label); err != nil {
 			continue

@@ -261,7 +261,7 @@ func CreateEnterpriseOrg(pool *db.Pool) gin.HandlerFunc {
 				return
 			}
 			parentUUID = &parsed
-			}
+		}
 
 		normalizedSettings, err := normalizeOrgSettings(req.Settings)
 		if err != nil {
@@ -364,8 +364,8 @@ func UpdateEnterpriseOrgSettings(pool *db.Pool) gin.HandlerFunc {
 		}
 
 		kernel.RespondOK(c, gin.H{
-			"id":       orgID.String(),
-			"settings": json.RawMessage(normalized),
+			"id":         orgID.String(),
+			"settings":   json.RawMessage(normalized),
 			"updated_at": time.Now().UTC().Format(time.RFC3339),
 		})
 	}

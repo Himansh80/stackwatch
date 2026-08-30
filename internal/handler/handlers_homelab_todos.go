@@ -105,9 +105,9 @@ func validateTodoDueDate(raw string) error {
 // strings.
 func scanTodoRow(scan func(...any) error) (todoRow, error) {
 	var (
-		row                       todoRow
-		desc, due, completed      *string
-		createdAt, updatedAt      string
+		row                  todoRow
+		desc, due, completed *string
+		createdAt, updatedAt string
 	)
 	if err := scan(&row.ID, &row.TenantID, &row.UserID, &row.Title,
 		&desc, &row.Priority, &due, &completed, &row.Tags,

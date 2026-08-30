@@ -51,6 +51,23 @@ func mountProtectedRoutes(protected *gin.RouterGroup, pool *db.Pool, webTerminal
 	protected.POST("/api-keys/:id/revoke", handler.RevokeAPIKey(pool))
 	protected.DELETE("/api-keys/:id", handler.DeleteAPIKey(pool))
 
+	// ---- Tier 0.5: Core Monitoring (Servers, Agents, Metrics, Logs) ----
+	monRepo := handler.NewMonitoringRepository(pool)
+	protected.GET("/servers", handler.ListServersRepo(monRepo))
+	protected.POST("/servers", handler.CreateServerRepo(monRepo))
+	protected.GET("/servers/:id", handler.GetServerRepo(monRepo))
+	protected.PATCH("/servers/:id", handler.UpdateServerRepo(monRepo))
+	protected.DELETE("/servers/:id", handler.DeleteServerRepo(monRepo))
+	protected.GET("/fleet/summary", handler.FleetSummary(pool))
+	protected.GET("/agents", handler.ListAgentsRepo(monRepo))
+	protected.POST("/agents/enroll", handler.EnrollAgentRepo(monRepo))
+	protected.POST("/metrics/query", handler.QueryMetrics(pool))
+	protected.POST("/logs/query", handler.QueryLogs(pool))
+
+	// Public ingest endpoint (no JWT, uses API key or ingest key)
+	// Note: This needs to be on the public router in routes.go, not protected
+	// We'll add it there instead
+
 	// ---- Tier 1: Proxmox VE lifecycle + config + cluster ----
 	proxmoxH := handler.NewProxmoxHandler(pool)
 	protected.POST("/proxmox/hosts", proxmoxH.CreateHost)

@@ -2,15 +2,16 @@
 // handler.PollMediaServerAndInsertState wrapper.
 //
 // Endpoints polled:
-//   GET /library/recentlyAdded?X-Plex-Container-Size=10
-//     → recent additions (Plex returns ~10 items by default;
-//       X-Plex-Container-Size caps the result set per the
-//       documented Plex API)
-//   GET /status/sessions
-//     → active playback sessions (Plex uses the same MediaContainer
-//       shape as /library/recentlyAdded; we re-decode each
-//       Metadata element into plexSession to pull the per-session
-//       fields like TranscodeSession)
+//
+//	GET /library/recentlyAdded?X-Plex-Container-Size=10
+//	  → recent additions (Plex returns ~10 items by default;
+//	    X-Plex-Container-Size caps the result set per the
+//	    documented Plex API)
+//	GET /status/sessions
+//	  → active playback sessions (Plex uses the same MediaContainer
+//	    shape as /library/recentlyAdded; we re-decode each
+//	    Metadata element into plexSession to pull the per-session
+//	    fields like TranscodeSession)
 //
 // Auth: Plex uses the X-Plex-Token request header — set on
 // every request below. Token-as-query-param (?X-Plex-Token=) is

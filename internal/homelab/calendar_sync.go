@@ -35,12 +35,13 @@ const defaultCalendarSyncTimeout = 60 * time.Second
 // one slow iCal fetch + the bookkeeping UPDATE.
 //
 // Returns:
-//   syncedAt  — last_synced_at after the sync (zero if no row)
-//   status    — last_sync_status ('success' | 'error' | '')
-//   err       — non-nil when the sync itself failed (the caller
-//               can still read status to surface the error to the
-//               user; the row is already updated with the error
-//               message)
+//
+//	syncedAt  — last_synced_at after the sync (zero if no row)
+//	status    — last_sync_status ('success' | 'error' | '')
+//	err       — non-nil when the sync itself failed (the caller
+//	            can still read status to surface the error to the
+//	            user; the row is already updated with the error
+//	            message)
 func SyncCalendarByID(pool *db.Pool, calendarID uuid.UUID, logger *slog.Logger) (syncedAt time.Time, status string, err error) {
 	if logger == nil {
 		logger = slog.Default()

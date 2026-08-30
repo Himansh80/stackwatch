@@ -104,18 +104,18 @@ func mountIntelligenceRoutes(protected *gin.RouterGroup, pool *db.Pool) {
 	protected.GET("/noise/history", handler.ListSnoozeHistory(pool))
 
 	// ---- Tier 8.5: Intelligence Dashboard + Export (Phase 5) ----
-		// The export endpoint bundles the last `?days=N` of every
-		// Tier 8 surface (anomalies + predictions + correlations +
-		// noise rules + snooze log) into a single JSON document for
-		// offline analysis. It honors tenant_id from the JWT and sets
-		// Content-Disposition: attachment so the browser downloads the
-		// file as `intelligence-export-YYYY-MM-DD.json`.
-		//
-		// The other dashboard surfaces (KPI strip, RcaPanel, summary
-		// counts) are computed client-side from the existing Phase 1-4
-		// endpoints — no new routes needed beyond the export.
-		//
-		// Routes (1):
-		//   GET /api/v1/intelligence/export?days=N — unified JSON export
-		protected.GET("/intelligence/export", handler.ExportIntelligenceReport(pool))
-	}
+	// The export endpoint bundles the last `?days=N` of every
+	// Tier 8 surface (anomalies + predictions + correlations +
+	// noise rules + snooze log) into a single JSON document for
+	// offline analysis. It honors tenant_id from the JWT and sets
+	// Content-Disposition: attachment so the browser downloads the
+	// file as `intelligence-export-YYYY-MM-DD.json`.
+	//
+	// The other dashboard surfaces (KPI strip, RcaPanel, summary
+	// counts) are computed client-side from the existing Phase 1-4
+	// endpoints — no new routes needed beyond the export.
+	//
+	// Routes (1):
+	//   GET /api/v1/intelligence/export?days=N — unified JSON export
+	protected.GET("/intelligence/export", handler.ExportIntelligenceReport(pool))
+}

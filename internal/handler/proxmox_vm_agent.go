@@ -19,7 +19,7 @@ import (
 // tell the UI whether the agent is actually running inside the VM.
 type networkInterfacesResponse struct {
 	Interfaces   []proxmox.VMNetworkInterface `json:"interfaces"`
-	AgentRunning bool                        `json:"agent_running"`
+	AgentRunning bool                         `json:"agent_running"`
 }
 
 // GetVMNetworkInterfaces proxies GET /proxmox/hosts/:id/nodes/:node/qemu/:vmid/agent/network-get-interfaces

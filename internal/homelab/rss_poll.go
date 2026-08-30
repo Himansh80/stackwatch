@@ -56,12 +56,13 @@ type parsedRssItem struct {
 // one slow feed + the bookkeeping UPDATE.
 //
 // Returns:
-//   polledAt  — last_polled_at after the poll (zero if no row)
-//   status    — last_poll_status ('success' | 'error' | '')
-//   err       — non-nil when the poll itself failed (the caller
-//               can still read status to surface the error to the
-//               user; the row is already updated with the error
-//               message)
+//
+//	polledAt  — last_polled_at after the poll (zero if no row)
+//	status    — last_poll_status ('success' | 'error' | '')
+//	err       — non-nil when the poll itself failed (the caller
+//	            can still read status to surface the error to the
+//	            user; the row is already updated with the error
+//	            message)
 func PollFeedAndUpsertItems(parentCtx context.Context, pool *db.Pool, feedID uuid.UUID, logger *slog.Logger) (polledAt time.Time, status string, err error) {
 	if logger == nil {
 		logger = slog.Default()

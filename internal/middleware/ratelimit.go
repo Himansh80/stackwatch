@@ -67,13 +67,13 @@ type Limiter interface {
 const rateLimitCtxTimeout = 2 * time.Second
 
 // RateLimit returns a gin middleware that:
-//   1. Reads claims.TenantID (set by RequireAuth, must
-//      run BEFORE this middleware in the chain).
-//   2. Resolves the tenant's plan name via PlanResolver.
-//   3. Calls limiter.Take(tenantID, plan).
-//   4. If allowed → sets X-RateLimit-* headers, c.Next().
-//   5. If denied → sets X-RateLimit-* + Retry-After, writes
-//      429 JSON body, c.Abort() (no handler invocation).
+//  1. Reads claims.TenantID (set by RequireAuth, must
+//     run BEFORE this middleware in the chain).
+//  2. Resolves the tenant's plan name via PlanResolver.
+//  3. Calls limiter.Take(tenantID, plan).
+//  4. If allowed → sets X-RateLimit-* headers, c.Next().
+//  5. If denied → sets X-RateLimit-* + Retry-After, writes
+//     429 JSON body, c.Abort() (no handler invocation).
 //
 // The middleware is safe to wire into ANY protected
 // route — it never panics, never blocks longer than

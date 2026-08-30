@@ -75,8 +75,8 @@ func SetLogRetention(pool *db.Pool) gin.HandlerFunc {
 		// ON CONFLICT ... DO UPDATE returns the resulting row so we can
 		// echo it back without a second SELECT.
 		var (
-			id        string
-			createdAt string
+			id         string
+			createdAt  string
 			gotEnabled bool
 		)
 		err := pool.Pgx().QueryRow(c.Request.Context(),

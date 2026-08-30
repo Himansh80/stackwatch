@@ -90,7 +90,7 @@ type anomalyEventRow struct {
 // trainRequest is the JSON shape for POST /anomaly/train.
 type trainRequest struct {
 	MetricName string  `json:"metric_name" binding:"required,min=1,max=256"`
-	ServerID   *string `json:"server_id"`                 // optional → tenant-wide model
+	ServerID   *string `json:"server_id"` // optional → tenant-wide model
 	ModelType  string  `json:"model_type" binding:"omitempty,oneof=welford ewma"`
 }
 

@@ -122,9 +122,9 @@ func ListHomelabCalendarEvents(pool *db.Pool) gin.HandlerFunc {
 		out := []eventRow{}
 		for rows.Next() {
 			var (
-				row                          eventRow
+				row                           eventRow
 				endsAt, description, location *string
-				createdAt, updatedAt         string
+				createdAt, updatedAt          string
 			)
 			if err := rows.Scan(&row.ID, &row.TenantID, &row.UserID, &row.CalendarID,
 				&row.UID, &row.Summary, &description, &location,

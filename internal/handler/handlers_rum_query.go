@@ -381,4 +381,3 @@ func GetRUMSessionWaterfall(pool *db.Pool) gin.HandlerFunc {
 //
 // ListRUMErrorGroups + pgxRows live in handlers_rum_errors.go (split
 // to keep this file under the 400-LOC modularity cap).
-

@@ -46,20 +46,20 @@ type cspmResourceRow struct {
 	ResourceID    string `json:"resource_id"`
 	Name          string `json:"name"`
 	Region        string `json:"region,omitempty"`
-	Config        string `json:"config"`         // raw JSON string
+	Config        string `json:"config"` // raw JSON string
 	LastScannedAt string `json:"last_scanned_at"`
 }
 
 // cspmFindingRow is the JSON shape returned for a single finding.
 type cspmFindingRow struct {
-	ID           string  `json:"id"`
-	ResourceID   string  `json:"resource_id"`
-	Severity     string  `json:"severity"`
-	FindingType  string  `json:"finding_type"`
-	Description  string  `json:"description"`
-	Remediation  string  `json:"remediation,omitempty"`
-	DetectedAt   string  `json:"detected_at"`
-	ResolvedAt   *string `json:"resolved_at,omitempty"`
+	ID          string  `json:"id"`
+	ResourceID  string  `json:"resource_id"`
+	Severity    string  `json:"severity"`
+	FindingType string  `json:"finding_type"`
+	Description string  `json:"description"`
+	Remediation string  `json:"remediation,omitempty"`
+	DetectedAt  string  `json:"detected_at"`
+	ResolvedAt  *string `json:"resolved_at,omitempty"`
 }
 
 // ListCSPMResources returns cloud resources for the caller's tenant,

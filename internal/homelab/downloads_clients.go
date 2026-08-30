@@ -6,13 +6,13 @@
 // (allowedDownloadClientKinds) and the dispatcher in
 // internal/homelab/downloads.go (PollDownloadClient). Adding a
 // new kind requires:
-//   1. add the kind string to allowedDownloadClientKinds
-//   2. add a poll* function here (or in downloads_clients_arr.go
-//      / downloads_clients_qbittorrent.go /
-//      downloads_clients_sabnzbd.go if you split further)
-//   3. add a case to PollDownloadClient's switch
-//   4. add the kind to the frontend's <select> in
-//      DownloadStatsWidget.tsx
+//  1. add the kind string to allowedDownloadClientKinds
+//  2. add a poll* function here (or in downloads_clients_arr.go
+//     / downloads_clients_qbittorrent.go /
+//     downloads_clients_sabnzbd.go if you split further)
+//  3. add a case to PollDownloadClient's switch
+//  4. add the kind to the frontend's <select> in
+//     DownloadStatsWidget.tsx
 //
 // Each poll* function returns a uniform *DownloadState (or an
 // error). They are NOT required to fetch every possible field —

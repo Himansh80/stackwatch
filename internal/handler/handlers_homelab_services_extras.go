@@ -143,8 +143,8 @@ func PatchHomelabService(pool *db.Pool) gin.HandlerFunc {
 		// Return the refreshed row so the UI doesn't have to refetch.
 		var (
 			rowID, tid, uid, name, urlStr, kindStr, createdAt, updatedAt string
-			icon                                                        *string
-			enabled                                                     bool
+			icon                                                         *string
+			enabled                                                      bool
 		)
 		if err := pool.Pgx().QueryRow(c.Request.Context(),
 			`SELECT id::text, tenant_id::text, user_id::text, name, url, kind,

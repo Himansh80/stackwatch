@@ -4,10 +4,10 @@
 // qBittorrent is the most complex of the six clients — the Web
 // API requires a cookie-based login before any other call. Flow:
 //
-//	1. POST /api/v2/auth/login (form-encoded username=...&password=...)
-//	   → sets SID cookie
-//	2. GET /api/v2/transfer/info   → current speeds (up/down bytes/sec)
-//	3. GET /api/v2/torrents/info   → queue details
+//  1. POST /api/v2/auth/login (form-encoded username=...&password=...)
+//     → sets SID cookie
+//  2. GET /api/v2/transfer/info   → current speeds (up/down bytes/sec)
+//  3. GET /api/v2/torrents/info   → queue details
 //
 // The SID cookie is scoped to the single poll — no cross-poll
 // leakage.

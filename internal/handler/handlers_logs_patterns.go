@@ -28,10 +28,10 @@ import (
 
 // logPatternRow is the canonical pattern shape returned to clients.
 type logPatternRow struct {
-	Service      string `json:"service"`
-	Pattern      string `json:"pattern"`
-	SampleCount  int    `json:"sample_count"`
-	LastSeenAt   string `json:"last_seen_at"`
+	Service     string `json:"service"`
+	Pattern     string `json:"pattern"`
+	SampleCount int    `json:"sample_count"`
+	LastSeenAt  string `json:"last_seen_at"`
 }
 
 // ListLogPatterns returns detected log patterns for the tenant.

@@ -309,9 +309,9 @@ func CreateHomelabSchedulerJob(pool *db.Pool) gin.HandlerFunc {
 		}
 
 		var (
-			id         string
-			createdAt  string
-			updatedAt  string
+			id        string
+			createdAt string
+			updatedAt string
 		)
 		err := pool.Pgx().QueryRow(c.Request.Context(),
 			`INSERT INTO homelab_scheduler_jobs
@@ -328,22 +328,21 @@ func CreateHomelabSchedulerJob(pool *db.Pool) gin.HandlerFunc {
 		}
 
 		kernel.RespondCreated(c, gin.H{
-			"id":           id,
-			"tenant_id":    tenantID.String(),
-			"user_id":      userID.String(),
-			"name":         name,
-			"action_kind":  actionKind,
-			"url":          rawURL,
-			"method":       method,
-			"headers":      headersMap,
-			"body":         body,
-			"schedule":     schedule,
-			"enabled":      enabled,
-			"next_run_at":  fmt.Sprintf("%v", nextRun),
-			"created_at":   createdAt,
-			"updated_at":   updatedAt,
+			"id":            id,
+			"tenant_id":     tenantID.String(),
+			"user_id":       userID.String(),
+			"name":          name,
+			"action_kind":   actionKind,
+			"url":           rawURL,
+			"method":        method,
+			"headers":       headersMap,
+			"body":          body,
+			"schedule":      schedule,
+			"enabled":       enabled,
+			"next_run_at":   fmt.Sprintf("%v", nextRun),
+			"created_at":    createdAt,
+			"updated_at":    updatedAt,
 			"cap_remaining": schedulerJobCapPerUser - used - 1,
 		})
 	}
 }
-

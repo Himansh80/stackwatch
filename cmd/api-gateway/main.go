@@ -13,8 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/stackwatch/platform/internal/handler"
 	"github.com/stackwatch/platform/internal/auth"
+	"github.com/stackwatch/platform/internal/config"
+	"github.com/stackwatch/platform/internal/handler"
 	"github.com/stackwatch/platform/internal/homelab"
 	"github.com/stackwatch/platform/internal/mobile"
 	"github.com/stackwatch/platform/internal/platform"
@@ -25,12 +26,16 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	cfg := loadConfig()
+	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		logger.Error("invalid config", "err", err)
+		os.Exit(1)
+	}
 	logger.Info("starting api-gateway",
-		"http_addr", cfg.HTTPAddr,
+		"http_addr", cfg.APIAddr,
 		"db_url_set", cfg.DatabaseURL != "",
 		"jwt_secret_set", cfg.JWTSecret != "",
-		"install_mode", cfg.InstallMode,
+		"install_mode", string(cfg.InstallMode),
 	)
 
 	rootCtx, cancel := context.WithCancel(context.Background())
@@ -82,7 +87,7 @@ func main() {
 	synthRunner := handler.NewSyntheticsRunner(pool, logger)
 	go synthRunner.Run(rootCtx)
 
-	router := buildRouter(rootCtx, logger, pool, issuer, cfg.InstallMode, cfg.WebTerminalURL, synthRunner, rateLimiter, ratePlans)
+	router := buildRouter(rootCtx, logger, pool, issuer, string(cfg.InstallMode), cfg.WebTerminalURL, synthRunner, rateLimiter, ratePlans)
 
 	// Start the synthetics scheduler (M7 background runner).
 	sched := synthetics.NewScheduler(pool.Pgx(), 30*time.Second, logger)
@@ -198,29 +203,29 @@ func main() {
 	// are logged but never abort the batch. First tick fires
 	// immediately on Start().
 	backupSched := platform.NewBackupSchedulerWorker(pool, platform.WithBackupSchedulerLogger(logger))
-		backupSched.Start(rootCtx)
+	backupSched.Start(rootCtx)
 
-		// Tier 11 Phase 8 — Capacity Forecast background worker
-		// (PL8). Ticks every hour, walks every section (6
-		// component probes + tenants + servers + alerts + logins
-		// + db_connections + api calls + storage + backups),
-		// computes the overall_status (down/degraded/up),
-		// INSERTs a snapshot into platform_health_snapshots,
-		// and DELETEs rows older than 7 days so the table stays
-		// bounded at ~168 rows. Per-section errors are logged
-		// but never abort the batch — a missing table returns 0
-		// for that field and the snapshot still writes. First
-		// tick fires immediately on Start().
-		healthWorker := platform.NewCapacityForecastWorker(pool, platform.WithCapacityForecastLogger(logger))
-		healthWorker.Start(rootCtx)
+	// Tier 11 Phase 8 — Capacity Forecast background worker
+	// (PL8). Ticks every hour, walks every section (6
+	// component probes + tenants + servers + alerts + logins
+	// + db_connections + api calls + storage + backups),
+	// computes the overall_status (down/degraded/up),
+	// INSERTs a snapshot into platform_health_snapshots,
+	// and DELETEs rows older than 7 days so the table stays
+	// bounded at ~168 rows. Per-section errors are logged
+	// but never abort the batch — a missing table returns 0
+	// for that field and the snapshot still writes. First
+	// tick fires immediately on Start().
+	healthWorker := platform.NewCapacityForecastWorker(pool, platform.WithCapacityForecastLogger(logger))
+	healthWorker.Start(rootCtx)
 
-		// Tier 13 — Mobile push dispatch worker. Phase 1 stub: logs a tick
-		// every 30s. Phase 2 fills in the actual FCM/APNs dispatch.
-		mobileDispatcher := mobile.New(pool)
-		mobileDispatcher.Start(rootCtx)
+	// Tier 13 — Mobile push dispatch worker. Phase 1 stub: logs a tick
+	// every 30s. Phase 2 fills in the actual FCM/APNs dispatch.
+	mobileDispatcher := mobile.New(pool)
+	mobileDispatcher.Start(rootCtx)
 
-		server := &http.Server{
-		Addr:              cfg.HTTPAddr,
+	server := &http.Server{
+		Addr:              cfg.APIAddr,
 		Handler:           router,
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      60 * time.Second,
@@ -228,7 +233,7 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("http listening", "addr", cfg.HTTPAddr)
+		logger.Info("http listening", "addr", cfg.APIAddr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("server failed", "err", err)
 			cancel()

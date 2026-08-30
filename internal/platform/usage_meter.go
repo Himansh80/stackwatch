@@ -4,14 +4,14 @@
 //
 // Ticks every `tickInterval` (default 1h, first tick fires
 // immediately on Start). Each tick:
-//   1. Walks every (tenant_id, event_kind) seen in the LAST bucket
-//      window and UPSERTs an aggregate row keyed on
-//      (tenant_id, event_kind, bucket_ts). The UNIQUE constraint
-//      means a previously-completed bucket is idempotently
-//      up-to-date — replaying the same window is safe.
-//   2. Optionally prunes platform_usage_events rows older than
-//      `retention` (default 365 days) so the raw event log
-//      stays bounded.
+//  1. Walks every (tenant_id, event_kind) seen in the LAST bucket
+//     window and UPSERTs an aggregate row keyed on
+//     (tenant_id, event_kind, bucket_ts). The UNIQUE constraint
+//     means a previously-completed bucket is idempotently
+//     up-to-date — replaying the same window is safe.
+//  2. Optionally prunes platform_usage_events rows older than
+//     `retention` (default 365 days) so the raw event log
+//     stays bounded.
 //
 // Worker must not crash on bad input. Every tenant loop runs
 // inside a defer-recover so a single tenant's query error can

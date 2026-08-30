@@ -185,8 +185,8 @@ func probeICMP(ctx context.Context, addr string) serviceProbeResult {
 	msg := icmp.Message{
 		Type: ipv4ICMPTypeEcho, Code: 0,
 		Body: &icmp.Echo{
-			ID: 0x5357, // arbitrary, must fit in 16 bits
-			Seq: 1,
+			ID:   0x5357, // arbitrary, must fit in 16 bits
+			Seq:  1,
 			Data: []byte("stackwatch-homelab"),
 		},
 	}

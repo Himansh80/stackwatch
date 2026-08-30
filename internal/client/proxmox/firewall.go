@@ -186,7 +186,6 @@ func (c *Client) AddIPsetEntry(ctx context.Context, name, cidr, comment string, 
 	return "", nil
 }
 
-
 // VMSnapshot rule helpers are in snapshots.go (same Tier 14.3 phase).
 // Below: VM-level firewall CRUD (Proxmox path: /nodes/{node}/qemu/{vmid}/firewall/rules).
 

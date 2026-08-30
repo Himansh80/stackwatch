@@ -3,11 +3,12 @@
 // JSON row shapes + request bodies for the 5 metering endpoints.
 //
 // The handlers themselves live in handlers_platform_usage.go:
-//   RecordUsageEvent        — POST /platform/usage-events
-//   GetUsageCurrent         — GET  /platform/usage/current
-//   GetUsageHistory         — GET  /platform/usage/history
-//   GetUsageSummary         — GET  /platform/usage/summary (super_admin)
-//   GetUsageExport          — GET  /platform/usage/export
+//
+//	RecordUsageEvent        — POST /platform/usage-events
+//	GetUsageCurrent         — GET  /platform/usage/current
+//	GetUsageHistory         — GET  /platform/usage/history
+//	GetUsageSummary         — GET  /platform/usage/summary (super_admin)
+//	GetUsageExport          — GET  /platform/usage/export
 //
 // The hourly aggregation worker lives at
 // internal/platform/usage_meter.go; it reads from
@@ -41,19 +42,19 @@ import "time"
 
 var allowedEventKinds = map[string]struct{}{
 	// Homelab surfacing (Tier 10 already records these)
-	"server.created":              {},
-	"server.deleted":              {},
-	"alert.fired":                 {},
-	"alert.resolved":              {},
+	"server.created": {},
+	"server.deleted": {},
+	"alert.fired":    {},
+	"alert.resolved": {},
 	// API surface
-	"api.call":                    {},
+	"api.call": {},
 	// Storage
-	"storage.gb.hour":             {},
+	"storage.gb.hour": {},
 	// Dashboard / observability
-	"dashboard.panel.rendered":    {},
+	"dashboard.panel.rendered": {},
 	// Auth
-	"login.success":               {},
-	"login.failure":               {},
+	"login.success": {},
+	"login.failure": {},
 }
 
 // allowedPeriods restricts the `period` query param on
@@ -141,14 +142,14 @@ type usageAggregateRow struct {
 // pointer so the KPI strip can label the "Top event" badge
 // without re-querying.
 type usageCurrentResp struct {
-	Period         string             `json:"period"`
-	RangeStart     time.Time          `json:"range_start"`
-	RangeEnd       time.Time          `json:"range_end"`
-	TotalCount     int                `json:"total_count"`
-	TopEventKind   string             `json:"top_event_kind"`
-	TopEventCount  int                `json:"top_event_count"`
-	EstimatedCost  float64            `json:"estimated_cost"`
-	Kinds          []usageKindSummary `json:"kinds"`
+	Period        string             `json:"period"`
+	RangeStart    time.Time          `json:"range_start"`
+	RangeEnd      time.Time          `json:"range_end"`
+	TotalCount    int                `json:"total_count"`
+	TopEventKind  string             `json:"top_event_kind"`
+	TopEventCount int                `json:"top_event_count"`
+	EstimatedCost float64            `json:"estimated_cost"`
+	Kinds         []usageKindSummary `json:"kinds"`
 }
 
 type usageKindSummary struct {
@@ -163,9 +164,9 @@ type usageKindSummary struct {
 // chart on the frontend can render one line per kind without
 // re-grouping client-side.
 type usageHistoryResp struct {
-	Periods  int                         `json:"periods"`
-	Buckets  []time.Time                 `json:"buckets"`
-	Series   map[string][]usageBucketVal `json:"series"`
+	Periods int                         `json:"periods"`
+	Buckets []time.Time                 `json:"buckets"`
+	Series  map[string][]usageBucketVal `json:"series"`
 }
 
 type usageBucketVal struct {

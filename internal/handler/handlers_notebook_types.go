@@ -59,9 +59,9 @@ type notebookUpdateReq struct {
 
 // collaboratorRow is the JSON shape for a single collaborator entry.
 type collaboratorRow struct {
-	UserID    string `json:"user_id"`
-	Role      string `json:"role"`
-	AddedAt   string `json:"added_at"`
+	UserID     string `json:"user_id"`
+	Role       string `json:"role"`
+	AddedAt    string `json:"added_at"`
 	NotebookID string `json:"notebook_id"`
 }
 

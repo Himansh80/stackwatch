@@ -14,30 +14,30 @@
 // matches US-8 in the speckit proposal.
 //
 // SECURITY MODEL — every entry point enforces these guardrails:
-//   1. Action allowlist (allowedActionKinds): only http_get +
-//      http_post are valid. NO shell-out, NO exec.Command.
-//   2. URL allowlist (validateSchedulerURL): http/https ONLY;
-//      host must NOT resolve to a private/loopback/link-local
-//      CIDR (validateSchedulerHostNotPrivate) — defense against
-//      SSRF into the homelab. Re-checked at runtime because
-//      DNS could change between POST and the worker tick.
-//   3. Header allowlist (allowedSchedulerHeaderMax,
-//      headerNameRe, validateSchedulerHeaderName +
-//      blockedHeaderNames): name regex, max 10, no Host/Cookie/
-//      Authorization/Set-Cookie/etc. The user must NOT be able
-//      to forge credentials they don't already have.
-//   4. Body limit (schedulerBodyMaxBytes = 4KB) — caps memory
-//      per probe, and content-type allowlist
-//      (allowedSchedulerBodyContentTypes).
-//   5. Schedule (validateSchedulerSchedule): must parse as a
-//      5-field cron expression. We don't shell out to validate
-//      against a tool — parseCron + ValidateCron return errors
-//      for malformed input.
-//   6. Per-user job cap (schedulerJobCapPerUser = 25): enforced
-//      in the handler before INSERT.
-//   7. URL-redaction in audit messages (RedactSchedulerURL):
-//      credentials embedded in query strings (?api_key=…) are
-//      stripped before logging.
+//  1. Action allowlist (allowedActionKinds): only http_get +
+//     http_post are valid. NO shell-out, NO exec.Command.
+//  2. URL allowlist (validateSchedulerURL): http/https ONLY;
+//     host must NOT resolve to a private/loopback/link-local
+//     CIDR (validateSchedulerHostNotPrivate) — defense against
+//     SSRF into the homelab. Re-checked at runtime because
+//     DNS could change between POST and the worker tick.
+//  3. Header allowlist (allowedSchedulerHeaderMax,
+//     headerNameRe, validateSchedulerHeaderName +
+//     blockedHeaderNames): name regex, max 10, no Host/Cookie/
+//     Authorization/Set-Cookie/etc. The user must NOT be able
+//     to forge credentials they don't already have.
+//  4. Body limit (schedulerBodyMaxBytes = 4KB) — caps memory
+//     per probe, and content-type allowlist
+//     (allowedSchedulerBodyContentTypes).
+//  5. Schedule (validateSchedulerSchedule): must parse as a
+//     5-field cron expression. We don't shell out to validate
+//     against a tool — parseCron + ValidateCron return errors
+//     for malformed input.
+//  6. Per-user job cap (schedulerJobCapPerUser = 25): enforced
+//     in the handler before INSERT.
+//  7. URL-redaction in audit messages (RedactSchedulerURL):
+//     credentials embedded in query strings (?api_key=…) are
+//     stripped before logging.
 package handler
 
 // ------------------------------------------------------------------
@@ -124,17 +124,17 @@ type schedulerJobRowScan struct {
 
 func newSchedulerJobRowFromScan(s schedulerJobRowScan) schedulerJobRow {
 	row := schedulerJobRow{
-		ID:        s.ID,
-		TenantID:  s.TenantID,
-		UserID:    s.UserID,
-		Name:      s.Name,
+		ID:         s.ID,
+		TenantID:   s.TenantID,
+		UserID:     s.UserID,
+		Name:       s.Name,
 		ActionKind: s.ActionKind,
-		URL:       s.URL,
-		Method:    s.Method,
-		Schedule:  s.Schedule,
-		Enabled:   s.Enabled,
-		CreatedAt: s.CreatedAt,
-		UpdatedAt: s.UpdatedAt,
+		URL:        s.URL,
+		Method:     s.Method,
+		Schedule:   s.Schedule,
+		Enabled:    s.Enabled,
+		CreatedAt:  s.CreatedAt,
+		UpdatedAt:  s.UpdatedAt,
 	}
 	if s.Body != nil {
 		row.Body = *s.Body
@@ -183,4 +183,3 @@ type schedulerRunRow struct {
 	ErrorMessage   string `json:"error_message,omitempty"`
 	DurationMS     *int   `json:"duration_ms,omitempty"`
 }
-

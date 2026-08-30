@@ -99,9 +99,9 @@ export default function Dashboard() {
               api('GET', '/api/v1/proxmox/cluster/status').catch(() => null),
               api<ProxmoxHost[]>('GET', '/api/v1/proxmox/hosts').catch(() => null),
             ]);
-      const resources = listFrom(objectFrom(clusterResources)?.data, 'resources') as ProxmoxResource[];
-      const nodes = listFrom(clusterStatus?.data, 'nodes') as Json[];
-      const hosts = (hostsRes as ProxmoxHost[] | null) || [];
+      const resources = listFrom(clusterResources, 'resources', 'data') as ProxmoxResource[];
+            const nodes = listFrom(clusterStatus, 'nodes', 'data') as Json[];
+            const hosts = listFrom(hostsRes, 'hosts') as ProxmoxHost[];
       const firing = (Array.isArray(objectFrom(healthRes)?.alerts)
         ? (objectFrom(healthRes).alerts as Alert[])
         : []) as Alert[];

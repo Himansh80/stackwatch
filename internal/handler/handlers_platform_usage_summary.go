@@ -115,11 +115,12 @@ func GetUsageSummary(pool *db.Pool) gin.HandlerFunc {
 // events stays one round-trip, no OOM.
 //
 // Query:
-//   event_kind  — optional, narrow to one kind
-//   format      — default csv; only csv is shipped today (Phase 8
-//                 will add ndjson when forecasting arrives)
-//   limit       — default 5000, hard cap 100000 to prevent a
-//                 runaway export blocking the worker
+//
+//	event_kind  — optional, narrow to one kind
+//	format      — default csv; only csv is shipped today (Phase 8
+//	              will add ndjson when forecasting arrives)
+//	limit       — default 5000, hard cap 100000 to prevent a
+//	              runaway export blocking the worker
 func GetUsageExport(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)
@@ -193,7 +194,7 @@ func GetUsageExport(pool *db.Pool) gin.HandlerFunc {
 		for pgxRows.Next() {
 			var (
 				id, uid, ek, unit, rid, meta, ts string
-				qty                             float64
+				qty                              float64
 			)
 			if err := pgxRows.Scan(&id, &uid, &ek, &qty, &unit, &rid, &meta, &ts); err != nil {
 				continue

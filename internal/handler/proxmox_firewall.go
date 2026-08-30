@@ -260,7 +260,6 @@ func (h *ProxmoxHandler) DeleteIPset(c *gin.Context) {
 	kernel.RespondOK(c, gin.H{"deleted": true, "name": name})
 }
 
-
 // ListVMFirewallRules — GET /proxmox/hosts/:id/nodes/:node/qemu/:vmid/firewall/rules
 func (h *ProxmoxHandler) ListVMFirewallRules(c *gin.Context) {
 	host, ok := h.fetchHostCreds(c, lookupID(c))

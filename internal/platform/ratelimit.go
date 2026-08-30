@@ -146,21 +146,22 @@ func (b *tokenBucket) refill(now time.Time, limitPerMin int) {
 // Take is the hot-path rate-limit check.
 //
 // Returns:
-//   allowed            — false → caller MUST reject with 429
-//   remaining          — tokens left after this request (>= 0)
-//   resetAtSeconds     — when the bucket will be FULL again
-//   blockedSeconds     — when an already-blocked tenant can retry
+//
+//	allowed            — false → caller MUST reject with 429
+//	remaining          — tokens left after this request (>= 0)
+//	resetAtSeconds     — when the bucket will be FULL again
+//	blockedSeconds     — when an already-blocked tenant can retry
 //
 // Algorithm (token bucket):
-//   1. If the bucket is in its blocked window, reject
-//      WITHOUT touching the tokens (so retries don't
-//      extend the block — same UX lesson as the login
-//      rate-limit in handler/rate_limit.go).
-//   2. Refill by elapsed * (limit / 60) tokens, capped at
-//      capacity.
-//   3. If tokens >= 1, consume 1, allow.
-//   4. Else, set blockedTill = now + (1 / refillPerSec)
-//      and reject.
+//  1. If the bucket is in its blocked window, reject
+//     WITHOUT touching the tokens (so retries don't
+//     extend the block — same UX lesson as the login
+//     rate-limit in handler/rate_limit.go).
+//  2. Refill by elapsed * (limit / 60) tokens, capped at
+//     capacity.
+//  3. If tokens >= 1, consume 1, allow.
+//  4. Else, set blockedTill = now + (1 / refillPerSec)
+//     and reject.
 //
 // All 4 cases write back the bucket so a concurrent Take
 // sees the new token count (the Limiter's mutex serialises

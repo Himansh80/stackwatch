@@ -7,9 +7,10 @@
 // Errors here are returned by the helper functions in
 // internal/platform/deploy.go (LookupInstallToken, etc.). The
 // handler layer uses errors.Is to decide on the response status:
-//   ErrTokenNotFound → 410 Gone  (already used or never existed)
-//   ErrTokenExpired  → 410 Gone  (lifetime exceeded)
-//   anything else    → 500 Internal Server Error (with logging)
+//
+//	ErrTokenNotFound → 410 Gone  (already used or never existed)
+//	ErrTokenExpired  → 410 Gone  (lifetime exceeded)
+//	anything else    → 500 Internal Server Error (with logging)
 package platform
 
 import "errors"

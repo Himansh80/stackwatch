@@ -55,11 +55,11 @@ type pinnedServiceRow struct {
 // establishing a connection. checked_at is the timestamp of the
 // underlying homelab_service_health row (latest per service).
 type pinnedHealthBlock struct {
-	Status      string  `json:"status"`        // "up" | "degraded" | "down" | "unknown"
-	LatencyMS   *int    `json:"latency_ms,omitempty"`
-	StatusCode  *int    `json:"status_code,omitempty"`
+	Status       string  `json:"status"` // "up" | "degraded" | "down" | "unknown"
+	LatencyMS    *int    `json:"latency_ms,omitempty"`
+	StatusCode   *int    `json:"status_code,omitempty"`
 	ErrorMessage *string `json:"error_message,omitempty"`
-	CheckedAt   string  `json:"checked_at"`
+	CheckedAt    string  `json:"checked_at"`
 }
 
 // pinnedServiceReq is the body for POST /services. All fields are
@@ -96,23 +96,23 @@ type pinnedServicePatchReq struct {
 // All probes (background tick, one-shot, batch) INSERT into the
 // table — the history endpoint is the universal read.
 type serviceHealthRow struct {
-	ID            string    `json:"id"`
-	ServiceID     string    `json:"service_id"`
-	Status        string    `json:"status"`
-	LatencyMS     *int      `json:"latency_ms,omitempty"`
-	StatusCode    *int      `json:"status_code,omitempty"`
-	ErrorMessage  *string   `json:"error_message,omitempty"`
-	CheckedAt     time.Time `json:"checked_at"`
+	ID           string    `json:"id"`
+	ServiceID    string    `json:"service_id"`
+	Status       string    `json:"status"`
+	LatencyMS    *int      `json:"latency_ms,omitempty"`
+	StatusCode   *int      `json:"status_code,omitempty"`
+	ErrorMessage *string   `json:"error_message,omitempty"`
+	CheckedAt    time.Time `json:"checked_at"`
 }
 
 // serviceProbeResult is the in-memory shape produced by the probe
 // helpers (ProbeHTTP, ProbeTCP, ProbeICMP). The handler converts
 // this into a homelab_service_health INSERT.
 type serviceProbeResult struct {
-	Status        string // "up" | "degraded" | "down" | "unknown"
-	LatencyMS     *int
-	StatusCode    *int
-	ErrorMessage  string
+	Status       string // "up" | "degraded" | "down" | "unknown"
+	LatencyMS    *int
+	StatusCode   *int
+	ErrorMessage string
 }
 
 // ------------------------------------------------------------------

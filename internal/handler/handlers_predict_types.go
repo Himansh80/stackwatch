@@ -30,9 +30,9 @@ var _ = time.RFC3339
 // for future phases but we accept them here so the schema is
 // forward-compatible.
 var allowedPredictModelTypes = map[string]bool{
-	"linear_regression":      true,
-	"exponential_smoothing":  true,
-	"holt_winters":           true,
+	"linear_regression":     true,
+	"exponential_smoothing": true,
+	"holt_winters":          true,
 }
 
 // allowedPredictiveSeverities — the severity set the prediction UI
@@ -71,26 +71,26 @@ type predictedPoint struct {
 // (1 / (1 + mape/100)). ack_note / ack_user_id follow the Phase 1
 // pattern — set by POST /predict/ack.
 type predictiveAlertRow struct {
-	ID                 string  `json:"id"`
-	TenantID           string  `json:"tenant_id"`
-	MetricName         string  `json:"metric_name"`
-	ServerID           *string `json:"server_id,omitempty"`
-	PredictedValue     float64 `json:"predicted_value"`
-	PredictedBreachAt  string  `json:"predicted_breach_at"`
-	Confidence         float64 `json:"confidence"`
-	Severity           string  `json:"severity"`
-	Status             string  `json:"status"`
-	AckUserID          *string `json:"ack_user_id,omitempty"`
-	AckNote            *string `json:"ack_note,omitempty"`
-	CreatedAt          string  `json:"created_at"`
+	ID                string  `json:"id"`
+	TenantID          string  `json:"tenant_id"`
+	MetricName        string  `json:"metric_name"`
+	ServerID          *string `json:"server_id,omitempty"`
+	PredictedValue    float64 `json:"predicted_value"`
+	PredictedBreachAt string  `json:"predicted_breach_at"`
+	Confidence        float64 `json:"confidence"`
+	Severity          string  `json:"severity"`
+	Status            string  `json:"status"`
+	AckUserID         *string `json:"ack_user_id,omitempty"`
+	AckNote           *string `json:"ack_note,omitempty"`
+	CreatedAt         string  `json:"created_at"`
 }
 
 // forecastRequest is the JSON shape for POST /predict/forecast.
 type forecastRequest struct {
-	MetricName   string  `json:"metric_name"   binding:"required,min=1,max=256"`
-	ServerID     *string `json:"server_id"`                                // optional → tenant-wide
-	HorizonHours int     `json:"horizon_hours" binding:"omitempty,min=1,max=168"`
-	ModelType    string  `json:"model_type" binding:"omitempty,oneof=linear_regression exponential_smoothing holt_winters"`
+	MetricName         string  `json:"metric_name"   binding:"required,min=1,max=256"`
+	ServerID           *string `json:"server_id"` // optional → tenant-wide
+	HorizonHours       int     `json:"horizon_hours" binding:"omitempty,min=1,max=168"`
+	ModelType          string  `json:"model_type" binding:"omitempty,oneof=linear_regression exponential_smoothing holt_winters"`
 	BreachThresholdPct float64 `json:"breach_threshold_pct" binding:"omitempty,min=1,max=100"`
 }
 

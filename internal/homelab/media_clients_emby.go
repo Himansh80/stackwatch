@@ -2,10 +2,11 @@
 // handler.PollMediaServerAndInsertState wrapper.
 //
 // Endpoints polled (same as Jellyfin):
-//   GET /Library/Media/Recent?limit=10
-//     → recent additions
-//   GET /Sessions
-//     → active playback sessions
+//
+//	GET /Library/Media/Recent?limit=10
+//	  → recent additions
+//	GET /Sessions
+//	  → active playback sessions
 //
 // Auth: Emby uses the X-Emby-Token request header.
 //
@@ -53,13 +54,13 @@ type embyItem struct {
 type embySessionsResponse []embySession
 
 type embySession struct {
-	ID            string `json:"Id"`
-	PlayState     *struct {
+	ID        string `json:"Id"`
+	PlayState *struct {
 		PositionTicks int64 `json:"PositionTicks"`
 	} `json:"PlayState"`
 	NowPlayingItem *struct {
 		Name         string `json:"Name"`
-		RunTimeTicks int64 `json:"RunTimeTicks"`
+		RunTimeTicks int64  `json:"RunTimeTicks"`
 		Type         string `json:"Type"`
 	} `json:"NowPlayingItem"`
 	Client      string `json:"Client"`

@@ -82,9 +82,9 @@ type glPushEvent struct {
 	Project struct {
 		PathWithNamespace string `json:"path_with_namespace"`
 	} `json:"project"`
-	Ref        string `json:"ref"`
+	Ref         string `json:"ref"`
 	CheckoutSHA string `json:"checkout_sha"`
-	ObjectKind string `json:"object_kind"`
+	ObjectKind  string `json:"object_kind"`
 }
 
 // Compile-time guard: keep time import even when only used in webhooks.

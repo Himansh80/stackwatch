@@ -154,8 +154,8 @@ func GetCICDPipeline(pool *db.Pool) gin.HandlerFunc {
 			`SELECT COUNT(*) FROM cicd_deployments WHERE pipeline_id = $1`, id,
 		).Scan(&deployCount)
 		kernel.RespondOK(c, gin.H{
-			"pipeline":            p,
-			"deployment_count":    deployCount,
+			"pipeline":         p,
+			"deployment_count": deployCount,
 		})
 	}
 }

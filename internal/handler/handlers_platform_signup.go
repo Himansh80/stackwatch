@@ -19,6 +19,7 @@
 // singleton — every CreateSignup call mutates it.
 //
 // Why these endpoints:
+//
 //   - CreateSignup is the entry point. It validates email +
 //     password, hashes the password, mints a random
 //     verification_token (32 bytes hex), inserts a
@@ -35,21 +36,21 @@
 //
 // Security posture (matches spec §"PL3 — Self-Service Signup"):
 //
-//	- Server-side email regex (HTML5 is a hint, not a gate).
-//	- auth.ValidatePassword (length, common-list, letter+digit).
-//	- bcrypt cost-10 hash via auth.HashPassword (same as
-//	  auth_signup.go::Signup so a verified signup is
-//	  indistinguishable from an admin-issued signup at the
-//	  auth layer).
-//	- Per-IP rate limit: 10 signups/day per source IP (the
-//	  spec's stated target). Implemented as an in-memory map
-//	  keyed by IP — adequate for Phase 3 single-instance
-//	  deploy; Phase 7 (PL7 — Rate Limiting) will replace it
-//	  with a Redis-backed token-bucket when multi-replica
-//	  lands.
-//	- 401/403 are NOT applicable on a PUBLIC endpoint —
-//	  errors are 400 (validation), 409 (already pending /
-//	  already verified), or 429 (rate limit).
+//   - Server-side email regex (HTML5 is a hint, not a gate).
+//   - auth.ValidatePassword (length, common-list, letter+digit).
+//   - bcrypt cost-10 hash via auth.HashPassword (same as
+//     auth_signup.go::Signup so a verified signup is
+//     indistinguishable from an admin-issued signup at the
+//     auth layer).
+//   - Per-IP rate limit: 10 signups/day per source IP (the
+//     spec's stated target). Implemented as an in-memory map
+//     keyed by IP — adequate for Phase 3 single-instance
+//     deploy; Phase 7 (PL7 — Rate Limiting) will replace it
+//     with a Redis-backed token-bucket when multi-replica
+//     lands.
+//   - 401/403 are NOT applicable on a PUBLIC endpoint —
+//     errors are 400 (validation), 409 (already pending /
+//     already verified), or 429 (rate limit).
 package handler
 
 import (

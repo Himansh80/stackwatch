@@ -11,16 +11,16 @@
 // the limit otherwise).
 //
 // runReportJob lifecycle:
-//   1. release semaphore slot (defer) + remove in-flight map entry.
-//   2. flip status pending → running.
-//   3. SELECT several real-DB counts (audit_log / anomaly_events /
-//      active users / SSO connections) that serve as evidence
-//      sections.
-//   4. compose deterministic plain-text evidence document.
-//   5. mkdir + write the artifact file to
-//      /opt/stackwatch/reports/{tenant_id}/{report_id}.txt.
-//   6. UPDATE the row to status='completed' (with artifact_path +
-//      completed_at) or 'failed' (with error_message) on error.
+//  1. release semaphore slot (defer) + remove in-flight map entry.
+//  2. flip status pending → running.
+//  3. SELECT several real-DB counts (audit_log / anomaly_events /
+//     active users / SSO connections) that serve as evidence
+//     sections.
+//  4. compose deterministic plain-text evidence document.
+//  5. mkdir + write the artifact file to
+//     /opt/stackwatch/reports/{tenant_id}/{report_id}.txt.
+//  6. UPDATE the row to status='completed' (with artifact_path +
+//     completed_at) or 'failed' (with error_message) on error.
 //
 // On any error it UPDATEs status='failed' via markReportFailed.
 // The semaphore slot is released via defer so a panic can't leak

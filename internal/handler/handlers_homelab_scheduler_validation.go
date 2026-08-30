@@ -46,14 +46,14 @@ var allowedActionKinds = map[string]struct{}{
 // of this code; in that case the worker/handler will skip them
 // (see validateSchedulerHeaders).
 var blockedHeaderNames = map[string]struct{}{
-	"host":         {},
-	"cookie":       {},
-	"authorization": {},
-	"set-cookie":   {},
-	"proxy-authenticate": {},
+	"host":                {},
+	"cookie":              {},
+	"authorization":       {},
+	"set-cookie":          {},
+	"proxy-authenticate":  {},
 	"proxy-authorization": {},
-	"transfer-encoding": {},
-	"content-length": {},
+	"transfer-encoding":   {},
+	"content-length":      {},
 }
 
 // blockedHeaderNamesForLog is the human-friendly list we
@@ -96,8 +96,8 @@ const schedulerBodyMaxBytes = 4096
 // the body if the declared content-type doesn't match. The
 // body itself is passed through verbatim (the target parses it).
 var allowedSchedulerBodyContentTypes = map[string]struct{}{
-	"text/plain":        {},
-	"application/json":  {},
+	"text/plain":                        {},
+	"application/json":                  {},
 	"application/x-www-form-urlencoded": {},
 }
 
@@ -176,15 +176,15 @@ func validateSchedulerName(name string) error {
 }
 
 // validateSchedulerURL is the strict add-time check. It:
-//   1. Parses the URL.
-//   2. Requires the scheme to be http or https.
-//   3. Requires a non-empty host.
-//   4. Caps the length.
-//   5. Resolves the host (defense against DNS-based SSRF —
-//      a hostname like "localhost.localdomain" or one whose
-//      A record is 127.0.0.1 must be blocked).
-//   6. Verifies every resolved IP is outside the private/
-//      loopback/link-local CIDR set (validateSchedulerHostNotPrivate).
+//  1. Parses the URL.
+//  2. Requires the scheme to be http or https.
+//  3. Requires a non-empty host.
+//  4. Caps the length.
+//  5. Resolves the host (defense against DNS-based SSRF —
+//     a hostname like "localhost.localdomain" or one whose
+//     A record is 127.0.0.1 must be blocked).
+//  6. Verifies every resolved IP is outside the private/
+//     loopback/link-local CIDR set (validateSchedulerHostNotPrivate).
 func validateSchedulerURL(raw string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -304,7 +304,6 @@ func validateSchedulerBody(actionKind string, body string) error {
 	}
 	return nil
 }
-
 
 // validateSchedulerSchedule is the handler-side wrapper. The
 // actual parser lives in handlers_homelab_scheduler_cron.go

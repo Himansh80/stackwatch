@@ -141,13 +141,13 @@ func ExplainDBMonQuery(pool *db.Pool) gin.HandlerFunc {
 		}
 		suggestion := explainHeuristic(queryText, avgMS)
 		kernel.RespondOK(c, gin.H{
-			"query_hash":        queryHash,
-			"query_text":        queryText,
-			"database":          database,
-			"total_executions":  totalCount,
-			"avg_duration_ms":   avgMS,
-			"suggestion":        suggestion,
-			"note":              "Heuristic suggestion only; real EXPLAIN requires a live database connection.",
+			"query_hash":       queryHash,
+			"query_text":       queryText,
+			"database":         database,
+			"total_executions": totalCount,
+			"avg_duration_ms":  avgMS,
+			"suggestion":       suggestion,
+			"note":             "Heuristic suggestion only; real EXPLAIN requires a live database connection.",
 		})
 	}
 }

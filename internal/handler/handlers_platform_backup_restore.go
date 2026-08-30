@@ -91,13 +91,13 @@ func DownloadBackup(pool *db.Pool) gin.HandlerFunc {
 		// SELECT every column the response headers need so
 		// we can set them in one shot.
 		var (
-			filePath    *string
-			cipherSum   *string
-			plainSum    *string
-			size        int64
-			encAlgo     string
-			kind        string
-			status      string
+			filePath  *string
+			cipherSum *string
+			plainSum  *string
+			size      int64
+			encAlgo   string
+			kind      string
+			status    string
 		)
 		err = pool.Pgx().QueryRow(c.Request.Context(), `
 			SELECT file_path, sha256_ciphertext, sha256_plaintext,
@@ -217,7 +217,7 @@ func RestoreBackup(pool *db.Pool) gin.HandlerFunc {
 		// the request context sets its own ReadTimeout
 		// already, so we don't worry about DOS).
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 4<<30) // 4 GiB
-		if err := c.Request.ParseMultipartForm(64 << 20); err != nil { // 64 MiB in-RAM
+		if err := c.Request.ParseMultipartForm(64 << 20); err != nil {        // 64 MiB in-RAM
 			kernel.RespondErrorWithCode(c, http.StatusBadRequest,
 				"bad_request", "multipart parse failed: "+err.Error())
 			return

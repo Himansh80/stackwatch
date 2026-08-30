@@ -194,8 +194,8 @@ func ListHomelabServices(pool *db.Pool) gin.HandlerFunc {
 		for rows.Next() {
 			var (
 				id, tid, uid, name, url, kind, createdAt, updatedAt string
-				icon                                                 *string
-				enabled                                              bool
+				icon                                                *string
+				enabled                                             bool
 			)
 			if err := rows.Scan(&id, &tid, &uid, &name, &url, &kind, &icon, &enabled, &createdAt, &updatedAt); err != nil {
 				kernel.RespondError(c, err)

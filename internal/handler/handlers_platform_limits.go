@@ -22,32 +22,33 @@
 // your plan has billing implications.
 //
 // Why these endpoints:
-//   GetLimitDefinitions backs the public pricing-page widget.
-//   No JWT required — visitors who aren't logged in should still
-//   see what plans exist.
 //
-//   GetMyLimits returns the calling tenant's effective limits
-//   (catalog defaults ∪ custom_overrides). The dashboard
-//   renders this as the KPI strip + plan badge.
+//	GetLimitDefinitions backs the public pricing-page widget.
+//	No JWT required — visitors who aren't logged in should still
+//	see what plans exist.
 //
-//   PatchMyLimits changes the calling tenant's plan + (optionally)
-//   merges a custom_overrides map. Uses UPSERT so the first PATCH
-//   from a freshly-onboarded tenant creates the row instead of
-//   404-ing. Restricted to super_admin (a regular admin can't
-//   upgrade their own plan — billing-driven change).
+//	GetMyLimits returns the calling tenant's effective limits
+//	(catalog defaults ∪ custom_overrides). The dashboard
+//	renders this as the KPI strip + plan badge.
 //
-//   CheckLimit is the dry-run probe ("would this action
-//   exceed my limit?"). Returns {allowed, current, limit,
-//   remaining, message}. The frontend uses this to grey out
-//   "Create" buttons before the user fills out a long form.
+//	PatchMyLimits changes the calling tenant's plan + (optionally)
+//	merges a custom_overrides map. Uses UPSERT so the first PATCH
+//	from a freshly-onboarded tenant creates the row instead of
+//	404-ing. Restricted to super_admin (a regular admin can't
+//	upgrade their own plan — billing-driven change).
 //
-//   GetLimitsUsage is the live KPI strip — same numbers as
-//   GetMyLimits but joined with the caller's actual usage
-//   counts so each cell can render a progress bar. The "warn"
-//   statuses come from the >= 80% threshold; "exceeded" from
-//   >= 100%. The Warnings slice is a flat list of human
-//   strings ("You're at 90% of your alert limit") for the
-//   billing-warnings banner.
+//	CheckLimit is the dry-run probe ("would this action
+//	exceed my limit?"). Returns {allowed, current, limit,
+//	remaining, message}. The frontend uses this to grey out
+//	"Create" buttons before the user fills out a long form.
+//
+//	GetLimitsUsage is the live KPI strip — same numbers as
+//	GetMyLimits but joined with the caller's actual usage
+//	counts so each cell can render a progress bar. The "warn"
+//	statuses come from the >= 80% threshold; "exceeded" from
+//	>= 100%. The Warnings slice is a flat list of human
+//	strings ("You're at 90% of your alert limit") for the
+//	billing-warnings banner.
 package handler
 
 import (
@@ -302,7 +303,8 @@ func CheckLimit(pool *db.Pool) gin.HandlerFunc {
 // Auth: RequireAuth. Tenant isolation: by claims.TenantID.
 //
 // 200 → limitsUsageResp{Servers, Alerts, Dashboards, TeamMembers,
-//                    StorageGB, APICallsPerMin, Warnings, PlanName}
+//
+//	StorageGB, APICallsPerMin, Warnings, PlanName}
 func GetLimitsUsage(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)

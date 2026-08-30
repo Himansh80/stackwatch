@@ -6,11 +6,11 @@
 // (allowedMediaServerKinds) and the dispatcher in
 // internal/homelab/media.go (PollMediaServer). Adding a new kind
 // requires:
-//   1. add the kind string to allowedMediaServerKinds
-//   2. add a poll* function here
-//   3. add a case to PollMediaServer's switch
-//   4. add the kind to the frontend's <select> in
-//      MediaWidget.tsx
+//  1. add the kind string to allowedMediaServerKinds
+//  2. add a poll* function here
+//  3. add a case to PollMediaServer's switch
+//  4. add the kind to the frontend's <select> in
+//     MediaWidget.tsx
 //
 // Each poll* function returns a uniform *MediaState (or an
 // error). They are NOT required to fetch every possible field —

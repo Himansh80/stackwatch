@@ -103,13 +103,13 @@ func ListHomelabDownloadClients(pool *db.Pool) gin.HandlerFunc {
 				// LEFT JOIN may return NULLs for the snapshot cols;
 				// use sql.Null types via *int / *int64 / *string
 				// pointers so we can detect "no snapshot yet".
-				queueCount    *int
-				queueBytes    *int64
-				downSpeed     *int64
-				upSpeed       *int64
-				todayDown     *int64
-				todayUp       *int64
-				snapPolledAt  *string
+				queueCount   *int
+				queueBytes   *int64
+				downSpeed    *int64
+				upSpeed      *int64
+				todayDown    *int64
+				todayUp      *int64
+				snapPolledAt *string
 			)
 			if err := rows.Scan(&r.ID, &r.TenantID, &r.UserID, &r.Name,
 				&r.Kind, &r.BaseURL, &r.Enabled,
@@ -198,7 +198,7 @@ func CreateHomelabDownloadClient(pool *db.Pool) gin.HandlerFunc {
 		req.BaseURL = strings.TrimSpace(req.BaseURL)
 		req.APIKey = strings.TrimSpace(req.APIKey)
 		req.Username = strings.TrimSpace(req.Username)
-		req.Password = req.Password // don't trim — leading/trailing spaces in a password are intentional
+		_ = req.Password // don't trim — leading/trailing spaces in a password are intentional
 
 		if err := validateDownloadClientName(req.Name); err != nil {
 			kernel.RespondErrorWithCode(c, http.StatusBadRequest, "bad_request", err.Error())

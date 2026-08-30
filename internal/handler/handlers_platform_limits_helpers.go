@@ -8,18 +8,18 @@
 // What lives here:
 //   - effectiveToResp — mechanical struct-to-JSON conversion.
 //   - loadRawLimits   — fetch the raw platform_tenant_limits
-//                       row so CustomOverrides can be projected
-//                       into the JSON response (EffectiveLimits
-//                       only carries merged numeric caps).
+//     row so CustomOverrides can be projected
+//     into the JSON response (EffectiveLimits
+//     only carries merged numeric caps).
 //   - countServers / countAlerts / countDashboards /
 //     countTeamMembers / storageUsageGB — per-resource-family
-//                       counts used by GetLimitsUsage + CheckLimit.
+//     counts used by GetLimitsUsage + CheckLimit.
 //   - usageForAction  — (action → (current, limit)) lookup.
 //   - buildCheckMessage / buildUsageWarnings — human-readable
-//                       string builders used by CheckLimit +
-//                       GetLimitsUsage.
+//     string builders used by CheckLimit +
+//     GetLimitsUsage.
 //   - newUsageMetric / isPaidPlan / itoa64 — tiny constructors
-//                       + predicates.
+//   - predicates.
 //
 // All functions take *db.Pool rather than living in the
 // platform package because they read TIER-0-7 tables (homelab_,

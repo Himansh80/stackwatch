@@ -47,27 +47,27 @@ var _ = struct{}{}
 // in API responses — the only way to see it is to decrypt locally
 // (which only the server-side handler does for outbound calls).
 type ssoProviderRow struct {
-	ID             string                 `json:"id"`
-	TenantID       string                 `json:"tenant_id"`
-	Type           string                 `json:"type"` // "oidc" | "saml"
-	Name           string                 `json:"name"`
-	Enabled        bool                   `json:"enabled"`
-	ConfigSummary  map[string]interface{} `json:"config_summary"`
-	CreatedAt      string                 `json:"created_at"`
+	ID            string                 `json:"id"`
+	TenantID      string                 `json:"tenant_id"`
+	Type          string                 `json:"type"` // "oidc" | "saml"
+	Name          string                 `json:"name"`
+	Enabled       bool                   `json:"enabled"`
+	ConfigSummary map[string]interface{} `json:"config_summary"`
+	CreatedAt     string                 `json:"created_at"`
 }
 
 // ssoConnectionRow is the JSON shape for a single SSO connection
 // returned by GET /sso/connections. `subject` is the IdP's stable
 // user identifier (OIDC `sub` claim or SAML NameID).
 type ssoConnectionRow struct {
-	ID          string  `json:"id"`
-	TenantID    string  `json:"tenant_id"`
-	UserID      string  `json:"user_id"`
-	ProviderID  string  `json:"provider_id"`
-	ProviderName string `json:"provider_name,omitempty"`
-	Subject     string  `json:"subject"`
-	CreatedAt   string  `json:"created_at"`
-	LastUsedAt  *string `json:"last_used_at,omitempty"`
+	ID           string  `json:"id"`
+	TenantID     string  `json:"tenant_id"`
+	UserID       string  `json:"user_id"`
+	ProviderID   string  `json:"provider_id"`
+	ProviderName string  `json:"provider_name,omitempty"`
+	Subject      string  `json:"subject"`
+	CreatedAt    string  `json:"created_at"`
+	LastUsedAt   *string `json:"last_used_at,omitempty"`
 }
 
 // ------------------------------------------------------------------
@@ -128,13 +128,13 @@ type oidcConfig struct {
 // metadata_xml is the raw XML (potentially huge), x509_cert_ciphertext
 // is the encrypted PEM body used to verify inbound signatures.
 type samlConfig struct {
-	MetadataXML          string `json:"metadata_xml,omitempty"`
-	MetadataURL          string `json:"metadata_url,omitempty"`
-	EntityID             string `json:"entity_id"`
-	SSOURL               string `json:"sso_url"`
-	X509CertCiphertext   []byte `json:"x509_cert_ciphertext,omitempty"`
-	X509CertNonce        []byte `json:"x509_cert_nonce,omitempty"`
-	KeyID                string `json:"key_id"`
+	MetadataXML        string `json:"metadata_xml,omitempty"`
+	MetadataURL        string `json:"metadata_url,omitempty"`
+	EntityID           string `json:"entity_id"`
+	SSOURL             string `json:"sso_url"`
+	X509CertCiphertext []byte `json:"x509_cert_ciphertext,omitempty"`
+	X509CertNonce      []byte `json:"x509_cert_nonce,omitempty"`
+	KeyID              string `json:"key_id"`
 }
 
 // oidcDiscovery is the OIDC Discovery 1.0 document (subset).
@@ -158,11 +158,11 @@ type oidcTokenResponse struct {
 
 // oidcUserinfo is the OIDC userinfo_endpoint response (subset).
 type oidcUserinfo struct {
-	Sub     string `json:"sub"`
-	Email   string `json:"email,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Given   string `json:"given_name,omitempty"`
-	Family  string `json:"family_name,omitempty"`
+	Sub    string `json:"sub"`
+	Email  string `json:"email,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Given  string `json:"given_name,omitempty"`
+	Family string `json:"family_name,omitempty"`
 }
 
 // ------------------------------------------------------------------

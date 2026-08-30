@@ -149,9 +149,9 @@ func buildSuggestionSQL(pattern string, tenantID, userID uuid.UUID, kinds []stri
 //
 // Parameter binding: $1 = escaped LIKE pattern, $2 = tenant_id,
 // $3 = user_id, $4 = limit. Adding a new kind here requires:
-//   1. append a new searchKindMeta to searchKindsCatalog
-//   2. add an arm to searchUnionBranches
-//   3. add an arm to suggestionUnionBranches (smaller projection)
+//  1. append a new searchKindMeta to searchKindsCatalog
+//  2. add an arm to searchUnionBranches
+//  3. add an arm to suggestionUnionBranches (smaller projection)
 var searchUnionBranches = map[string]string{
 	"notes": `
 		SELECT 'notes'::text AS kind, n.id::text, n.title,

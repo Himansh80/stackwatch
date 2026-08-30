@@ -162,11 +162,11 @@ func (w *BackupSchedulerWorker) tick(parentCtx context.Context) {
 	defer rows.Close()
 
 	type job struct {
-		id           uuid.UUID
-		tenantID     uuid.UUID
-		frequency    string
+		id            uuid.UUID
+		tenantID      uuid.UUID
+		frequency     string
 		retentionDays int
-		lastRunAt    *time.Time
+		lastRunAt     *time.Time
 		lastRunStatus *string
 	}
 	var jobs []job

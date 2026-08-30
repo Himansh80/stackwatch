@@ -122,18 +122,18 @@ func countMediaServers(ctx context.Context, pool *db.Pool, tenantID, userID uuid
 // expected flow for most homelab tools, matches the download
 // clients contract).
 type mediaServerRow struct {
-	ID             string  `json:"id"`
-	TenantID       string  `json:"tenant_id"`
-	UserID         string  `json:"user_id"`
-	Name           string  `json:"name"`
-	Kind           string  `json:"kind"`
-	BaseURL        string  `json:"base_url"`
-	Enabled        bool    `json:"enabled"`
-	LastPolledAt   string  `json:"last_polled_at,omitempty"`
-	LastPollStatus string  `json:"last_poll_status,omitempty"`
-	LastPollError  string  `json:"last_poll_error,omitempty"`
-	CreatedAt      string  `json:"created_at"`
-	UpdatedAt      string  `json:"updated_at"`
+	ID             string `json:"id"`
+	TenantID       string `json:"tenant_id"`
+	UserID         string `json:"user_id"`
+	Name           string `json:"name"`
+	Kind           string `json:"kind"`
+	BaseURL        string `json:"base_url"`
+	Enabled        bool   `json:"enabled"`
+	LastPolledAt   string `json:"last_polled_at,omitempty"`
+	LastPollStatus string `json:"last_poll_status,omitempty"`
+	LastPollError  string `json:"last_poll_error,omitempty"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
 }
 
 // ------------------------------------------------------------------
@@ -205,12 +205,12 @@ type recentAdditionRow struct {
 // now-playing list + the recent-additions list into separate
 // arrays so the widget can render them as two distinct sections.
 type mediaStateResp struct {
-	Servers          []mediaServerRow      `json:"servers"`
-	NowPlaying       []nowPlayingRow       `json:"now_playing"`
-	RecentAdditions  []recentAdditionRow   `json:"recent_additions"`
-	ServerID         string                `json:"server_id,omitempty"`
-	CountNowPlaying  int                   `json:"count_now_playing"`
-	CountRecentAdded int                   `json:"count_recent_added"`
+	Servers          []mediaServerRow    `json:"servers"`
+	NowPlaying       []nowPlayingRow     `json:"now_playing"`
+	RecentAdditions  []recentAdditionRow `json:"recent_additions"`
+	ServerID         string              `json:"server_id,omitempty"`
+	CountNowPlaying  int                 `json:"count_now_playing"`
+	CountRecentAdded int                 `json:"count_recent_added"`
 }
 
 // ------------------------------------------------------------------

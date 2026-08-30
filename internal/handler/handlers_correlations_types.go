@@ -34,15 +34,15 @@ var _ = time.RFC3339
 // (plus `rca_hints` + `feedback_history`) but the list endpoint
 // stays flat so the UI can render top-N cards cheaply.
 type alertCorrelationRow struct {
-	ID              string    `json:"id"`
-	TenantID        string    `json:"tenant_id"`
-	CorrelationID   string    `json:"correlation_id"`
-	RootAlertID     string    `json:"root_alert_id"`
-	MemberAlertIDs  []string  `json:"member_alert_ids"`
-	MemberCount     int       `json:"member_count"`
-	SimilarityScore float64   `json:"similarity_score"`
-	AutoDetected    bool      `json:"auto_detected"`
-	CreatedAt       string    `json:"created_at"`
+	ID              string      `json:"id"`
+	TenantID        string      `json:"tenant_id"`
+	CorrelationID   string      `json:"correlation_id"`
+	RootAlertID     string      `json:"root_alert_id"`
+	MemberAlertIDs  []string    `json:"member_alert_ids"`
+	MemberCount     int         `json:"member_count"`
+	SimilarityScore float64     `json:"similarity_score"`
+	AutoDetected    bool        `json:"auto_detected"`
+	CreatedAt       string      `json:"created_at"`
 	TopRCAHint      *rcaHintRow `json:"top_rca_hint,omitempty"`
 }
 
@@ -52,25 +52,25 @@ type alertCorrelationRow struct {
 // predictive_alerts fallback). The handler does a UNION ALL to
 // surface both — the UI uses severity to color the member chips.
 type correlationMemberRow struct {
-	AlertID     string  `json:"alert_id"`
-	Source      string  `json:"source"`      // 'anomaly' | 'predict'
-	Severity    string  `json:"severity"`    // 'info' | 'warning' | 'critical'
-	MetricName  string  `json:"metric_name"`
-	ServerID    *string `json:"server_id,omitempty"`
-	DetectedAt  string  `json:"detected_at"`
+	AlertID    string  `json:"alert_id"`
+	Source     string  `json:"source"`   // 'anomaly' | 'predict'
+	Severity   string  `json:"severity"` // 'info' | 'warning' | 'critical'
+	MetricName string  `json:"metric_name"`
+	ServerID   *string `json:"server_id,omitempty"`
+	DetectedAt string  `json:"detected_at"`
 }
 
 // rcaHintRow is the JSON shape returned for a single RCA hint
 // (GET /correlations/rca/:alert_id or nested inside a group's
 // `rca_hints` array).
 type rcaHintRow struct {
-	ID                    string   `json:"id"`
-	AlertID               string   `json:"alert_id"`
-	LikelyRoot            string   `json:"likely_root"`
-	Confidence            float64  `json:"confidence"`
-	Reasoning             string   `json:"reasoning"`
-	SimilarPastIncidents  []string `json:"similar_past_incidents"`
-	CreatedAt             string   `json:"created_at"`
+	ID                   string   `json:"id"`
+	AlertID              string   `json:"alert_id"`
+	LikelyRoot           string   `json:"likely_root"`
+	Confidence           float64  `json:"confidence"`
+	Reasoning            string   `json:"reasoning"`
+	SimilarPastIncidents []string `json:"similar_past_incidents"`
+	CreatedAt            string   `json:"created_at"`
 }
 
 // correlationFeedbackRow is the JSON shape for a single feedback
@@ -94,9 +94,9 @@ type correlationFeedbackRow struct {
 // optional operator note that gets stored alongside the auto_detected=false
 // row for audit purposes.
 type manualCorrelationRequest struct {
-	AlertIDs []string `json:"alert_ids" binding:"required,min=2,max=50,dive,uuid"`
-	Reason   string   `json:"reason"    binding:"max=2048"`
-	SimilarityScore float64 `json:"similarity_score" binding:"omitempty,min=0,max=1"`
+	AlertIDs        []string `json:"alert_ids" binding:"required,min=2,max=50,dive,uuid"`
+	Reason          string   `json:"reason"    binding:"max=2048"`
+	SimilarityScore float64  `json:"similarity_score" binding:"omitempty,min=0,max=1"`
 }
 
 // correlationFeedbackRequest is the JSON body for POST /correlations/feedback.

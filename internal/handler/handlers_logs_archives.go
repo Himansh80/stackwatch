@@ -43,10 +43,10 @@ var allowedArchiveDestinationTypes = map[string]bool{
 // destination_type (e.g. bucket + region for s3, path for local).
 // We persist it as JSONB so the UI can render the right fields later.
 type logArchiveReq struct {
-	Name               string          `json:"name" binding:"required,min=1,max=128"`
-	DestinationType    string          `json:"destination_type" binding:"required,max=32"`
-	DestinationConfig  json.RawMessage `json:"destination_config"`
-	Enabled            *bool           `json:"enabled"`
+	Name              string          `json:"name" binding:"required,min=1,max=128"`
+	DestinationType   string          `json:"destination_type" binding:"required,max=32"`
+	DestinationConfig json.RawMessage `json:"destination_config"`
+	Enabled           *bool           `json:"enabled"`
 }
 
 // logArchiveRow is the canonical archive shape returned to clients.
@@ -156,14 +156,14 @@ type rehydrateReq struct {
 
 // logRehydrationRow is the canonical rehydration shape.
 type logRehydrationRow struct {
-	ID           string    `json:"id"`
-	ArchiveID    string    `json:"archive_id"`
-	ArchiveName  string    `json:"archive_name"`
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
-	Status       string    `json:"status"`
-	ProgressPct  int       `json:"progress_pct"`
-	CreatedAt    string    `json:"created_at"`
+	ID          string    `json:"id"`
+	ArchiveID   string    `json:"archive_id"`
+	ArchiveName string    `json:"archive_name"`
+	StartTime   time.Time `json:"start_time"`
+	EndTime     time.Time `json:"end_time"`
+	Status      string    `json:"status"`
+	ProgressPct int       `json:"progress_pct"`
+	CreatedAt   string    `json:"created_at"`
 }
 
 // TriggerLogRehydration queues a rehydration job against the named

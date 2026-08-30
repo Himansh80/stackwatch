@@ -157,6 +157,7 @@ func ListRegions(pool *db.Pool) gin.HandlerFunc {
 //   - `code`         matches ^[a-z0-9-]{2,32}$ (URL-safe)
 //   - `region_kind`  in {primary, replica, standby}
 //   - `endpoint_url` is a valid absolute http/https URL
+//
 // On success it triggers an immediate health probe (fire-
 // and-forget) so /regions/health surfaces the new row
 // within ~1s.
@@ -222,17 +223,17 @@ func CreateRegion(pool *db.Pool) gin.HandlerFunc {
 		// NOTHING + RETURNING so a duplicate code is a
 		// clean 409 instead of a generic 500.
 		var (
-			id           uuid.UUID
-			displayName  string
-			regionKind   string
-			endpointURL  string
-			isActive     bool
-			lastAt       *time.Time
-			lastStatus   *string
-			lastLat      *int
-			lastErrStr   *string
-			createdAt    time.Time
-			updatedAt    time.Time
+			id          uuid.UUID
+			displayName string
+			regionKind  string
+			endpointURL string
+			isActive    bool
+			lastAt      *time.Time
+			lastStatus  *string
+			lastLat     *int
+			lastErrStr  *string
+			createdAt   time.Time
+			updatedAt   time.Time
 		)
 		row := pool.Pgx().QueryRow(c.Request.Context(), `
 			INSERT INTO platform_regions

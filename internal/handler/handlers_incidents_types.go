@@ -50,11 +50,11 @@ type incidentReq struct {
 
 // warRoomRow is the JSON shape returned for a war room.
 type warRoomRow struct {
-	ID          string `json:"id"`
-	IncidentID  string `json:"incident_id"`
-	ChannelURL  string `json:"channel_url"`
-	Participants []any `json:"participants"`
-	CreatedAt   string `json:"created_at"`
+	ID           string `json:"id"`
+	IncidentID   string `json:"incident_id"`
+	ChannelURL   string `json:"channel_url"`
+	Participants []any  `json:"participants"`
+	CreatedAt    string `json:"created_at"`
 }
 
 // warRoomReq is the JSON shape for POST /incidents/:id/war-room.

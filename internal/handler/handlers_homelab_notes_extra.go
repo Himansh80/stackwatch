@@ -181,10 +181,10 @@ func SearchHomelabNotes(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		kernel.RespondOK(c, gin.H{
-			"notes":  out,
-			"count":  len(out),
-			"query":  req.Q,
-			"limit":  limit,
+			"notes": out,
+			"count": len(out),
+			"query": req.Q,
+			"limit": limit,
 		})
 	}
 }
@@ -354,8 +354,8 @@ func DeleteHomelabNote(pool *db.Pool) gin.HandlerFunc {
 		}
 
 		kernel.RespondOK(c, gin.H{
-			"deleted":        tag.RowsAffected(),
-			"note_id":        id.String(),
+			"deleted":       tag.RowsAffected(),
+			"note_id":       id.String(),
 			"idempotent_ok": true,
 		})
 	}

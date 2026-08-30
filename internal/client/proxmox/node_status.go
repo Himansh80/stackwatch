@@ -10,25 +10,25 @@ import (
 // NodeStatus is the response from GET /nodes/{node}/status.
 // Only fields the dashboard actually uses are mapped.
 type NodeStatus struct {
-	Cpu        float64 `json:"cpu"`
-	MemTotal   int64   `json:"memory.total"`
-	MemUsed    int64   `json:"memory.used"`
-	RootfsAvai int64   `json:"rootfs.avail"`
-	RootfsTotal int64 `json:"rootfs.total"`
-	LoadAvg    []string `json:"loadavg"`
-	Uptime     int64   `json:"uptime"`
-	CpuCount   int64   `json:"cpuinfo.cpus"`
-	CpuModel   string  `json:"cpuinfo.model"`
+	Cpu         float64  `json:"cpu"`
+	MemTotal    int64    `json:"memory.total"`
+	MemUsed     int64    `json:"memory.used"`
+	RootfsAvai  int64    `json:"rootfs.avail"`
+	RootfsTotal int64    `json:"rootfs.total"`
+	LoadAvg     []string `json:"loadavg"`
+	Uptime      int64    `json:"uptime"`
+	CpuCount    int64    `json:"cpuinfo.cpus"`
+	CpuModel    string   `json:"cpuinfo.model"`
 }
 
 // NodeService is one systemd unit returned by /nodes/{node}/services.
 type NodeService struct {
-	Service   string `json:"service"`
-	Name      string `json:"name"`
-	State     string `json:"state"`     // running / stopped / failed
-	Active    string `json:"active"`    // active / inactive
-	SubState  string `json:"substate"`  // running / dead / listening / etc.
-	Desc      string `json:"desc"`
+	Service  string `json:"service"`
+	Name     string `json:"name"`
+	State    string `json:"state"`    // running / stopped / failed
+	Active   string `json:"active"`   // active / inactive
+	SubState string `json:"substate"` // running / dead / listening / etc.
+	Desc     string `json:"desc"`
 }
 
 // GetNodeStatus returns high-level node metrics.

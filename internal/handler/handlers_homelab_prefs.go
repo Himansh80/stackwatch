@@ -165,11 +165,11 @@ func GetHomelabPrefs(pool *db.Pool) gin.HandlerFunc {
 		// covers both first-run (INSERT) and steady-state (no-op UPDATE
 		// that returns the existing row).
 		var (
-			theme      string
-			refresh    int
-			pinned     []string
-			landing    string
-			updatedAt  string
+			theme     string
+			refresh   int
+			pinned    []string
+			landing   string
+			updatedAt string
 		)
 		err := pool.Pgx().QueryRow(c.Request.Context(),
 			`INSERT INTO homelab_user_prefs (tenant_id, user_id)
@@ -265,11 +265,11 @@ func PutHomelabPrefs(pool *db.Pool) gin.HandlerFunc {
 		// when the user PUTs an empty body, so a fresh-user PUT
 		// creates a row with all defaults if none exists yet.
 		var (
-			theme      string
-			refresh    int
-			pinned     []string
-			landing    string
-			updatedAt  string
+			theme     string
+			refresh   int
+			pinned    []string
+			landing   string
+			updatedAt string
 		)
 		err := pool.Pgx().QueryRow(c.Request.Context(),
 			`INSERT INTO homelab_user_prefs (tenant_id, user_id)
@@ -347,10 +347,10 @@ func DeleteHomelabPrefsLayout(pool *db.Pool) gin.HandlerFunc {
 		// 200 even if RowsAffected is 0 — the next GET /layout will
 		// return the default layout, which IS the post-reset state.
 		kernel.RespondOK(c, gin.H{
-			"reset":         true,
-			"message":       "layout reset to defaults",
-			"rows_deleted":  tag.RowsAffected(),
-			"next_get_url":  "/api/v1/homelab/layout",
+			"reset":        true,
+			"message":      "layout reset to defaults",
+			"rows_deleted": tag.RowsAffected(),
+			"next_get_url": "/api/v1/homelab/layout",
 		})
 	}
 }

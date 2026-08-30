@@ -12,6 +12,7 @@
 // the 400-LOC cap by splitting types out).
 //
 // Why these shapes:
+//
 //   - signupReq carries the four fields a user is willing to
 //     type in a marketing-style signup form. We do NOT include
 //     any plan-tier field on Phase 3 — every signup lands on
@@ -34,9 +35,9 @@ package handler
 // browser claims — the API is public so a non-browser caller
 // can bypass any HTML5 validation.
 type signupReq struct {
-	Email           string `json:"email" binding:"required,email"`
-	Password        string `json:"password" binding:"required,min=10"`
-	FullName        string `json:"full_name" binding:"required,min=1,max=128"`
+	Email            string `json:"email" binding:"required,email"`
+	Password         string `json:"password" binding:"required,min=10"`
+	FullName         string `json:"full_name" binding:"required,min=1,max=128"`
 	OrganizationName string `json:"organization_name" binding:"required,min=1,max=128"`
 }
 

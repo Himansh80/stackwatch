@@ -2,8 +2,9 @@
 //
 // Split out of handlers_homelab_rss.go so each file stays under
 // the 400-LOC cap. Routes:
-//   GET    /api/v1/homelab/rss/items          — ListHomelabRssItems
-//   POST   /api/v1/homelab/rss/items/:id/read — MarkHomelabRssItemRead
+//
+//	GET    /api/v1/homelab/rss/items          — ListHomelabRssItems
+//	POST   /api/v1/homelab/rss/items/:id/read — MarkHomelabRssItemRead
 //
 // Per-user (NOT per-tenant): every WHERE clause filters by both
 // tenant_id and user_id. The unread filter uses the
@@ -29,9 +30,10 @@ import (
 
 // ListHomelabRssItems returns cached items for the caller. Query
 // params:
-//   feed_id — optional, restrict to one feed
-//   unread  — optional ("true" = only items where read_at IS NULL)
-//   limit   — optional (default 50, max 200)
+//
+//	feed_id — optional, restrict to one feed
+//	unread  — optional ("true" = only items where read_at IS NULL)
+//	limit   — optional (default 50, max 200)
 //
 // Results ordered by published_at DESC NULLS LAST, then created_at
 // DESC.
@@ -127,7 +129,7 @@ func ListHomelabRssItems(pool *db.Pool) gin.HandlerFunc {
 		for rows.Next() {
 			var (
 				id, tID, uID, feedID, feedName, guid, title, link, createdAt string
-				summary, author, publishedAt, readAt                        *string
+				summary, author, publishedAt, readAt                         *string
 			)
 			if serr := rows.Scan(&id, &tID, &uID, &feedID, &feedName,
 				&guid, &title, &link, &summary, &author,

@@ -141,8 +141,8 @@ func PatchHomelabTodo(pool *db.Pool) gin.HandlerFunc {
 		// refetch.
 		var (
 			rowID, tid, uid, title, priorityStr, createdAt, updatedAt string
-			desc, due, completed                                       *string
-			tags                                                       []string
+			desc, due, completed                                      *string
+			tags                                                      []string
 		)
 		if err := pool.Pgx().QueryRow(c.Request.Context(),
 			`SELECT id::text, tenant_id::text, user_id::text, title, description,
@@ -213,8 +213,8 @@ func DeleteHomelabTodo(pool *db.Pool) gin.HandlerFunc {
 		}
 
 		kernel.RespondOK(c, gin.H{
-			"deleted":        tag.RowsAffected(),
-			"todo_id":        id.String(),
+			"deleted":       tag.RowsAffected(),
+			"todo_id":       id.String(),
 			"idempotent_ok": true,
 		})
 	}
@@ -272,8 +272,8 @@ func CompleteHomelabTodo(pool *db.Pool) gin.HandlerFunc {
 		// Return the refreshed row.
 		var (
 			rowID, tid, uid, title, priorityStr, createdAt, updatedAt string
-			desc, due, completed                                       *string
-			tags                                                       []string
+			desc, due, completed                                      *string
+			tags                                                      []string
 		)
 		if err := pool.Pgx().QueryRow(c.Request.Context(),
 			`SELECT id::text, tenant_id::text, user_id::text, title, description,

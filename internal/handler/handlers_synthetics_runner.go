@@ -34,13 +34,13 @@ import (
 
 // TestRunResult is the outcome of one synthetic test execution.
 type TestRunResult struct {
-	Status       string // 'pass' | 'fail' | 'timeout' | 'error'
-	ResponseMs   int
-	StatusCode   int    // HTTP only
-	Error        string
-	AssertionsP  int
-	AssertionsF  int
-	BodyExcerpt  string
+	Status      string // 'pass' | 'fail' | 'timeout' | 'error'
+	ResponseMs  int
+	StatusCode  int // HTTP only
+	Error       string
+	AssertionsP int
+	AssertionsF int
+	BodyExcerpt string
 }
 
 // SyntheticsRunner holds the shared dependencies for executing tests.

@@ -95,8 +95,8 @@ func MobileTestPush(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusAccepted, gin.H{
-			"queued": tag.RowsAffected(),
-			"note":   "Phase 1 stub: rows inserted as status='skipped'. Real FCM dispatch ships in Phase 2.",
+			"queued":    tag.RowsAffected(),
+			"note":      "Phase 1 stub: rows inserted as status='skipped'. Real FCM dispatch ships in Phase 2.",
 			"queued_at": time.Now().UTC().Format(time.RFC3339),
 		})
 	}

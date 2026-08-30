@@ -52,18 +52,18 @@ import (
 // match the column names so a future endpoint can switch to
 // straight json.Marshal over the row without re-mapping.
 type regionRow struct {
-	ID                   string     `json:"id"`
-	Code                 string     `json:"code"`
-	DisplayName          string     `json:"display_name"`
-	RegionKind           string     `json:"region_kind"`
-	EndpointURL          string     `json:"endpoint_url"`
-	IsActive             bool       `json:"is_active"`
-	LastHealthAt         *time.Time `json:"last_health_at,omitempty"`
-	LastHealthStatus     *string    `json:"last_health_status,omitempty"`
-	LastHealthLatencyMS  *int       `json:"last_health_latency_ms,omitempty"`
-	LastHealthError      *string    `json:"last_health_error,omitempty"`
-	CreatedAt            time.Time  `json:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at"`
+	ID                  string     `json:"id"`
+	Code                string     `json:"code"`
+	DisplayName         string     `json:"display_name"`
+	RegionKind          string     `json:"region_kind"`
+	EndpointURL         string     `json:"endpoint_url"`
+	IsActive            bool       `json:"is_active"`
+	LastHealthAt        *time.Time `json:"last_health_at,omitempty"`
+	LastHealthStatus    *string    `json:"last_health_status,omitempty"`
+	LastHealthLatencyMS *int       `json:"last_health_latency_ms,omitempty"`
+	LastHealthError     *string    `json:"last_health_error,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 // regionReq is the JSON body for POST /api/v1/platform/regions.
@@ -85,18 +85,18 @@ type regionReq struct {
 // endpoint_url, no created_at, no last_health_latency_ms
 // (latency is computed by the probe, not stored).
 type regionHealthRow struct {
-	Code            string `json:"code"`
-	DisplayName     string `json:"display_name"`
-	Status          string `json:"status"`            // up | degraded | down | unknown
-	LatencyMS       int    `json:"latency_ms"`        // ms from probe; 0 if unknown
-	LastCheckedAt   string `json:"last_checked_at"`   // RFC3339 or ""
+	Code          string `json:"code"`
+	DisplayName   string `json:"display_name"`
+	Status        string `json:"status"`          // up | degraded | down | unknown
+	LatencyMS     int    `json:"latency_ms"`      // ms from probe; 0 if unknown
+	LastCheckedAt string `json:"last_checked_at"` // RFC3339 or ""
 }
 
 // regionHealthResp is the JSON envelope for GET
 // /regions/health. The dashboard renders one tile per row.
 type regionHealthResp struct {
-	Regions []regionHealthRow `json:"regions"`
-	CheckedAt time.Time       `json:"checked_at"`
+	Regions   []regionHealthRow `json:"regions"`
+	CheckedAt time.Time         `json:"checked_at"`
 }
 
 // =====================================================================

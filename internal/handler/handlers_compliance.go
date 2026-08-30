@@ -17,21 +17,21 @@
 // compliance_schedules).
 //
 // Background generator model (POST /compliance/reports):
-//   1. Validate framework (allowlist) and period_end > period_start.
-//   2. INSERT a row with status='pending' (the worker flips to
-//      'running' immediately on entry).
-//   3. Acquire a slot in complianceReportSem (buffered, size=4) to
-//      cap concurrent generators. The send happens BEFORE
-//      `go runReportJob(...)` so a burst of 10 parallel POSTs only
-//      spawns 4 goroutines + 6 queued submits.
-//   4. Return 201 + the row id IMMEDIATELY. The worker flips
-//      status to 'running', assembles a synthetic evidence document
-//      from real DB counts (audit log rows / anomaly events / active
-//      users / etc.), writes it to the filesystem at
-//      /opt/stackwatch/reports/{tenant_id}/{report_id}.txt, and
-//      finally UPDATEs the row to 'completed' (with artifact_path
-//      + completed_at) or 'failed' (with error_message).
-//   5. Release the semaphore slot when the goroutine returns.
+//  1. Validate framework (allowlist) and period_end > period_start.
+//  2. INSERT a row with status='pending' (the worker flips to
+//     'running' immediately on entry).
+//  3. Acquire a slot in complianceReportSem (buffered, size=4) to
+//     cap concurrent generators. The send happens BEFORE
+//     `go runReportJob(...)` so a burst of 10 parallel POSTs only
+//     spawns 4 goroutines + 6 queued submits.
+//  4. Return 201 + the row id IMMEDIATELY. The worker flips
+//     status to 'running', assembles a synthetic evidence document
+//     from real DB counts (audit log rows / anomaly events / active
+//     users / etc.), writes it to the filesystem at
+//     /opt/stackwatch/reports/{tenant_id}/{report_id}.txt, and
+//     finally UPDATEs the row to 'completed' (with artifact_path
+//     + completed_at) or 'failed' (with error_message).
+//  5. Release the semaphore slot when the goroutine returns.
 package handler
 
 import (

@@ -12,14 +12,14 @@
 //
 // The actual per-kind HTTP fetch lives in internal/homelab/
 // (homelab.PollDownloadClient). This handler-level wrapper:
-//   1. SELECTs the client's row (kind, base_url, credentials,
-//      tenant_id, user_id) — ownership check happens here so a
-//      future "force poll" admin route could bypass it
-//   2. Calls homelab.PollDownloadClient with the credentials
-//   3. INSERTs one homelab_download_snapshots row regardless of
-//      success (last_poll_status='error' on failure so the
-//      dashboard can render the error pill)
-//   4. UPDATEs the client row's bookkeeping columns
+//  1. SELECTs the client's row (kind, base_url, credentials,
+//     tenant_id, user_id) — ownership check happens here so a
+//     future "force poll" admin route could bypass it
+//  2. Calls homelab.PollDownloadClient with the credentials
+//  3. INSERTs one homelab_download_snapshots row regardless of
+//     success (last_poll_status='error' on failure so the
+//     dashboard can render the error pill)
+//  4. UPDATEs the client row's bookkeeping columns
 //
 // Per-user (NOT per-tenant): every WHERE clause filters by both
 // tenant_id and user_id so user A can never see user B's
@@ -164,7 +164,7 @@ func ListHomelabDownloadSnapshots(pool *db.Pool) gin.HandlerFunc {
 // DownloadsWorker calls sequentially per tick).
 //
 // On success: INSERTs a snapshot with last_poll_status='success',
-// last_poll_error=''. On failure: still INSERTs a snapshot with
+// last_poll_error=”. On failure: still INSERTs a snapshot with
 // last_poll_status='error' and the truncated error message so the
 // dashboard can render the error pill without losing history.
 //

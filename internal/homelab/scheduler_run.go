@@ -7,21 +7,21 @@
 //
 // SECURITY: this is where most of the runtime safety lives.
 // Every invocation:
-//   1. Re-fetches the job (defense against row corruption or
-//      concurrent DELETE).
-//   2. Validates the row is still enabled.
-//   3. Enforces the rate-limit floor (no two runs within
-//      schedulerRunRateLimitMinInterval of each other).
-//   4. Re-validates the URL DNS at runtime (defense in depth —
-//      the add-time check happened on a different network
-//      snapshot).
-//   5. Builds the HTTP request using ONLY the user-supplied
-//      headers that pass the allowlist. Host/Cookie/Auth
-//      CANNOT be set.
-//   6. Executes the request with a 30s timeout, capturing
-//      status code + body size + error message.
-//   7. INSERTs a homelab_scheduler_runs row and UPDATEs the
-//      job's last_run_at + next_run_at bookkeeping fields.
+//  1. Re-fetches the job (defense against row corruption or
+//     concurrent DELETE).
+//  2. Validates the row is still enabled.
+//  3. Enforces the rate-limit floor (no two runs within
+//     schedulerRunRateLimitMinInterval of each other).
+//  4. Re-validates the URL DNS at runtime (defense in depth —
+//     the add-time check happened on a different network
+//     snapshot).
+//  5. Builds the HTTP request using ONLY the user-supplied
+//     headers that pass the allowlist. Host/Cookie/Auth
+//     CANNOT be set.
+//  6. Executes the request with a 30s timeout, capturing
+//     status code + body size + error message.
+//  7. INSERTs a homelab_scheduler_runs row and UPDATEs the
+//     job's last_run_at + next_run_at bookkeeping fields.
 //
 // Sync helper split out of scheduler.go so the worker file
 // stays under the 400-LOC cap (Phase 8 RSS uses the same

@@ -4,34 +4,38 @@
 // definitions on api-gateway boot.
 //
 // Why in the auth package (not internal/platform):
-//   The auth package is the lowest-level dependency in the
-//   codebase (everything imports auth; auth imports nothing
-//   except stdlib). Placing the seeder here means main.go can
-//   call seedPlans BEFORE the handlers package is even loaded,
-//   so the "first request after boot" sees a populated catalog.
 //
-//   Phase 8 will introduce a `SeedPlans` admin endpoint that
-//   re-runs this same idempotent INSERT pattern — same function
-//   reused, just invoked from the handler layer instead of boot.
+//	The auth package is the lowest-level dependency in the
+//	codebase (everything imports auth; auth imports nothing
+//	except stdlib). Placing the seeder here means main.go can
+//	call seedPlans BEFORE the handlers package is even loaded,
+//	so the "first request after boot" sees a populated catalog.
+//
+//	Phase 8 will introduce a `SeedPlans` admin endpoint that
+//	re-runs this same idempotent INSERT pattern — same function
+//	reused, just invoked from the handler layer instead of boot.
 //
 // Why ON CONFLICT (name) DO NOTHING (not DO UPDATE):
-//   DO NOTHING means re-running on a populated DB is a no-op.
-//   Crucially, it means an operator who manually edited the
-//   catalog (e.g. bumped pro's price during a Black Friday
-//   promotion) is NOT silently overwritten on the next gateway
-//   restart. DO UPDATE would silently revert manual edits.
+//
+//	DO NOTHING means re-running on a populated DB is a no-op.
+//	Crucially, it means an operator who manually edited the
+//	catalog (e.g. bumped pro's price during a Black Friday
+//	promotion) is NOT silently overwritten on the next gateway
+//	restart. DO UPDATE would silently revert manual edits.
 //
 // Why 4 plans and not 3:
-//   The spec's PL4 section calls out free / starter / pro /
-//   enterprise. The enterprise row has max_servers = 999999 so
-//   the handler math (current/limit) shows "0%" forever —
-//   equivalent to "unlimited" for UI purposes without the
-//   schema needing an `unlimited` sentinel value.
+//
+//	The spec's PL4 section calls out free / starter / pro /
+//	enterprise. The enterprise row has max_servers = 999999 so
+//	the handler math (current/limit) shows "0%" forever —
+//	equivalent to "unlimited" for UI purposes without the
+//	schema needing an `unlimited` sentinel value.
 //
 // Why monthly_price_cents (not decimal USD):
-//   Integer cents avoid float-rounding drift in billing math.
-//   800 cents = $8.00. The frontend formats as USD with two
-//   decimal places.
+//
+//	Integer cents avoid float-rounding drift in billing math.
+//	800 cents = $8.00. The frontend formats as USD with two
+//	decimal places.
 package auth
 
 import (
@@ -45,19 +49,19 @@ import (
 // iterates over []seedPlanSpec so adding a plan is a one-line
 // change here (not a duplicate INSERT block).
 type seedPlanSpec struct {
-	Name                string
-	DisplayName         string
-	MonthlyPriceCents   int
-	MaxServers          int
-	MaxAlerts           int
-	MaxDashboards       int
-	MaxTeamMembers      int
-	DataRetentionDays   int
+	Name                 string
+	DisplayName          string
+	MonthlyPriceCents    int
+	MaxServers           int
+	MaxAlerts            int
+	MaxDashboards        int
+	MaxTeamMembers       int
+	DataRetentionDays    int
 	MetricsRetentionDays int
-	StorageGBLimit      int64
-	APICallsPerMinute   int
-	Features            []string
-	SortOrder           int
+	StorageGBLimit       int64
+	APICallsPerMinute    int
+	Features             []string
+	SortOrder            int
 }
 
 // builtinPlans is the 4-row seed list. Source of truth for the

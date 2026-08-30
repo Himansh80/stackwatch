@@ -28,17 +28,17 @@ import (
 // fields are nullable — a todo without a due date or completion
 // timestamp is normal. The frontend renders overdue todos in red.
 type todoRow struct {
-	ID          string    `json:"id"`
-	TenantID    string    `json:"tenant_id"`
-	UserID      string    `json:"user_id"`
-	Title       string    `json:"title"`
-	Description *string   `json:"description,omitempty"`
-	Priority    string    `json:"priority"`
-	DueDate     *string   `json:"due_date,omitempty"`
-	CompletedAt *string   `json:"completed_at,omitempty"`
-	Tags        []string  `json:"tags"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
+	ID          string   `json:"id"`
+	TenantID    string   `json:"tenant_id"`
+	UserID      string   `json:"user_id"`
+	Title       string   `json:"title"`
+	Description *string  `json:"description,omitempty"`
+	Priority    string   `json:"priority"`
+	DueDate     *string  `json:"due_date,omitempty"`
+	CompletedAt *string  `json:"completed_at,omitempty"`
+	Tags        []string `json:"tags"`
+	CreatedAt   string   `json:"created_at"`
+	UpdatedAt   string   `json:"updated_at"`
 }
 
 // todoReq is the body for POST /todos. All fields are required

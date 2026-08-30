@@ -125,17 +125,17 @@ func DetectAnomalyFromModel(pool *db.Pool) gin.HandlerFunc {
 		}
 
 		c.JSON(200, gin.H{
-			"anomaly_score":      zscore,
-			"is_anomaly":         isAnomaly,
-			"severity":           severity,
-			"observed_value":     req.Value,
-			"expected_range":     []float64{expectedLow, expectedHigh},
-			"expected_range_low": expectedLow,
+			"anomaly_score":       zscore,
+			"is_anomaly":          isAnomaly,
+			"severity":            severity,
+			"observed_value":      req.Value,
+			"expected_range":      []float64{expectedLow, expectedHigh},
+			"expected_range_low":  expectedLow,
 			"expected_range_high": expectedHigh,
-			"threshold_sigma":    threshold,
-			"model_id":           modelID.String(),
-			"sample_count":       sampleCnt,
-			"event_id":           eventID,
+			"threshold_sigma":     threshold,
+			"model_id":            modelID.String(),
+			"sample_count":        sampleCnt,
+			"event_id":            eventID,
 		})
 	}
 }
@@ -258,9 +258,9 @@ func AckAnomalyEvent(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		kernel.RespondOK(c, gin.H{
-			"event_id":    eventID.String(),
+			"event_id":     eventID.String(),
 			"acknowledged": true,
-			"ack_user_id": claims.UserID.String(),
+			"ack_user_id":  claims.UserID.String(),
 		})
 	}
 }

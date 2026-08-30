@@ -101,10 +101,10 @@ func ListComplianceSchedules(pool *db.Pool) gin.HandlerFunc {
 // sweep will mail the generated report to — Phase 5 just persists
 // it.
 //
-// Body: complianceScheduleReq{
-//   framework, frequency, recipients (optional), enabled (optional,
-//   default true), next_run_at (RFC 3339).
-// }
+//	Body: complianceScheduleReq{
+//	  framework, frequency, recipients (optional), enabled (optional,
+//	  default true), next_run_at (RFC 3339).
+//	}
 func CreateComplianceSchedule(pool *db.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tenantID, ok := tenantIDFromContext(c)

@@ -127,7 +127,7 @@ func ForecastPredict(pool *db.Pool) gin.HandlerFunc {
 		var breachAt time.Time
 		for i := 1; i <= horizon; i++ {
 			ts := lastTs.Add(time.Duration(i) * time.Hour)
-			x := float64(len(samples)-1+i) // hours since start
+			x := float64(len(samples) - 1 + i) // hours since start
 			p50 := slope*x + intercept
 			p10 := p50 - 1.28*residStddev
 			p90 := p50 + 1.28*residStddev

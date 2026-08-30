@@ -38,8 +38,9 @@ import (
 
 // ListHomelabSchedulerRuns returns recent runs for the
 // caller's jobs. Query params:
-//   job_id — optional, restrict to one job
-//   limit  — optional (default 50, max 200)
+//
+//	job_id — optional, restrict to one job
+//	limit  — optional (default 50, max 200)
 //
 // Results ordered by started_at DESC.
 func ListHomelabSchedulerRuns(pool *db.Pool) gin.HandlerFunc {
@@ -211,13 +212,13 @@ func RunHomelabSchedulerJobNow(pool *db.Pool) gin.HandlerFunc {
 			return
 		}
 		kernel.RespondOK(c, gin.H{
-			"accepted":      true,
-			"job_id":        out.JobID.String(),
-			"status":        out.Status,
-			"http_status":   out.HTTPStatus,
+			"accepted":       true,
+			"job_id":         out.JobID.String(),
+			"status":         out.Status,
+			"http_status":    out.HTTPStatus,
 			"response_bytes": out.ResponseBytes,
-			"duration_ms":   out.DurationMS,
-			"error_message": out.ErrorMessage,
+			"duration_ms":    out.DurationMS,
+			"error_message":  out.ErrorMessage,
 			"skipped_reason": out.SkippedReason,
 		})
 	}

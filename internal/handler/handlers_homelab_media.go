@@ -111,8 +111,6 @@ func ListHomelabMediaServers(pool *db.Pool) gin.HandlerFunc {
 	}
 }
 
-
-
 // ------------------------------------------------------------------
 // POST /api/v1/homelab/media/servers
 // ------------------------------------------------------------------

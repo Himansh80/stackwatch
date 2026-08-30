@@ -19,27 +19,29 @@
 // goroutine-pool tracker the background-report job uses.
 //
 // Framework allowlist:
-//   Phase 5 ships five well-known frameworks: 'soc2' | 'iso27001' |
-//   'hipaa' | 'pci' | 'gdpr'. The same set is enforced at the DB
-//   layer via a CHECK constraint (see migrations/040_enterprise.sql)
-//   and at the handler layer via allowedComplianceFrameworks —
-//   keeping the two in sync is intentional: a hand-crafted INSERT
-//   can't smuggle in 'sox' / 'fedramp' even if a future regression
-//   adds a missing constant to the handler map.
+//
+//	Phase 5 ships five well-known frameworks: 'soc2' | 'iso27001' |
+//	'hipaa' | 'pci' | 'gdpr'. The same set is enforced at the DB
+//	layer via a CHECK constraint (see migrations/040_enterprise.sql)
+//	and at the handler layer via allowedComplianceFrameworks —
+//	keeping the two in sync is intentional: a hand-crafted INSERT
+//	can't smuggle in 'sox' / 'fedramp' even if a future regression
+//	adds a missing constant to the handler map.
 //
 // Goroutine pool design (`complianceReportJobs` + `complianceReportSem`):
-//   Mirrors the audit-archive pattern from Phase 4. POST
-//   /compliance/reports returns 201 IMMEDIATELY with the row id after
-//   INSERTing a status='pending' row. A background goroutine then
-//   flips the row to 'running', assembles a synthetic evidence
-//   document from real DB counts (audit log / anomaly events /
-//   active users / etc.), writes it to the filesystem at
-//   /opt/stackwatch/reports/{tenant_id}/{report_id}.txt, and
-//   finally updates the row to status='completed' (with artifact_path)
-//   or 'failed' (with error_message). Concurrent generators are
-//   capped at complianceReportMaxParallel (4) via a buffered-channel
-//   semaphore; further POSTs queue without spawning unbounded
-//   goroutines.
+//
+//	Mirrors the audit-archive pattern from Phase 4. POST
+//	/compliance/reports returns 201 IMMEDIATELY with the row id after
+//	INSERTing a status='pending' row. A background goroutine then
+//	flips the row to 'running', assembles a synthetic evidence
+//	document from real DB counts (audit log / anomaly events /
+//	active users / etc.), writes it to the filesystem at
+//	/opt/stackwatch/reports/{tenant_id}/{report_id}.txt, and
+//	finally updates the row to status='completed' (with artifact_path)
+//	or 'failed' (with error_message). Concurrent generators are
+//	capped at complianceReportMaxParallel (4) via a buffered-channel
+//	semaphore; further POSTs queue without spawning unbounded
+//	goroutines.
 package handler
 
 import (
@@ -56,11 +58,11 @@ import (
 // the DB column mirrors this set so a hand-crafted INSERT can't
 // smuggle in junk like 'sox' or 'fedramp'.
 //
-//   "soc2"      — SOC 2 (Service Organization Control 2)
-//   "iso27001"  — ISO/IEC 27001 (information security management)
-//   "hipaa"     — HIPAA (US healthcare data privacy)
-//   "pci"       — PCI-DSS (payment-card industry data security)
-//   "gdpr"      — GDPR (EU general data protection regulation)
+//	"soc2"      — SOC 2 (Service Organization Control 2)
+//	"iso27001"  — ISO/IEC 27001 (information security management)
+//	"hipaa"     — HIPAA (US healthcare data privacy)
+//	"pci"       — PCI-DSS (payment-card industry data security)
+//	"gdpr"      — GDPR (EU general data protection regulation)
 //
 // Add new frameworks here AND extend the DB CHECK in
 // migrations/040_enterprise.sql so the two layers stay in sync.
@@ -78,9 +80,9 @@ var allowedComplianceFrameworks = map[string]bool{
 // the framework allowlist — handler validates against this map
 // AND the DB CHECK constraint mirrors it.
 //
-//   "monthly"   — every 30 days
-//   "quarterly" — every 90 days
-//   "yearly"    — every 365 days
+//	"monthly"   — every 30 days
+//	"quarterly" — every 90 days
+//	"yearly"    — every 365 days
 var allowedComplianceFrequencies = map[string]bool{
 	"monthly":   true,
 	"quarterly": true,

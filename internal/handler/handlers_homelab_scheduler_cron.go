@@ -21,11 +21,12 @@
 //   - "0-23/2"       → every 2 hours, hours 0..23
 //
 // Field bounds:
-//   minute       0-59
-//   hour         0-23
-//   day-of-month 1-31
-//   month        1-12
-//   day-of-week  0-7  (0 and 7 = Sunday, both accepted)
+//
+//	minute       0-59
+//	hour         0-23
+//	day-of-month 1-31
+//	month        1-12
+//	day-of-week  0-7  (0 and 7 = Sunday, both accepted)
 //
 // All bounds are checked — "60 0 * * *" is rejected, not
 // silently rounded.

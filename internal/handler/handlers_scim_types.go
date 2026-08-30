@@ -60,13 +60,13 @@ import (
 // returns only metadata. `plaintext_token` is `omitempty` so the JSON
 // shape is identical between list and create-once responses.
 type scimTokenRow struct {
-	ID             string    `json:"id"`
-	TenantID       string    `json:"tenant_id"`
-	Name           string    `json:"name"`
-	Scopes         []string  `json:"scopes"`
-	ExpiresAt      *string   `json:"expires_at,omitempty"`
-	LastUsedAt     *string   `json:"last_used_at,omitempty"`
-	CreatedAt      string    `json:"created_at"`
+	ID         string   `json:"id"`
+	TenantID   string   `json:"tenant_id"`
+	Name       string   `json:"name"`
+	Scopes     []string `json:"scopes"`
+	ExpiresAt  *string  `json:"expires_at,omitempty"`
+	LastUsedAt *string  `json:"last_used_at,omitempty"`
+	CreatedAt  string   `json:"created_at"`
 	// Plaintext token — only ever populated on POST response. NEVER
 	// returned by GET. NEVER logged. NEVER persisted (we store the
 	// bcrypt hash; this field is a transient one-shot read of the
@@ -78,14 +78,14 @@ type scimTokenRow struct {
 // by GET /scim/sync-log. `error_message` is omitempty so successful
 // rows don't carry a noisy null field.
 type scimSyncLogRow struct {
-	ID           string  `json:"id"`
-	TenantID     string  `json:"tenant_id"`
-	Op           string  `json:"op"`
-	ExternalID   string  `json:"external_id,omitempty"`
-	ResourceType string  `json:"resource_type"`
-	Status       string  `json:"status"`
-	ErrorMessage string  `json:"error_message,omitempty"`
-	CreatedAt    string  `json:"created_at"`
+	ID           string `json:"id"`
+	TenantID     string `json:"tenant_id"`
+	Op           string `json:"op"`
+	ExternalID   string `json:"external_id,omitempty"`
+	ResourceType string `json:"resource_type"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"error_message,omitempty"`
+	CreatedAt    string `json:"created_at"`
 }
 
 // ------------------------------------------------------------------

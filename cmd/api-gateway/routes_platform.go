@@ -50,9 +50,9 @@ import (
 // has no StackWatch credentials yet):
 //   - public POST /platform/signup         (CreateSignup)
 //   - public POST /platform/signup/verify  (VerifySignup — needs
-//                                          the JWT issuer so it
-//                                          can log the user in
-//                                          immediately)
+//     the JWT issuer so it
+//     can log the user in
+//     immediately)
 //   - public POST /platform/signup/resend  (ResendSignup)
 func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Pool, rateLimiter *platform.Limiter, ratePlans *platform.PlanCache) {
 	// ---- Tier 11.1: Push-Button Deploy (Phase 1 — PL1) ----
@@ -168,116 +168,116 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 	//   GET  /api/v1/platform/backup/:id/download  — DownloadBackup (streamed ciphertext)
 	//   DELETE /api/v1/platform/backup/:id         — DeleteBackup  (unlink file + row)
 	protected.POST("/platform/backup/create", handler.CreateBackup(pool))
-		protected.GET("/platform/backup/list", handler.ListBackups(pool))
-		protected.POST("/platform/backup/restore", handler.RestoreBackup(pool))
-		protected.GET("/platform/backup/:id/download", handler.DownloadBackup(pool))
-		protected.DELETE("/platform/backup/:id", handler.DeleteBackup(pool))
+	protected.GET("/platform/backup/list", handler.ListBackups(pool))
+	protected.POST("/platform/backup/restore", handler.RestoreBackup(pool))
+	protected.GET("/platform/backup/:id/download", handler.DownloadBackup(pool))
+	protected.DELETE("/platform/backup/:id", handler.DeleteBackup(pool))
 
-		// ---- Tier 11.6: Multi-Region / HA (Phase 6 — PL6) ----
-		//
-		// Per spec §"PL6 — Multi-Region/HA". The 3 endpoints
-		// back the platform-admin region catalog + health
-		// surface. The catalog is PLATFORM-WIDE (no tenant
-		// scoping) so every super_admin sees the same set of
-		// regions. ListRegions + ProbeRegionsHealth require a
-		// JWT; CreateRegion additionally gates on
-		// claims.Role == "super_admin" because adding
-		// infrastructure is an admin-only operation.
-		//
-		// Probe semantics: every POST /regions triggers a
-		// fire-and-forget HTTP probe against the new region's
-		// endpoint_url so the row appears in
-		// /regions/health within ~1s. The /regions/health
-		// endpoint itself probes every active region
-		// sequentially (2s timeout each) and writes the
-		// result to platform_regions.last_health_*. See
-		// handlers_platform_regions.go + the probe helper
-		// in handlers_platform_regions_probe.go.
-		//
-		// Why the router-order matters: `/regions/health`
-		// is a STATIC path sibling of the dynamic
-		// `/regions/:id` would-be-suffix; registering
-		// `/regions/health` BEFORE any future `:id` handler
-		// keeps Gin's tree-router matching the literal
-		// suffix first. Today Phase 6 has no :id endpoint —
-		// the explicit ordering is just future-proofing.
-		//
-		// Routes (2 protected + 1 super_admin):
-		//   GET  /api/v1/platform/regions         — ListRegions
-		//   POST /api/v1/platform/regions         — CreateRegion         (super_admin only)
-		//   GET  /api/v1/platform/regions/health  — ProbeRegionsHealth
-		protected.GET("/platform/regions/health", handler.ProbeRegionsHealth(pool))
-		protected.GET("/platform/regions", handler.ListRegions(pool))
-		protected.POST("/platform/regions", handler.CreateRegion(pool))
+	// ---- Tier 11.6: Multi-Region / HA (Phase 6 — PL6) ----
+	//
+	// Per spec §"PL6 — Multi-Region/HA". The 3 endpoints
+	// back the platform-admin region catalog + health
+	// surface. The catalog is PLATFORM-WIDE (no tenant
+	// scoping) so every super_admin sees the same set of
+	// regions. ListRegions + ProbeRegionsHealth require a
+	// JWT; CreateRegion additionally gates on
+	// claims.Role == "super_admin" because adding
+	// infrastructure is an admin-only operation.
+	//
+	// Probe semantics: every POST /regions triggers a
+	// fire-and-forget HTTP probe against the new region's
+	// endpoint_url so the row appears in
+	// /regions/health within ~1s. The /regions/health
+	// endpoint itself probes every active region
+	// sequentially (2s timeout each) and writes the
+	// result to platform_regions.last_health_*. See
+	// handlers_platform_regions.go + the probe helper
+	// in handlers_platform_regions_probe.go.
+	//
+	// Why the router-order matters: `/regions/health`
+	// is a STATIC path sibling of the dynamic
+	// `/regions/:id` would-be-suffix; registering
+	// `/regions/health` BEFORE any future `:id` handler
+	// keeps Gin's tree-router matching the literal
+	// suffix first. Today Phase 6 has no :id endpoint —
+	// the explicit ordering is just future-proofing.
+	//
+	// Routes (2 protected + 1 super_admin):
+	//   GET  /api/v1/platform/regions         — ListRegions
+	//   POST /api/v1/platform/regions         — CreateRegion         (super_admin only)
+	//   GET  /api/v1/platform/regions/health  — ProbeRegionsHealth
+	protected.GET("/platform/regions/health", handler.ProbeRegionsHealth(pool))
+	protected.GET("/platform/regions", handler.ListRegions(pool))
+	protected.POST("/platform/regions", handler.CreateRegion(pool))
 
-		// ---- Tier 11.7: Rate Limiting (Phase 7 — PL7) ----
-		//
-		// Per spec §"PL7 — Rate Limiting" these 3 endpoints
-		// back the admin VIEW surface for the in-process
-		// token-bucket limiter. The middleware that ENFORCES
-		// the bucket on every authenticated request lives
-		// in internal/middleware/ratelimit.go and is wired
-		// in cmd/api-gateway/routes.go (after RequireAuth
-		// so claims.TenantID is available, before the
-		// handlers so a 429 short-circuits expensive work).
-		//
-		// /me is PROTECTED (every authenticated user can
-		// see their own bucket). /global + /blocked are
-		// PROTECTED + super_admin gated — a regular admin
-		// can't see other tenants' usage or change the
-		// global caps.
-		//
-		// Storage: NONE. PL7 is in-memory only (the Limiter
-		// lives in internal/platform/ratelimit.go). A future
-		// Redis-backed adapter is a drop-in replacement for
-		// the Limiter interface; the handler shape doesn't
-		// change.
-		//
-		// Routes (1 protected + 2 super_admin):
-		//   GET  /api/v1/platform/ratelimit/me      — GetMyRateLimit
-		//   PATCH /api/v1/platform/ratelimit/global  — UpdateGlobalLimits  (super_admin)
-		//   GET  /api/v1/platform/ratelimit/blocked  — ListBlockedTenants  (super_admin)
-		//
-		// The mountPlatformRoutes signature carries the
-		// *platform.Limiter + *platform.PlanCache through
-		// from buildRouter — see main.go for the
-		// construction site.
-		protected.GET("/platform/ratelimit/me", handler.GetMyRateLimit(rateLimiter, ratePlans))
-		protected.PATCH("/platform/ratelimit/global", handler.UpdateGlobalLimits(rateLimiter, ratePlans))
-		protected.GET("/platform/ratelimit/blocked", handler.ListBlockedTenants(rateLimiter))
+	// ---- Tier 11.7: Rate Limiting (Phase 7 — PL7) ----
+	//
+	// Per spec §"PL7 — Rate Limiting" these 3 endpoints
+	// back the admin VIEW surface for the in-process
+	// token-bucket limiter. The middleware that ENFORCES
+	// the bucket on every authenticated request lives
+	// in internal/middleware/ratelimit.go and is wired
+	// in cmd/api-gateway/routes.go (after RequireAuth
+	// so claims.TenantID is available, before the
+	// handlers so a 429 short-circuits expensive work).
+	//
+	// /me is PROTECTED (every authenticated user can
+	// see their own bucket). /global + /blocked are
+	// PROTECTED + super_admin gated — a regular admin
+	// can't see other tenants' usage or change the
+	// global caps.
+	//
+	// Storage: NONE. PL7 is in-memory only (the Limiter
+	// lives in internal/platform/ratelimit.go). A future
+	// Redis-backed adapter is a drop-in replacement for
+	// the Limiter interface; the handler shape doesn't
+	// change.
+	//
+	// Routes (1 protected + 2 super_admin):
+	//   GET  /api/v1/platform/ratelimit/me      — GetMyRateLimit
+	//   PATCH /api/v1/platform/ratelimit/global  — UpdateGlobalLimits  (super_admin)
+	//   GET  /api/v1/platform/ratelimit/blocked  — ListBlockedTenants  (super_admin)
+	//
+	// The mountPlatformRoutes signature carries the
+	// *platform.Limiter + *platform.PlanCache through
+	// from buildRouter — see main.go for the
+	// construction site.
+	protected.GET("/platform/ratelimit/me", handler.GetMyRateLimit(rateLimiter, ratePlans))
+	protected.PATCH("/platform/ratelimit/global", handler.UpdateGlobalLimits(rateLimiter, ratePlans))
+	protected.GET("/platform/ratelimit/blocked", handler.ListBlockedTenants(rateLimiter))
 
-		// ---- Tier 11.8: Platform Health (Phase 8 — PL8) ----
-		//
-		// Per spec §"PL8 — Platform Health" these 5 endpoints
-		// back the operator (super_admin) dashboard. Every
-		// handler is PROTECTED + super_admin gated (a regular
-		// admin can't see platform-wide health — that would leak
-		// other tenants' infrastructure state). The cached
-		// surface itself lives in platform_health_snapshots,
-		// populated hourly by the CapacityForecastWorker
-		// (internal/platform/capacity_forecast.go) wired in
-		// main.go alongside UsageMeter / Retention /
-		// BackupScheduler.
-		//
-		// Why the router-order matters: the 5 static paths
-		// below MUST be registered BEFORE any future
-		// /platform/health/:id sibling so Gin's tree-router
-		// matches the literal suffix first. Today Phase 8 has
-		// no :id endpoint — the explicit ordering is just
-		// future-proofing.
-		//
-		// Routes (5 protected + super_admin):
-		//   GET /api/v1/platform/health/summary            — HealthSummary
-		//   GET /api/v1/platform/health/regions            — HealthRegionsSummary
-		//   GET /api/v1/platform/health/tenants/top        — HealthTopTenants
-		//   GET /api/v1/platform/health/capacity/forecast  — HealthCapacityForecast
-		//   GET /api/v1/platform/health/alerts             — HealthAlerts
-		protected.GET("/platform/health/summary", handler.HealthSummary(pool))
-		protected.GET("/platform/health/regions", handler.HealthRegionsSummary(pool))
-		protected.GET("/platform/health/tenants/top", handler.HealthTopTenants(pool))
-		protected.GET("/platform/health/capacity/forecast", handler.HealthCapacityForecast(pool))
-		protected.GET("/platform/health/alerts", handler.HealthAlerts(pool))
-		}
+	// ---- Tier 11.8: Platform Health (Phase 8 — PL8) ----
+	//
+	// Per spec §"PL8 — Platform Health" these 5 endpoints
+	// back the operator (super_admin) dashboard. Every
+	// handler is PROTECTED + super_admin gated (a regular
+	// admin can't see platform-wide health — that would leak
+	// other tenants' infrastructure state). The cached
+	// surface itself lives in platform_health_snapshots,
+	// populated hourly by the CapacityForecastWorker
+	// (internal/platform/capacity_forecast.go) wired in
+	// main.go alongside UsageMeter / Retention /
+	// BackupScheduler.
+	//
+	// Why the router-order matters: the 5 static paths
+	// below MUST be registered BEFORE any future
+	// /platform/health/:id sibling so Gin's tree-router
+	// matches the literal suffix first. Today Phase 8 has
+	// no :id endpoint — the explicit ordering is just
+	// future-proofing.
+	//
+	// Routes (5 protected + super_admin):
+	//   GET /api/v1/platform/health/summary            — HealthSummary
+	//   GET /api/v1/platform/health/regions            — HealthRegionsSummary
+	//   GET /api/v1/platform/health/tenants/top        — HealthTopTenants
+	//   GET /api/v1/platform/health/capacity/forecast  — HealthCapacityForecast
+	//   GET /api/v1/platform/health/alerts             — HealthAlerts
+	protected.GET("/platform/health/summary", handler.HealthSummary(pool))
+	protected.GET("/platform/health/regions", handler.HealthRegionsSummary(pool))
+	protected.GET("/platform/health/tenants/top", handler.HealthTopTenants(pool))
+	protected.GET("/platform/health/capacity/forecast", handler.HealthCapacityForecast(pool))
+	protected.GET("/platform/health/alerts", handler.HealthAlerts(pool))
+}
 
 // mountPlatformPublicRoutes registers the PUBLIC Tier 11 endpoints
 // (no JWT, no RequireAuth). Called from routes.go where the
@@ -293,10 +293,11 @@ func mountPlatformRoutes(public, protected, admin *gin.RouterGroup, pool *db.Poo
 // viewer).
 //
 // PL1 (this commit) + Phase 3 (this commit) register 4 PUBLIC routes:
-//   GET  /api/v1/platform/deploy/install-script  — GetInstallScript (PL1)
-//   POST /api/v1/platform/signup                 — CreateSignup     (PL3)
-//   POST /api/v1/platform/signup/verify          — VerifySignup     (PL3)
-//   POST /api/v1/platform/signup/resend          — ResendSignup     (PL3)
+//
+//	GET  /api/v1/platform/deploy/install-script  — GetInstallScript (PL1)
+//	POST /api/v1/platform/signup                 — CreateSignup     (PL3)
+//	POST /api/v1/platform/signup/verify          — VerifySignup     (PL3)
+//	POST /api/v1/platform/signup/resend          — ResendSignup     (PL3)
 //
 // Future phases add here in order:
 //

@@ -46,10 +46,10 @@ package handler
 // health status values. Mirrors what CapacityForecastWorker
 // actually writes — anything else gets a 400 in the worker.
 var allowedHealthStatuses = map[string]struct{}{
-	"up":      {},
+	"up":       {},
 	"degraded": {},
-	"down":    {},
-	"unknown": {},
+	"down":     {},
+	"unknown":  {},
 }
 
 // healthSummaryResp is the JSON shape for GET
@@ -68,41 +68,41 @@ type healthSummaryResp struct {
 // match the table column names — this lets a future refactor
 // swap to pgx.CollectRows + json.Marshal without re-mapping.
 type healthSummaryRow struct {
-	ID                    string `json:"id"`
-	SnapshotAt            string `json:"snapshot_at"`
-	OverallStatus         string `json:"overall_status"`
-	APIUp                 bool   `json:"api_up"`
-	DBUp                  bool   `json:"db_up"`
-	IngestUp              bool   `json:"ingest_up"`
-	AlertEngineUp         bool   `json:"alert_engine_up"`
-	AIEngineUp            bool   `json:"ai_engine_up"`
-	WebTerminalUp         bool   `json:"web_terminal_up"`
-	TotalTenants          int    `json:"total_tenants"`
-	ActiveTenants24h      int    `json:"active_tenants_24h"`
-	TotalServers          int    `json:"total_servers"`
-	ServersUp             int    `json:"servers_up"`
-	ServersStale          int    `json:"servers_stale"`
-	ServersDown           int    `json:"servers_down"`
-	OpenAlerts            int    `json:"open_alerts"`
-	FailedLogins24h       int    `json:"failed_logins_24h"`
-	DBConnections         int    `json:"db_connections"`
-	APICallsPerMin5mAvg   int    `json:"api_calls_per_min_5m_avg"`
-	StorageGBUsed         int64  `json:"storage_gb_used"`
-	BackupCount           int    `json:"backup_count"`
-	BackupLatestAt        string `json:"backup_latest_at"`
+	ID                  string `json:"id"`
+	SnapshotAt          string `json:"snapshot_at"`
+	OverallStatus       string `json:"overall_status"`
+	APIUp               bool   `json:"api_up"`
+	DBUp                bool   `json:"db_up"`
+	IngestUp            bool   `json:"ingest_up"`
+	AlertEngineUp       bool   `json:"alert_engine_up"`
+	AIEngineUp          bool   `json:"ai_engine_up"`
+	WebTerminalUp       bool   `json:"web_terminal_up"`
+	TotalTenants        int    `json:"total_tenants"`
+	ActiveTenants24h    int    `json:"active_tenants_24h"`
+	TotalServers        int    `json:"total_servers"`
+	ServersUp           int    `json:"servers_up"`
+	ServersStale        int    `json:"servers_stale"`
+	ServersDown         int    `json:"servers_down"`
+	OpenAlerts          int    `json:"open_alerts"`
+	FailedLogins24h     int    `json:"failed_logins_24h"`
+	DBConnections       int    `json:"db_connections"`
+	APICallsPerMin5mAvg int    `json:"api_calls_per_min_5m_avg"`
+	StorageGBUsed       int64  `json:"storage_gb_used"`
+	BackupCount         int    `json:"backup_count"`
+	BackupLatestAt      string `json:"backup_latest_at"`
 }
 
 // healthRegionSummaryResp is the JSON shape for GET
 // /api/v1/platform/health/regions. Aggregated counts so the
 // operator dashboard can render a single region tile.
 type healthRegionSummaryResp struct {
-	TotalRegions   int `json:"total_regions"`
-	PrimaryRegions int `json:"primary_regions"`
-	ReplicaRegions int `json:"replica_regions"`
-	StandbyRegions int `json:"standby_regions"`
-	UpRegions      int `json:"up_regions"`
+	TotalRegions    int `json:"total_regions"`
+	PrimaryRegions  int `json:"primary_regions"`
+	ReplicaRegions  int `json:"replica_regions"`
+	StandbyRegions  int `json:"standby_regions"`
+	UpRegions       int `json:"up_regions"`
 	DegradedRegions int `json:"degraded_regions"`
-	DownRegions    int `json:"down_regions"`
+	DownRegions     int `json:"down_regions"`
 }
 
 // healthTopTenantResp is the JSON shape for GET
@@ -128,10 +128,10 @@ type healthTopTenantRow struct {
 // ISO8601; an empty string means "no signal" (worker has no
 // data to extrapolate from).
 type healthForecastResp struct {
-	ForecastDays                  int    `json:"forecast_days"`
-	ProjectedDiskFullAt           string `json:"projected_disk_full_at"`
-	ProjectedDBConnectionsFullAt  string `json:"projected_db_connections_full_at"`
-	ProjectedAPIThroughputFullAt  string `json:"projected_api_throughput_full_at"`
+	ForecastDays                 int    `json:"forecast_days"`
+	ProjectedDiskFullAt          string `json:"projected_disk_full_at"`
+	ProjectedDBConnectionsFullAt string `json:"projected_db_connections_full_at"`
+	ProjectedAPIThroughputFullAt string `json:"projected_api_throughput_full_at"`
 }
 
 // healthAlertsResp is the JSON shape for GET

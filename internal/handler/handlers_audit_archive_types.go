@@ -171,9 +171,9 @@ type auditExportReq struct {
 // is keyed by row id (uuid string) — the value carries the
 // owning tenant + the moment the goroutine was dispatched.
 type auditArchiveJob struct {
-	RowID       string
-	TenantID    string
-	BatchID     string
+	RowID        string
+	TenantID     string
+	BatchID      string
 	DispatchedAt time.Time
 }
 

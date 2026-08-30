@@ -9,24 +9,25 @@
 // Why a separate package boundary (this file, not a sub-helper
 // of handlers_platform_limits.go):
 //
-//	- limits_seed.go (this file) is called from main.go on
-//	  api-gateway boot to seed the 4 built-in plans. Doing the
-//	  seeding from the handler package would force main.go to
-//	  import internal/handler, which already imports the rest of
-//	  the app — the dependency direction would invert.
-//	- The handlers need the "current plan + overrides" math at
-//	  3 different read sites (GetMyLimits, GetLimitsUsage,
-//	  CheckLimit). Lifting EffectiveLimits into this package
-//	  means each handler is a one-liner around it.
+//   - limits_seed.go (this file) is called from main.go on
+//     api-gateway boot to seed the 4 built-in plans. Doing the
+//     seeding from the handler package would force main.go to
+//     import internal/handler, which already imports the rest of
+//     the app — the dependency direction would invert.
+//   - The handlers need the "current plan + overrides" math at
+//     3 different read sites (GetMyLimits, GetLimitsUsage,
+//     CheckLimit). Lifting EffectiveLimits into this package
+//     means each handler is a one-liner around it.
 //
 // Why plan_name is the only thing stored on the limits row
 // (not a foreign key to platform_plan_definitions.id):
-//   The catalog can grow (a sales rep can add a "team" plan
-//   with bespoke caps), but the per-tenant row only ever needs
-//   the catalog's NAME — the catalog's columns are read at the
-//   same time we render the dashboard. Storing the FK would
-//   require a CASCADE + re-point every time we DELETE a plan
-//   from the catalog, which is the opposite of what we want.
+//
+//	The catalog can grow (a sales rep can add a "team" plan
+//	with bespoke caps), but the per-tenant row only ever needs
+//	the catalog's NAME — the catalog's columns are read at the
+//	same time we render the dashboard. Storing the FK would
+//	require a CASCADE + re-point every time we DELETE a plan
+//	from the catalog, which is the opposite of what we want.
 package platform
 
 import (
@@ -54,24 +55,24 @@ import (
 // Field names match the column names; the handler layer projects
 // into the JSON shape (planDefinitionRow in handlers_platform_limits_types.go).
 type PlanDefinition struct {
-	ID                  uuid.UUID
-	Name                string
-	DisplayName         string
-	MonthlyPriceCents   int
-	Currency            string
-	MaxServers          int
-	MaxAlerts           int
-	MaxDashboards       int
-	MaxTeamMembers      int
-	DataRetentionDays   int
+	ID                   uuid.UUID
+	Name                 string
+	DisplayName          string
+	MonthlyPriceCents    int
+	Currency             string
+	MaxServers           int
+	MaxAlerts            int
+	MaxDashboards        int
+	MaxTeamMembers       int
+	DataRetentionDays    int
 	MetricsRetentionDays int
-	StorageGBLimit      int64
-	APICallsPerMinute   int
-	Features            []string
-	IsBuiltin           bool
-	SortOrder           int
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	StorageGBLimit       int64
+	APICallsPerMinute    int
+	Features             []string
+	IsBuiltin            bool
+	SortOrder            int
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 // =====================================================================
@@ -104,23 +105,23 @@ type TenantLimits struct {
 // override map. JSON tags match the planDefinitionRow JSON
 // shape so the handler layer can pass it through unchanged.
 type EffectiveLimits struct {
-	PlanName             string            `json:"plan_name"`
-	PlanDisplayName      string            `json:"plan_display_name"`
-	MonthlyPriceCents    int               `json:"monthly_price_cents"`
-	Currency             string            `json:"currency"`
-	MaxServers           int               `json:"max_servers"`
-	MaxAlerts            int               `json:"max_alerts"`
-	MaxDashboards        int               `json:"max_dashboards"`
-	MaxTeamMembers       int               `json:"max_team_members"`
-	DataRetentionDays    int               `json:"data_retention_days"`
-	MetricsRetentionDays int               `json:"metrics_retention_days"`
-	StorageGBLimit       int64             `json:"storage_gb_limit"`
-	APICallsPerMinute    int               `json:"api_calls_per_minute"`
-	Features             []string          `json:"features"`
-	Suspended            bool              `json:"suspended"`
-	SuspendReason        string            `json:"suspend_reason,omitempty"`
-	TrialEndsAt          *time.Time        `json:"trial_ends_at,omitempty"`
-	Overrides            map[string]int64  `json:"overrides,omitempty"`
+	PlanName             string           `json:"plan_name"`
+	PlanDisplayName      string           `json:"plan_display_name"`
+	MonthlyPriceCents    int              `json:"monthly_price_cents"`
+	Currency             string           `json:"currency"`
+	MaxServers           int              `json:"max_servers"`
+	MaxAlerts            int              `json:"max_alerts"`
+	MaxDashboards        int              `json:"max_dashboards"`
+	MaxTeamMembers       int              `json:"max_team_members"`
+	DataRetentionDays    int              `json:"data_retention_days"`
+	MetricsRetentionDays int              `json:"metrics_retention_days"`
+	StorageGBLimit       int64            `json:"storage_gb_limit"`
+	APICallsPerMinute    int              `json:"api_calls_per_minute"`
+	Features             []string         `json:"features"`
+	Suspended            bool             `json:"suspended"`
+	SuspendReason        string           `json:"suspend_reason,omitempty"`
+	TrialEndsAt          *time.Time       `json:"trial_ends_at,omitempty"`
+	Overrides            map[string]int64 `json:"overrides,omitempty"`
 }
 
 // =====================================================================
