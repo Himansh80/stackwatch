@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
 import { ApiError, api, getToken } from '../../../lib/api';
 import { motion, pageEnter } from '../../../lib/motion';
+import Button from '../../shared/Button';
 import TodoModal, { datetimeLocalToRFC3339 } from './TodoModal';
 import TodoCard from './TodoCard';
 import type {
@@ -299,20 +300,21 @@ export default function TodosWidget({ config: _config }: TodosWidgetProps) {
       {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type="button" className="empty-state-cta" onClick={openCreate}>
+        <Button variant="primary" size="sm" onClick={openCreate}>
           + New todo
-        </button>
+        </Button>
         <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
           {(['all', 'active', 'done'] as Filter[]).map((f) => (
-            <button
+            <Button
               key={f}
-              type="button"
+              variant={filter === f ? 'primary' : 'ghost'}
+              size="sm"
               className={`logs-tab ${filter === f ? 'logs-tab-active' : ''}`}
               onClick={() => setFilter(f)}
               style={{ textTransform: 'capitalize' }}
             >
               {f}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
