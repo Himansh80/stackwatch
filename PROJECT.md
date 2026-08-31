@@ -1,279 +1,225 @@
-# StackWatch — Unified Infrastructure + AI Platform
+# StackWatch — Master Plan (Session 2026-08-31)
 
-**Mission:** Build a single platform that replaces Datadog, Proxmox UI, TrueNAS UI, Portainer, Termix, Cockpit, Netdata, Grafana, Prometheus, Loki, Chrome Remote Desktop, and Homarr — strictly modular, fully open, self-hostable.
-
-**Owner:** Himan Shukla (Founder/CTO, SmartHomeLab, Bareilly India)  
-**Started:** Sunday, August 16, 2026  
-**Status:** Tier 0 ✅ complete and live-verified; **Tier 1 ✅ complete, deployed, and undergoing the four-pass release gate**; **frontend command-center foundation ✅ built and locally verified**
+> **Source of truth for the entire rebuild.** All work tracked here. Replace, never
+> delete — every version is a strict cumulative superset.
 
 ---
 
-## The 5 LOCKED Decisions
+## 0. Vision (user-stated 2026-08-31)
 
-| # | Decision | Choice |
-|---|----------|--------|
-| 1 | Scope | **Full vision** — all features of all 12 tools |
-| 2 | Deployment | **Both** — self-hosted (central + agents) + cloud (later) |
-| 3 | Architecture | **Hybrid** — own core, embed Prometheus + Loki |
-| 4 | OS support | **Linux + Windows + macOS + mobile** |
-| 5 | Time/money | **No budget** — time investment, iterative with user testing |
+StackWatch replaces the entire toolchain below. **No third-party lock-in after this.**
+End-to-end feature parity. Full Datadog-style UI/UX. Strict modularity. Every feature
+of every referenced platform — user must feel like they're using the original.
 
-**Project name:** stackwatch (domain: stackwatch.smarthomelab.fun)  
-**Path:** `C:\Users\himan\HermesProjects\stackwatch\`  
-**GitHub:** TBD (will set up this session)
+| Replaces | Tier |
+|---|---|
+| Portainer (container mgmt) | T5 (extend) + T16 (K8s) |
+| Termix (terminal) | T3 (extend) |
+| Loki (logs) | T6 (extend) |
+| Cockpit (server admin) | T4 (extend) |
+| Prometheus / Grafana / Netdata (monitoring) | T6 (extend) + T17 (depth) |
+| Datadog / Grafana Cloud / Better Stack / SigNoz / HyperDX / New Relic | T7 + T15 + T18 + T19 |
+| Proxmox UI | T1 + T14 (extend) |
+| TrueNAS Scale UI | T2 (extend) |
 
----
-
-## The 12 TOOLS We Replace (Source of Truth)
-
-| # | Tool | What it does | Tier |
-|---|------|--------------|------|
-| 1 | **Datadog** | Full monitoring + APM + Logs + RUM + Synthetics + Security | 7 |
-| 2 | **Portainer** | Docker container management | 5 |
-| 3 | **Watchtower** | Auto-update containers | 5 |
-| 4 | **Termix** | Web SSH/RDP/VNC terminal | 3 |
-| 5 | **Netdata** | Per-second metrics + ML anomaly | 6 |
-| 6 | **Prometheus** | TSDB + PromQL | 6 |
-| 7 | **Grafana** | Dashboards + data sources | 6 |
-| 8 | **Cockpit** | Linux server admin UI | 4 |
-| 9 | **Grafana Loki** | Log aggregation + LogQL | 6 |
-| 10 | **Chrome Remote Desktop** | RDP into Windows/Mac/Linux | 3 |
-| 11 | **Proxmox VE** | KVM/LXC/cluster/backup | 1 |
-| 12 | **TrueNAS Scale** | ZFS/datasets/NFS/SMB/iSCSI | 2 |
-| 13 | **Homarr** | Homelab dashboard | 10 |
+**Universal standards (per user directive, locked):**
+- Modular: every file ≤400 LOC
+- Datadog-quality UI (dark theme, KPI cards with stripes, status pills, framer-motion)
+- Speckit workflow per workstream (proposal → spec → plan → tasks → checklist → build → archive)
+- framer-motion for animation (whileHover, AnimatePresence, layout transitions, count-up)
+- Test workflow: during-phase build/test/fix + per-phase A-to-Z test plan + tier-end mega-test
+- Honest verification: 4 back-to-back runs, fresh cache, real data
 
 ---
 
-## Modular Architecture (THE non-negotiable rule)
+## 1. Current state (audit 2026-08-31)
 
-**Rule: Every file under 500 lines. Every feature in its own module. Every module < 2,000 lines.**
+### What's built (working on `.115`)
+- Tier 0 — Foundation (auth + tenants + users + api-keys) — ~17 routes
+- Tier 0.5 — Core Monitoring (servers, agents, metrics, logs) — ~11 routes
+- Tier 1 — Proxmox VE (1.1–1.13 +14.x) — ~125 routes
+- Tier 2 — TrueNAS SCALE sidecar — 1 proxy route + 11 handler files
+- Tier 3 — Terminal/SSH/SFTP — ~30 routes
+- Tier 4 — Server Admin (Cockpit parity) — 10 routes
+- Tier 5 — Containers (Portainer + Watchtower) — ~20 routes
+- Tier 6 — Prom/Loki/ML/Dashboards/RUM/Tracing — ~30 routes
+- Tier 7 — Datadog parity D2-D12 — ~80 routes
+- Tier 8 — Intelligence & Alerting — 25 routes
+- Tier 9 — Enterprise SSO/SCIM/RBAC/Audit/Compliance/Orgs — 31 routes
+- Tier 10 — Homelab Dashboard — 53 routes
+- Tier 11 — Platform & Commerce — 34 routes
+- Tier 12 — Docs & GTM — 16 docs files (~150 KB)
+- Tier 13 — Mobile + Push — 9 routes + RN app
+- Tier 14 — Proxmox UI frontend (17 pages)
+- Phase 1.x — Modularity + Observability (in-progress, WIP)
 
-### Inspired by giants
+### Live binary on `.115`
+- `api-gateway-linux` md5 `e39b4bcd50692a82466ea5cf6bc227c3` (PID 1517, active)
+- `truenas-connector-linux` PID 1007
+- All routes mounted, healthy
 
-| Giant | File size rule | Module boundary |
-|-------|---------------|-----------------|
-| Stripe | Max 500 lines per file | One business domain per package |
-| Datadog | Max 300 lines per file | Domain-driven design |
-| Grafana | Service per package | Hexagonal architecture |
-| GitHub | Per-feature folder | Layered: transport → service → repo |
+### Codebase metrics
+- Go: `cmd/api-gateway` (10 files) + `cmd/truenas-connector` + `cmd/web-terminal`
+- Go: `internal/` — 233 handler files + 14 sub-packages
+- Go: 41 SQL migrations
+- TS: 27 pages, 78 components, 14 CSS files (~52K LOC)
+- TS: 30+ frontend routes registered in App.tsx
 
-### Our folder structure
-
-```
-stackwatch/
-├── cmd/                          # executables (one per service)
-│   ├── api-gateway/              # HTTP gateway (:8080)
-│   ├── agent/                    # host agent (Linux/Win/Mac)
-│   ├── ingest/                   # metric ingestion (:8081)
-│   ├── alert-engine/             # rule evaluator (:8082)
-│   ├── ai-engine/                # LLM triage (:8083)
-│   ├── web-terminal/             # SSH/RDP bridge (:8085)
-│   ├── proxmox-connector/        # Proxmox API client
-│   ├── truenas-connector/        # TrueNAS API client
-│   ├── remote-access/            # Guacamole + RDP/VNC
-│   ├── server-admin/             # Cockpit parity
-│   ├── container-mgmt/           # Portainer parity
-│   ├── analytics/                # Prometheus + Loki
-│   ├── rmm/                      # Chrome RD + mesh
-│   ├── auth/                     # SSO + 2FA + OAuth
-│   ├── synthetics/               # HTTP/TCP/ping checks
-│   ├── incident/                 # on-call + escalation
-│   ├── notification/             # 15+ channels
-│   ├── audit/                    # audit log central
-│   └── billing/                  # Stripe + Razorpay
-├── internal/                     # shared libraries
-│   ├── auth/                     # JWT, 2FA, OAuth
-│   ├── db/                       # pgx pool + tx
-│   ├── cache/                    # Redis
-│   ├── telemetry/               # OTEL + slog
-│   ├── validation/              # go-playground/validator
-│   ├── middleware/              # gin middleware
-│   ├── errors/                  # error types
-│   ├── client/                  # HTTP clients (Proxmox, TrueNAS, Guacamole)
-│   ├── proto/                   # wire types
-│   └── kernel/                  # shared types (Tenant, User, Pagination)
-├── pkg/                         # public reusable libs
-│   ├── notifier/                # interface + 15 channel impls
-│   ├── parser/                  # log parser, metric extractor
-│   ├── ml/                      # anomaly detection
-│   ├── git/                     # GitHub/GitLab client
-│   └── k8s/                     # K8s client helpers
-├── web/                         # SPA frontend
-│   ├── src/
-│   │   ├── pages/               # one file per page
-│   │   ├── components/          # UI components
-│   │   ├── lib/                 # API client, formatters
-│   │   ├── router/              # SPA routing
-│   │   ├── state/               # state mgmt
-│   │   └── styles/              # CSS modules
-│   ├── dist/                    # gitignored
-│   ├── tests/
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── build.mjs                # esbuild script
-├── migrations/                  # numbered SQL migrations
-├── deploy/                      # systemd, docker, helm
-│   ├── systemd/
-│   ├── docker/
-│   ├── helm/
-│   └── scripts/
-├── tests/                       # integration + e2e
-├── docs/                        # user-facing docs
-│   ├── INSTALL.md
-│   ├── USER-GUIDE.md
-│   ├── ARCHITECTURE.md
-│   ├── TESTING.md
-│   ├── COMPARISON.md
-│   ├── SELL-IT.md
-│   ├── LICENSE.md
-│   └── API.md
-└── .github/workflows/           # CI
-```
-
-### One file = ONE feature
-
-Examples:
-- `pkg/notifier/slack/slack.go` — only Slack notifications
-- `internal/handler/notifier.go` — lists/creates notification channels
-- `cmd/alert-engine/evaluator.go` — only the rule evaluation loop
-- `web/src/pages/servers.js` — only the servers list page
-- `internal/handler/server/proxmox_vm.go` — only Proxmox VM endpoints
-
-No file > 500 lines. No "misc" or "utils" or "helpers" files. If a file is growing, **split**.
-
-### Module rules (enforced by CI)
-
-```yaml
-# .golangci.yml
-linters:
-  - gocyclo   # max cyclomatic complexity 15
-  - dupl      # no duplicate code blocks > 100 lines
-  - gocognit  # cognitive complexity 20
-  - lll       # line length 120
-  - wsl       # whitespace
-  - funlen    # any function > 50 lines
-  - nlreturn  # consistent newlines
-  - nestif    # max if nesting 5
-```
-
-```bash
-# CI step
-go build ./...
-go test ./...
-golangci-lint run
-gofmt -l . | grep -v vendor/    # must be empty
-find . -name "*.go" -exec wc -l {} \; | awk '$1 > 500 { print }'   # must be empty
-```
+### UI design system
+- `web/src/styles/tokens.css` — color/spacing/type/radius/motion tokens
+- `web/src/styles/DESIGN-SYSTEM.md` — documented philosophy + anti-slop checklist
+- `web/src/tokens.ts` — TypeScript mirror (untracked in git)
+- Shared components: StatusPill, KpiCard, EmptyState, TimeSeriesChart, ErrorGroupCard,
+  IncidentCard, ThreatCard, SsoProviderCard, FlameGraph, etc. (~34 files in shared/)
 
 ---
 
-## The 13 TIERS (build order)
+## 2. Gaps found (must address)
 
-| Tier | What | Effort | Replaces |
-|------|------|--------|----------|
-| **0** | **Foundation** | 1 session | - |
-| **1** | Proxmox full replacement | 3-4 sessions | Proxmox UI |
-| **2** | TrueNAS full replacement | 3-4 sessions | TrueNAS UI |
-| **3** | Remote access (RDP/VNC/SSH) | 1-2 sessions | Chrome RD + Termix |
-| **4** | Server admin (Cockpit parity) | 2-3 sessions | Cockpit |
-| **5** | Container management (Portainer + Watchtower) | 2 sessions | Portainer + Watchtower |
-| **6** | Monitoring depth (Prometheus + Grafana + Loki + Netdata) | 3-4 sessions | Netdata + Prom + Grafana + Loki |
-| **7** | Datadog full platform (APM/RUM/Synthetics/Security) | 4-5 sessions | Datadog |
-| **8** | Intelligence & alerting (composite/anomaly/ML/on-call) | 2-3 sessions | PagerDuty |
-| **9** | Security & enterprise (SSO/RBAC/2FA/SOC2) | 2 sessions | - |
-| **10** | Homelab dashboard (Homarr parity) | 1 session | Homarr |
-| **11** | Platform & commerce (billing/tenants/quotas) | 1-2 sessions | - |
-| **12** | Docs & GTM | 1 session | - |
-| **13** | Mobile apps (iOS/Android) | 1 session | - |
+### Backend gaps
+- Tier 15 — **On-Call & SLOs**: schedules, rotations, escalations, SLO/SLI tracking
+- Tier 16 — **K8s + Edge + RBAC**: K8s management, edge agents, per-resource RBAC
+- Tier 17 — **Observability depth**: per-second native, recording rules, federation, Pyroscope, auto-discovery
+- Tier 18 — **Case Mgmt + Runbooks + Integrations marketplace**
+- Tier 19 — **Cost + Cloud SIEM + LLM Obs**
+- Tier 22 — **Service Catalog + Feature Flags + SAST**
+- Tier 23 — **Security hardening**: SQL injection sweep, JWT rotation, audit completeness, RLS enable
 
-**Total: 26-35 sessions.**
+### Frontend / UI gaps (from initial audit)
+- **U1** Old sidebar (`AppSidebar.tsx`) uses emoji chars — already dead code, delete
+- **U4** Topbar has 8 sub-components — verify clean composition
+- **T20** UI consistency pass: every page's button/card/modal/table consistent
 
----
-
-## The VERIFICATION Contract (strict)
-
-For every feature I build:
-
-1. **Code complete** — written, compiles, all tests pass
-2. **Live verify** — I run live tests against a running system, capture results in `tests/output/`
-3. **TESTING.md** — I write a step-by-step guide for YOU to test
-4. **You test** — you run the steps, report errors
-5. **I fix** — I fix only what you reported
-6. **You re-test** — you confirm fix works
-7. **Move on** — only after you say "next"
-
-I never skip step 2. I never claim "done" without fresh test output in the same turn.
+### Repo hygiene
+- **U5** 31 `.bak-*` binaries in `/opt/stackwatch/bin/` + 20+ `tier*-linux-build` in repo root
+- **U6** Working tree dirty (modified, untracked, deleted planning files)
+- **U7** `.specify/memory/constitution.md` is blank template
+- **U8** `ProxmoxWorkspace.tsx` 668 LOC — over 400 cap
+- **U9** 233 handler files — likely many duplicate patterns
 
 ---
 
-## The WORKFLOW Rules
+## 3. Execution plan
 
-### Before any deploy
-- I write the exact command + destination + blast radius
-- I wait for your "go" before executing
-- I never auto-push to GitHub without permission
+### Phase A — Foundation (1-2 sessions)
+| Step | Action | Output | Done |
+|---|---|---|---|
+| A.1 | Full UI consistency audit (every page + component) | `docs/UI-AUDIT-REPORT.md` | ☐ |
+| A.2 | Backend health audit (SQL injection, JWT, audit log, tenant scope) | `docs/BACKEND-AUDIT-REPORT.md` | ☐ |
+| A.3 | Fill `.specify/memory/constitution.md` with quality gates | constitution.md ratified | ☐ |
+| A.4 | Delete `web/src/components/AppSidebar.tsx` (dead code) | file deleted | ☐ |
+| A.5 | Archive `.bak-*` binaries to `archive/binaries-2026-08-31/` | moved | ☐ |
+| A.6 | Commit working tree (modified + untracked + deleted-planning-files decision) | clean HEAD | ☐ |
 
-### Before any commit
-- `go build ./...` passes
-- `go test ./...` passes
-- `gofmt -l .` is empty
-- `golangci-lint run` passes
-- All checks captured in `tests/CI-LOG.md`
+### Phase B — Tier gap-fill (speckit per tier)
 
-### Per module
-- One module per commit
-- Commit message format: `feat(tier-5): add container start/stop handler`
-- Never bundle fixes + features in one commit
+Each tier below = one `.hermes/changes/NNN-tierXX-name/` with proposal → spec → plan →
+tasks → checklist → build → archive workflow.
 
-### Per session
-- MORNING-REPORT.md at end (if overnight)
-- Update PROJECT.md with status + next steps
-- Update journal.md with what happened
+| Order | Tier | Subagent? | Priority |
+|---|---|---|---|
+| 1 | **T20 — UI Consistency Polish** | Yes | High (foundation for everything else) |
+| 2 | **T21 — Modularity Cleanup** | Yes | High (foundation) |
+| 3 | **T15 — On-Call & SLOs** | Yes | Medium |
+| 4 | **T17 — Observability Depth** | Yes | Medium |
+| 5 | **T16 — K8s + Edge + RBAC** | Yes | Medium |
+| 6 | **T18 — Case Mgmt + Runbooks + Integrations** | Yes | Medium |
+| 7 | **T19 — Cost + Cloud SIEM + LLM Obs** | Yes | Low |
+| 8 | **T22 — Service Catalog + Feature Flags + Code Sec** | Yes | Low |
+| 9 | **T23 — Security Hardening** | Yes | Critical (before prod promotion) |
+| 10 | **T24 — Marketing site + Docs refresh** | Yes | Final |
 
----
-
-## DOCS Structure (deliverables)
-
-```
-docs/
-├── INDEX.md                  # user-facing TOC
-├── INSTALL.md                # fresh install (dev + prod)
-├── USER-GUIDE.md            # how to use every feature
-├── ARCHITECTURE.md          # how it works (modular diagram)
-├── TESTING.md               # what's tested, how to test yourself
-├── COMPARISON.md            # vs Datadog/Proxmox/TrueNAS/Portainer/etc.
-├── SELL-IT.md               # reseller guide
-├── LICENSE.md               # AGPL-3
-├── FAQ.md
-├── TROUBLESHOOTING.md
-├── SELF-HOST-GUIDE.md       # how to self-host
-├── SECURITY.md              # security model + runbook
-├── FEATURES.md              # every feature listed
-├── API.md                   # REST API reference
-└── PRICING.md               # pricing tiers
-```
+### Phase C — Verification (live, every tier)
+- 4 back-to-back full-stack verifier runs (fresh JWT per pass)
+- UI: Playwright screenshots vs Datadog/Stripe reference, hard refresh (Ctrl+Shift+R)
+- Backend: every endpoint probed, rate-limiter cycled
+- Browser cache verified cleared before each visual claim
 
 ---
 
-## CURRENT STATE
+## 4. Skill stack (per phase)
 
-**Stage:** Tier 1 Proxmox backend + frontend **complete and live-verified** (2026-08-19)
-**Verified now:** 78/78 checks in each of 4 consecutive fresh live passes against `.115:8080`
-**Last live verification:** Tier 1 — 78/78 PASS × 4; Tier 0 — 82/82 PASS × 4
-**Known out-of-scope issue:** Existing `internal/synthetics` Windows socket test can fail under `go test ./...`; Tier 1 build/vet/format/frontend checks pass
-**Next:** Tier 2 TrueNAS, after explicit user direction
-**Blocked on:** Nothing for Tier 1 release surface
+| Phase | Skills |
+|---|---|
+| Audit | `ui-ux-pro-max` (not installed — fall back to DESIGN-SYSTEM.md), `advanced-debugging-methodology`, `static-verification`, `simplify-code` |
+| Speckit | `spec-driven-development`, `subagent-driven-development` (2-stage review) |
+| Build | `framer-motion`, `popular-web-designs`, `agent-design-intelligence`, `21st.dev` (via tool_search), `tdd-enforcement` (where applicable) |
+| Verify | `verification-first-completion`, `requesting-code-review`, `static-verification` |
+| Custom | `stackwatch-build-deploy`, `ios-platform-backend` |
 
 ---
 
-## RELATED DOCS
+## 5. Universal rules (locked from user directive)
 
-- `MASTER_BUILD_PLAN.md` — full tier-by-tier plan with sub-features
-- `RESEARCH.md` — features of each tool we replace (from research)
-- `MODULARITY_RULES.md` — strict modularity rules
-- `VERIFICATION_CONTRACT.md` — what "done" means
-- `tiers/` — folder containing per-tier break-down
-- `journal.md` — daily session log
-- `errors.md` — every error encountered + fix
-- `decisions.md` — architecture decisions + rationale
-- `state/` — runtime state snapshots
+1. **No emoji as primary UI.** Use SVG icons from `web/src/components/icons.tsx`.
+2. **No hardcoded hex in components.** Use `var(--*)` tokens.
+3. **No file >400 LOC.** Split by domain.
+4. **Every interactive element** has hover + focus + active states.
+5. **KPI cards** use 3px left stripe + tabular-nums on values.
+6. **Status pills** use `StatusPill` shared component (never inline).
+7. **Framer-motion** on every transition (200ms ease-out default).
+8. **Skip-link** at top of every authenticated page.
+9. **Empty states** guide action ("Add your first server" not "No data").
+10. **Loading states** with spinners, not blank space.
+11. **Mobile responsive** at 320px and 1920px.
+12. **Tabular-nums** on all KPI values.
+13. **WCAG AA contrast** (4.5:1 body text).
+
+---
+
+## 6. Deployment discipline (locked from stackwatch-build-deploy skill)
+
+- Build env gotcha: `export GOOS=linux; export GOARCH=amd64; export CGO_ENABLED=0; go build -o ./<local>` — combined form silently fails on Windows
+- ALWAYS `ls -la ./<local>` to confirm binary exists
+- 5-second sleep between heavy tool calls
+- `chmod +x` after every `cp` to /opt/stackwatch/bin/
+- No restart of api-gateway without env sourced (`set -a && . .env && set +a`)
+- Verify with `md5sum /proc/$(pgrep -f 'api-gateway-linux$' | head -1)/exe` to confirm running binary
+- Rate-limit clears on restart (in-memory) — wait 60s between verifier passes
+
+---
+
+## 7. Locked decisions (2026-08-31)
+
+User chose:
+
+| Decision | Value | Meaning |
+|---|---|---|
+| **Tier order** | T20 first | UI consistency polish before anything else |
+| **Plan rhythm** | A1 — one tier fully planned, then next | Slow, careful; user approves each step |
+| **Build trigger** | B3 — after Tier 20 alone | Start building the moment Tier 20 plans are complete |
+
+**Tier sequence (locked):** T20 → T21 → T15 → T17 → T16 → T18 → T19 → T22 → T23 → T24
+
+---
+
+## 8. Persistence + resume
+
+To survive chat loss:
+
+- `PROJECT.md` — this file (master plan)
+- `RESUME.md` — chat-loss-recovery anchor (what's done, what's next, how to resume)
+- `.hermes/changes/NNN-tierXX-name/` — speckit artifacts (proposal/spec/plan/tasks/checklist) per active tier
+- `.hermes/changes/archive/` — completed tiers
+
+If conversation is lost, open `RESUME.md` first.
+
+---
+
+## 9. Speckit workflow (per tier)
+
+For each tier, 5 artifacts in this order:
+
+1. `proposal.md` — Problem + scope + goals + risks + open questions
+2. `spec.md` — FR + NFR + user stories + acceptance criteria
+3. `plan.md` — Architecture + file-by-file + rollback
+4. `tasks.md` — Numbered steps with verification gates
+5. `checklist.md` — Per-feature acceptance ✅/❌
+
+User reviews + approves each before next is written. After all 5 approved
+→ build phase (code → commit → deploy → verify) → archive.
+
+---
+
+**Last updated:** 2026-08-31 (Tier 20 planning started; proposal.md done)
+**Owner:** StackWatch Engineering
