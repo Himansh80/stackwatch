@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
+import Button from '../components/shared/Button';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import NotebookEditor, { Notebook, NotebookCollaborator } from '../components/shared/NotebookEditor';
@@ -173,82 +174,83 @@ export default function NotebookPage() {
   const sharedCount = notebooks.filter((n) => !n.author_id).length;
 
   return (
-        <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
-          {error ? <div className="dash-error" role="alert">{error}</div> : null}
+    <motion.div className="dash-page" initial="hidden" animate="show" variants={pageEnter}>
+      {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
-          <motion.div
-            className="dash-metric-strip"
-            initial="hidden"
-            animate="show"
-            variants={kpiStagger}
-          >
-            <KpiCard
-              label="Total notebooks"
-              value={totalLabel}
-              status={tab === 'all' ? 'up' : 'neutral'}
-              accent={tab === 'all' ? 'cyan' : 'indigo'}
-            />
-            <KpiCard
-              label="My notebooks (this view)"
-              value={myCount}
-              status="up"
-              accent="green"
-            />
-            <KpiCard
-              label="Shared with me (this view)"
-              value={sharedCount}
-              status="neutral"
-              accent="amber"
-            />
-          </motion.div>
+      <motion.div
+        className="dash-metric-strip"
+        initial="hidden"
+        animate="show"
+        variants={kpiStagger}
+      >
+        <KpiCard
+          label="Total notebooks"
+          value={totalLabel}
+          status={tab === 'all' ? 'up' : 'neutral'}
+          accent={tab === 'all' ? 'cyan' : 'indigo'}
+        />
+        <KpiCard
+          label="My notebooks (this view)"
+          value={myCount}
+          status="up"
+          accent="green"
+        />
+        <KpiCard
+          label="Shared with me (this view)"
+          value={sharedCount}
+          status="neutral"
+          accent="amber"
+        />
+      </motion.div>
 
-          <section className="dash-section">
-            <span className="dash-eyebrow">Notebooks</span>
-            <h2 className="dash-section-title">
-              {tab === 'mine' ? 'Notebooks you own' : tab === 'shared' ? 'Notebooks shared with you' : 'All notebooks in this tenant'}
-            </h2>
-            {notebooks.length === 0 ? (
-              <EmptyState
-                illustration={<span style={{ fontSize: 36 }}>◰</span>}
-                headline={tab === 'mine' ? 'You have no notebooks yet' : tab === 'shared' ? 'No notebooks are shared with you' : 'No notebooks in this tenant'}
-                subhead="Notebooks are collaborative markdown runbooks. Use the + New notebook button above to create your first one, then share it with teammates via the editor."
-              />
-            ) : (
-              <div className="threat-card-list">
-                {notebooks.map((nb) => (
-                  <button
-                    key={nb.id}
-                    type="button"
-                    className="threat-card threat-card-clickable"
-                    onClick={() => void openEditor(nb)}
-                    aria-label={`Open ${nb.title}`}
-                  >
-                    <div className="threat-card-top">
-                      <StatusPill
-                                              status="unknown"
-                                              label={tab === 'mine' ? 'owner' : tab === 'shared' ? 'shared' : 'tenant'}
-                                              size="sm"
-                                            />
-                      <strong className="threat-card-type">{nb.title || 'Untitled notebook'}</strong>
-                      <span className="threat-card-time" title={nb.last_edited_at}>
-                        {nb.last_edited_at ? new Date(nb.last_edited_at).toLocaleString() : '—'}
-                      </span>
-                    </div>
-                    <p className="threat-card-desc">
-                      {(nb.content || '').split('\n').slice(0, 3).join(' ').slice(0, 220) || 'No content yet — click to start writing.'}
-                    </p>
-                    <div className="threat-card-meta">
-                      <span className="threat-card-meta-pill">
-                        <span className="threat-card-meta-label">author</span>
-                        <code>{nb.author_id ? `${nb.author_id.slice(0, 8)}…` : '—'}</code>
-                      </span>
-                      <span className="threat-card-resolve-btn">Open editor →</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-        </motion.div>
+      <section className="dash-section">
+        <span className="dash-eyebrow">Notebooks</span>
+        <h2 className="dash-section-title">
+          {tab === 'mine' ? 'Notebooks you own' : tab === 'shared' ? 'Notebooks shared with you' : 'All notebooks in this tenant'}
+        </h2>
+        {notebooks.length === 0 ? (
+          <EmptyState
+            illustration={<span style={{ fontSize: 36 }}>◰</span>}
+            headline={tab === 'mine' ? 'You have no notebooks yet' : tab === 'shared' ? 'No notebooks are shared with you' : 'No notebooks in this tenant'}
+            subhead="Notebooks are collaborative markdown runbooks. Use the + New notebook button above to create your first one, then share it with teammates via the editor."
+          />
+        ) : (
+          <div className="threat-card-list">
+            {notebooks.map((nb) => (
+              <Button
+                key={nb.id}
+                type="button"
+                variant="ghost"
+                onClick={() => void openEditor(nb)}
+                aria-label={`Open ${nb.title}`}
+                className="threat-card threat-card-clickable"
+              >
+                <div className="threat-card-top">
+                  <StatusPill
+                    status="unknown"
+                    label={tab === 'mine' ? 'owner' : tab === 'shared' ? 'shared' : 'tenant'}
+                    size="sm"
+                  />
+                  <strong className="threat-card-type">{nb.title || 'Untitled notebook'}</strong>
+                  <span className="threat-card-time" title={nb.last_edited_at}>
+                    {nb.last_edited_at ? new Date(nb.last_edited_at).toLocaleString() : '—'}
+                  </span>
+                </div>
+                <p className="threat-card-desc">
+                  {(nb.content || '').split('\n').slice(0, 3).join(' ').slice(0, 220) || 'No content yet — click to start writing.'}
+                </p>
+                <div className="threat-card-meta">
+                  <span className="threat-card-meta-pill">
+                    <span className="threat-card-meta-label">author</span>
+                    <code>{nb.author_id ? `${nb.author_id.slice(0, 8)}…` : '—'}</code>
+                  </span>
+                  <span className="threat-card-resolve-btn">Open editor →</span>
+                </div>
+              </Button>
+            ))}
+          </div>
+        )}
+      </section>
+    </motion.div>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
+import Button from '../components/shared/Button';
 import SsoSection from '../components/SsoSection';
 import type { SsoProviderRow } from '../components/shared/SsoProviderCard';
 import ScimSection from '../components/ScimSection';
@@ -230,16 +231,18 @@ export default function EnterprisePage() {
           <div className="logs-tabs" role="tablist" style={{ marginTop: 16 }}>
             {(['sso', 'scim', 'rbac', 'audit', 'compliance', 'orgs'] as Tab[]).map(
               (t) => (
-                <button
+                <Button
                   key={t}
                   role="tab"
                   type="button"
+                  size="sm"
+                  variant={tab === t ? 'primary' : 'ghost'}
                   aria-selected={tab === t}
                   className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
                   onClick={() => setTab(t)}
                 >
                   {TAB_LABELS[t]}
-                </button>
+                </Button>
               ),
             )}
           </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
+import Button from '../components/shared/Button';
 import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
 import StatusPill from '../components/shared/StatusPill';
@@ -138,33 +139,39 @@ export default function RumFullPage() {
                     <th>Session</th>
                     <th>URL</th>
                     <th>
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
+                        variant="ghost"
                         className="sw-button"
                         onClick={() => setSessionSort('last_seen')}
                       >
                         Last seen
-                      </button>
+                      </Button>
                     </th>
                     <th>
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
+                        variant="ghost"
                         className="sw-button"
                         onClick={() => setSessionSort('page_views')}
                       >
                         Views
-                      </button>
+                      </Button>
                     </th>
                     <th>Resources</th>
                     <th>Vitals</th>
                     <th>
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
+                        variant="ghost"
                         className="sw-button"
                         onClick={() => setSessionSort('errors')}
                       >
                         Errors
-                      </button>
+                      </Button>
                     </th>
                   </tr>
                 </thead>

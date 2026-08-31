@@ -4,6 +4,7 @@ import AnomaliesSection from '../components/AnomaliesSection';
 import { AnomalyEvent } from '../components/shared/AnomalyChart';
 import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
+import Button from '../components/shared/Button';
 import PredictiveAlertsSection, {
   PredictiveAlert,
 } from '../components/PredictiveAlertsSection';
@@ -246,10 +247,12 @@ export default function IntelligencePage() {
           <div className="logs-tabs" role="tablist" style={{ marginTop: 16 }}>
             {(['anomalies', 'predictions', 'correlations', 'noise'] as Tab[]).map(
               (t) => (
-                <button
+                <Button
                   key={t}
                   role="tab"
                   type="button"
+                  size="sm"
+                  variant={tab === t ? 'primary' : 'ghost'}
                   aria-selected={tab === t}
                   className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
                   onClick={() => setTab(t)}
@@ -269,7 +272,7 @@ export default function IntelligencePage() {
                     label={TAB_LABELS[t]}
                     size="sm"
                   />
-                </button>
+                </Button>
               ),
             )}
           </div>

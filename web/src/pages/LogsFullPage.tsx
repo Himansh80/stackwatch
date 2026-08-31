@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
+import Button from '../components/shared/Button';
 import LogSearchTab from '../components/logs/LogSearchTab';
 import LogMonitorsTab, { LogMonitor } from '../components/logs/LogMonitorsTab';
 import LogArchivesTab, { LogArchive, LogRehydration } from '../components/logs/LogArchivesTab';
@@ -154,10 +155,12 @@ export default function LogsFullPage() {
 
           <div className="logs-tabs" role="tablist" style={{ marginTop: 16 }}>
             {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
-              <button
+              <Button
                 key={t}
                 role="tab"
                 type="button"
+                size="sm"
+                variant={tab === t ? 'primary' : 'ghost'}
                 aria-selected={tab === t}
                 className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
                 onClick={() => setTab(t)}
@@ -174,7 +177,7 @@ export default function LogsFullPage() {
                   label={TAB_LABELS[t]}
                   size="sm"
                 />
-              </button>
+              </Button>
             ))}
           </div>
 

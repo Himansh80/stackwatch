@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ApiError, api, getToken } from '../lib/api';
 import { useLogout } from '../lib/useLogout';
+import Button from '../components/shared/Button';
 import {
   VitalsTab,
   InteractionsTab,
@@ -123,16 +124,18 @@ export default function RumSessionPage() {
 
           <div className="logs-tabs" role="tablist">
             {(['resources', 'vitals', 'interactions', 'errors'] as Tab[]).map((t) => (
-              <button
+              <Button
                 key={t}
                 role="tab"
                 type="button"
+                size="sm"
+                variant={tab === t ? 'primary' : 'ghost'}
                 aria-selected={tab === t}
                 className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
                 onClick={() => setTab(t)}
               >
                 {t}
-              </button>
+              </Button>
             ))}
           </div>
 

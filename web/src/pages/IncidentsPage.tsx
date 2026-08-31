@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
+import Button from '../components/shared/Button';
 import EmptyState from '../components/shared/EmptyState';
 import IncidentCard, { Incident } from '../components/shared/IncidentCard';
 import KpiCard from '../components/shared/KpiCard';
+import Select from '../components/shared/Select';
 import StatusPill from '../components/shared/StatusPill';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, pageEnter, kpiStagger, useReducedMotion } from '../lib/motion';
@@ -198,9 +200,12 @@ export default function IncidentsPage() {
 
           <div className="synth-filter-row inc-tabs">
             {(['open', 'acknowledged', 'resolved', 'all'] as Tab[]).map((t) => (
-              <button
+              <Button
                 key={t}
                 type="button"
+                size="sm"
+                variant={tab === t ? 'primary' : 'ghost'}
+                aria-selected={tab === t}
                 className={`inc-tab ${tab === t ? 'active' : ''}`}
                 onClick={() => setTab(t)}
               >
@@ -212,7 +217,7 @@ export default function IncidentsPage() {
                 <span className="inc-tab-count">
                   {t === 'open' ? openKpiValue : t === 'acknowledged' ? counts.ack : t === 'resolved' ? counts.resolved : incidents.length}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -222,19 +227,19 @@ export default function IncidentsPage() {
               {tab === 'all' ? 'All incidents' : `${tab.charAt(0).toUpperCase()}${tab.slice(1)} incidents`}
             </h2>
             <div className="synth-filter-row">
-              <label>
-                <span>Severity</span>
-                <select
-                  value={sevFilter}
-                  onChange={(e) => setSevFilter(e.target.value as SeverityFilter)}
-                >
-                  <option value="all">All</option>
-                  <option value="sev1">SEV1</option>
-                  <option value="sev2">SEV2</option>
-                  <option value="sev3">SEV3</option>
-                  <option value="sev4">SEV4</option>
-                </select>
-              </label>
+              <Select
+                label="Severity"
+                size="sm"
+                value={sevFilter}
+                onChange={(e) => setSevFilter(e.target.value as SeverityFilter)}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'sev1', label: 'SEV1' },
+                  { value: 'sev2', label: 'SEV2' },
+                  { value: 'sev3', label: 'SEV3' },
+                  { value: 'sev4', label: 'SEV4' },
+                ]}
+              />
             </div>
             {incidents.length === 0 ? (
               <EmptyState
