@@ -45,6 +45,7 @@ import ProxmoxUserTokens from './components/proxmox/ProxmoxUserTokens';
 import ProxmoxPools from './components/proxmox/ProxmoxPools';
 import ProxmoxTasksPanel from './components/proxmox/ProxmoxTasksPanel';
 import ProxmoxBackupJobs from './components/proxmox/ProxmoxBackupJobs';
+import StyleGuide from './pages/StyleGuide';
 import { useAuthState } from './lib/useAuthState';
 
 /**
@@ -108,7 +109,9 @@ export default function App() {
       <Route path="/enterprise" element={isLoggedIn ? auth(EnterprisePage, {}) : <Navigate to="/login" replace />} />
       <Route path="/homelab" element={isLoggedIn ? auth(HomelabPage, {}) : <Navigate to="/login" replace />} />
       <Route path="/platform" element={isLoggedIn ? auth(PlatformPage, {}) : <Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Tier 20 — StyleGuide (unlisted from sidebar, accessible via direct URL) */}
+            <Route path="/style-guide" element={isLoggedIn ? auth(StyleGuide, {}) : <Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

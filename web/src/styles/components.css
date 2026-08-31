@@ -874,3 +874,240 @@ body:has(.modal-backdrop) {
   color: var(--color-text-muted);
   line-height: var(--leading-tight);
 }
+
+/* ============================================================
+ * Tier 20 — StyleGuide page
+ * ============================================================ */
+
+.style-guide {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8);
+}
+
+.sg-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-12);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.sg-page-title {
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: var(--space-2) 0;
+}
+
+.sg-page-sub {
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 640px;
+}
+
+.sg-section {
+  margin-bottom: var(--space-12);
+}
+
+.sg-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sg-section-number {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.sg-section-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.sg-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Section 1: Colors */
+.sg-color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.sg-swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sg-swatch-chip {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.sg-swatch-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sg-swatch-token {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sg-swatch-name {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+/* Section 2: Typography */
+.sg-text-samples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.sg-text-sample {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sg-text-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Section 3: Spacing */
+.sg-spacing-samples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.sg-spacing-sample {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.sg-spacing-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  min-width: 120px;
+}
+
+.sg-spacing-bar {
+  border-radius: var(--radius-sm);
+}
+
+/* Section 4-6: Buttons / Modals / Tables */
+.sg-button-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* Section 7: Inputs */
+.sg-input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* Section 8: Status pills */
+.sg-status-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.sg-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sg-status-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  min-width: 80px;
+}
+
+/* Section 9: KPI cards */
+.sg-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Section 11: Loading */
+.sg-loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.sg-loading-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sg-loading-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
