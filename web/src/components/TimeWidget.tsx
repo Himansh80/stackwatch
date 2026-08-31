@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatClock, formatDayLabel } from '../lib/clock';
+import Button from './shared/Button';
 
 // Indian public + popular optional holidays for 2026.
 // Source: official Government of India list (gazetted) plus
@@ -93,9 +94,11 @@ export default function TimeWidget({ country = 'IN' }: TimeWidgetProps) {
 
   return (
     <div className="tw-wrapper">
-      <button
+      <Button
         ref={triggerRef}
         type="button"
+        variant="ghost"
+        size="md"
         className="dash-topbar-clock dash-topbar-clock-clickable"
         title={`Click to expand - ${fullDate}`}
         aria-haspopup="dialog"
@@ -104,7 +107,7 @@ export default function TimeWidget({ country = 'IN' }: TimeWidgetProps) {
       >
         <span className="dash-topbar-clock-time">{formatClock(now)}</span>
         <span className="dash-topbar-clock-day">{formatDayLabel(now).split(',')[0]}</span>
-      </button>
+      </Button>
       {open && (
         <div
           ref={popoverRef}

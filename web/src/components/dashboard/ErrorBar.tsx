@@ -15,6 +15,7 @@
  */
 import { useNavigate } from 'react-router-dom';
 import { clearToken } from '../../lib/api';
+import Button from '../shared/Button';
 
 interface ErrorBarProps {
   error: string;
@@ -30,15 +31,16 @@ export default function ErrorBar({ error, onRetry }: ErrorBarProps) {
         <span className="dash-error-icon" aria-hidden="true">!</span>
         <strong>Sign in again</strong>
         <span>Your session ended. Sign back in to load live infrastructure data.</span>
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => {
             clearToken();
             nav('/login');
           }}
         >
           Sign in
-        </button>
+        </Button>
       </div>
     );
   }
@@ -47,9 +49,9 @@ export default function ErrorBar({ error, onRetry }: ErrorBarProps) {
       <span className="dash-error-icon" aria-hidden="true">!</span>
       <strong>Live data unavailable</strong>
       <span>{error}</span>
-      <button type="button" onClick={onRetry}>
+      <Button variant="primary" size="sm" onClick={onRetry}>
         Retry
-      </button>
+      </Button>
     </div>
   );
 }

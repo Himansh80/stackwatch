@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLogout } from '../lib/useLogout';
+import Button from './shared/Button';
 
 type MenuItem = {
   label: string;
@@ -81,9 +82,11 @@ export default function ProfileMenu({ firstName, fullName, tenantName, initials,
 
   return (
     <div className="dash-menu-wrap" ref={wrapRef}>
-      <button
+      <Button
         ref={buttonRef}
         type="button"
+        variant="ghost"
+        size="md"
         className="dash-user-link"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -94,7 +97,7 @@ export default function ProfileMenu({ firstName, fullName, tenantName, initials,
           {avatarUrl ? <img src={avatarUrl} alt="" /> : initials}
         </span>
         <span className={`dash-menu-caret ${open ? 'open' : ''}`} aria-hidden>▾</span>
-      </button>
+      </Button>
       {open && (
         <div className="dash-menu" role="menu" aria-label="Profile">
           <div className="dash-menu-header">
@@ -115,13 +118,13 @@ export default function ProfileMenu({ firstName, fullName, tenantName, initials,
                   if (item.onClick) {
                     return (
                       <li key={item.label}>
-                        <button type="button" role="menuitem" className={className} onClick={() => { close(); item.onClick!(); }}>
+                        <Button type="button" variant={item.danger ? 'danger' : 'ghost'} size="md" role="menuitem" className={className} onClick={() => { close(); item.onClick!(); }}>
                           <span className="dash-menu-icon" aria-hidden>{item.icon}</span>
                           <span className="dash-menu-text">
                             <strong>{item.label}</strong>
                             <small>{item.description}</small>
                           </span>
-                        </button>
+                        </Button>
                       </li>
                     );
                   }

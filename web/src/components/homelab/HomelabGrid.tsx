@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../../lib/api';
 import { motion, pageEnter } from '../../lib/motion';
+import Button from '../shared/Button';
 
 /**
  * HomelabGrid — Tier 10 Phase 1 (H1 — Widget Framework).
@@ -219,9 +220,9 @@ export default function HomelabGrid({ onLayoutSaved, onError, autoSave = true }:
 
       {!autoSave ? (
         <div className="homelab-grid-actions">
-          <button type="button" className="empty-state-cta" onClick={() => void saveLayout()} disabled={!dirty || saving}>
+          <Button variant="primary" size="md" loading={saving} disabled={!dirty || saving} onClick={() => void saveLayout()}>
             {saving ? 'Saving…' : 'Save layout'}
-          </button>
+          </Button>
         </div>
       ) : null}
     </motion.div>
