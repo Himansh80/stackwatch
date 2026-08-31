@@ -676,3 +676,113 @@ body:has(.modal-backdrop) {
   top: 0;
   z-index: 1;
 }
+
+/* ============================================================
+ * Tier 20 — Input / Select / Textarea (shared)
+ * Spec §3.4. Label + description + error pattern.
+ * ============================================================ */
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.input-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.input-required {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-tight);
+  transition:
+    border-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.input::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.input:hover:not(:disabled) {
+  border-color: var(--color-border-focus);
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px var(--color-border-focus);
+}
+
+.input:disabled,
+.input[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-sm {
+  height: 32px;
+  font-size: var(--text-sm);
+}
+
+.input-full {
+  width: 100%;
+}
+
+.input-error,
+.input-error:hover {
+  border-color: var(--color-error);
+}
+.input-error:focus-visible {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px var(--color-error-muted);
+}
+
+.input-description-text {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.input-error-text {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+}
+
+/* Select — native arrow via background-image */
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: var(--space-8);
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  background-size: 12px;
+}
+
+/* Textarea */
+.textarea {
+  height: auto;
+  min-height: 80px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  font-family: var(--font-sans);
+}
