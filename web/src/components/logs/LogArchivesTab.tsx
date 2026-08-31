@@ -1,5 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { ApiError, api } from '../../lib/api';
+import Button from '../shared/Button';
+import Input from '../shared/Input';
+import Select from '../shared/Select';
 
 export interface LogArchive {
   id: string;
@@ -26,6 +29,13 @@ interface LogArchivesTabProps {
   onChanged: () => void | Promise<void>;
   setError: (msg: string) => void;
 }
+
+const DESTINATION_OPTIONS = [
+  { value: 's3', label: 'S3' },
+  { value: 'gcs', label: 'GCS' },
+  { value: 'azure', label: 'Azure' },
+  { value: 'local', label: 'Local' },
+];
 
 export default function LogArchivesTab({ archives, rehydrations, onChanged, setError }: LogArchivesTabProps) {
   const [archForm, setArchForm] = useState({ name: '', destination_type: 's3', bucket: '', region: '', path: '' });
@@ -83,43 +93,53 @@ export default function LogArchivesTab({ archives, rehydrations, onChanged, setE
         <span className="dash-eyebrow">New archive</span>
         <h2 className="dash-section-title">Create an archive destination</h2>
         <form className="log-archive-form" onSubmit={submit}>
-          <label>
-            <span>Name</span>
-            <input type="text" value={archForm.name} onChange={(e) => setArchForm({ ...archForm, name: e.target.value })} maxLength={128} required />
-          </label>
-          <label>
-            <span>Destination</span>
-            <select value={archForm.destination_type} onChange={(e) => setArchForm({ ...archForm, destination_type: e.target.value })}>
-              <option value="s3">S3</option>
-              <option value="gcs">GCS</option>
-              <option value="azure">Azure</option>
-              <option value="local">Local</option>
-            </select>
-          </label>
+          <Input
+            label="Name"
+            type="text"
+            value={archForm.name}
+            onChange={(e) => setArchForm({ ...archForm, name: e.target.value })}
+            maxLength={128}
+            required
+          />
+          <Select
+            label="Destination"
+            value={archForm.destination_type}
+            onChange={(e) => setArchForm({ ...archForm, destination_type: e.target.value })}
+            options={DESTINATION_OPTIONS}
+          />
           {archForm.destination_type === 'local' ? (
-            <label>
-              <span>Path</span>
-              <input type="text" value={archForm.path} onChange={(e) => setArchForm({ ...archForm, path: e.target.value })} placeholder="/srv/log-archive" />
-            </label>
+            <Input
+              label="Path"
+              type="text"
+              value={archForm.path}
+              onChange={(e) => setArchForm({ ...archForm, path: e.target.value })}
+              placeholder="/srv/log-archive"
+            />
           ) : (
             <>
-              <label>
-                <span>Bucket</span>
-                <input type="text" value={archForm.bucket} onChange={(e) => setArchForm({ ...archForm, bucket: e.target.value })} placeholder="my-bucket" />
-              </label>
+              <Input
+                label="Bucket"
+                type="text"
+                value={archForm.bucket}
+                onChange={(e) => setArchForm({ ...archForm, bucket: e.target.value })}
+                placeholder="my-bucket"
+              />
               {archForm.destination_type === 's3' ? (
-                <label>
-                  <span>Region</span>
-                  <input type="text" value={archForm.region} onChange={(e) => setArchForm({ ...archForm, region: e.target.value })} placeholder="us-east-1" />
-                </label>
+                <Input
+                  label="Region"
+                  type="text"
+                  value={archForm.region}
+                  onChange={(e) => setArchForm({ ...archForm, region: e.target.value })}
+                  placeholder="us-east-1"
+                />
               ) : null}
             </>
           )}
           {err ? <p className="apm-form-error">{err}</p> : null}
           <div className="apm-form-actions">
-            <button type="submit" className="sw-button sw-button-primary" disabled={busy}>
+            <Button type="submit" variant="primary" loading={busy}>
               {busy ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           </div>
         </form>
       </section>
@@ -135,22 +155,36 @@ export default function LogArchivesTab({ archives, rehydrations, onChanged, setE
               <div key={a.id} className="log-archive-card">
                 <strong>{a.name}</strong>
                 <span className="log-archive-type">{a.destination_type}</span>
-                <button type="button" className="sw-button" onClick={() => setOpenFor(openFor === a.id ? null : a.id)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setOpenFor(openFor === a.id ? null : a.id)}
+                >
                   {openFor === a.id ? 'Cancel' : 'Rehydrate'}
-                </button>
+                </Button>
                 {openFor === a.id ? (
                   <div className="log-rehydrate-form">
-                    <label>
-                      <span>Start</span>
-                      <input type="datetime-local" value={range.start} onChange={(e) => setRange({ ...range, start: e.target.value })} />
-                    </label>
-                    <label>
-                      <span>End</span>
-                      <input type="datetime-local" value={range.end} onChange={(e) => setRange({ ...range, end: e.target.value })} />
-                    </label>
-                    <button type="button" className="sw-button sw-button-primary" onClick={() => void rehydrate(a)}>
+                    <Input
+                      label="Start"
+                      type="datetime-local"
+                      value={range.start}
+                      onChange={(e) => setRange({ ...range, start: e.target.value })}
+                    />
+                    <Input
+                      label="End"
+                      type="datetime-local"
+                      value={range.end}
+                      onChange={(e) => setRange({ ...range, end: e.target.value })}
+                    />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => void rehydrate(a)}
+                    >
                       Queue rehydration
-                    </button>
+                    </Button>
                   </div>
                 ) : null}
               </div>

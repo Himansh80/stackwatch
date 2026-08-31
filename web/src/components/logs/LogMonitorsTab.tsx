@@ -1,5 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { ApiError, api } from '../../lib/api';
+import Button from '../shared/Button';
+import Input from '../shared/Input';
+import Select from '../shared/Select';
 
 export interface LogMonitor {
   id: string;
@@ -17,6 +20,12 @@ interface LogMonitorsTabProps {
   onChanged: () => void | Promise<void>;
   setError: (msg: string) => void;
 }
+
+const SEVERITY_OPTIONS = [
+  { value: 'warn', label: 'warn' },
+  { value: 'error', label: 'error' },
+  { value: 'info', label: 'info' },
+];
 
 export default function LogMonitorsTab({ monitors, onChanged, setError }: LogMonitorsTabProps) {
   const [monForm, setMonForm] = useState({ name: '', query: '', threshold_count: 10, threshold_window_seconds: 300, severity: 'warn' });
@@ -73,35 +82,49 @@ export default function LogMonitorsTab({ monitors, onChanged, setError }: LogMon
         <span className="dash-eyebrow">New monitor</span>
         <h2 className="dash-section-title">Create a log monitor</h2>
         <form className="log-monitor-form" onSubmit={submit}>
-          <label>
-            <span>Name</span>
-            <input type="text" value={monForm.name} onChange={(e) => setMonForm({ ...monForm, name: e.target.value })} placeholder="error-spike" maxLength={128} required />
-          </label>
-          <label>
-            <span>Query</span>
-            <input type="text" value={monForm.query} onChange={(e) => setMonForm({ ...monForm, query: e.target.value })} placeholder="level=error service=api" maxLength={1024} required />
-          </label>
-          <label>
-            <span>Threshold count</span>
-            <input type="number" min={1} value={monForm.threshold_count} onChange={(e) => setMonForm({ ...monForm, threshold_count: Number(e.target.value) })} />
-          </label>
-          <label>
-            <span>Window (seconds)</span>
-            <input type="number" min={10} value={monForm.threshold_window_seconds} onChange={(e) => setMonForm({ ...monForm, threshold_window_seconds: Number(e.target.value) })} />
-          </label>
-          <label>
-            <span>Severity</span>
-            <select value={monForm.severity} onChange={(e) => setMonForm({ ...monForm, severity: e.target.value })}>
-              <option value="warn">warn</option>
-              <option value="error">error</option>
-              <option value="info">info</option>
-            </select>
-          </label>
+          <Input
+            label="Name"
+            type="text"
+            value={monForm.name}
+            onChange={(e) => setMonForm({ ...monForm, name: e.target.value })}
+            placeholder="error-spike"
+            maxLength={128}
+            required
+          />
+          <Input
+            label="Query"
+            type="text"
+            value={monForm.query}
+            onChange={(e) => setMonForm({ ...monForm, query: e.target.value })}
+            placeholder="level=error service=api"
+            maxLength={1024}
+            required
+          />
+          <Input
+            label="Threshold count"
+            type="number"
+            min={1}
+            value={monForm.threshold_count}
+            onChange={(e) => setMonForm({ ...monForm, threshold_count: Number(e.target.value) })}
+          />
+          <Input
+            label="Window (seconds)"
+            type="number"
+            min={10}
+            value={monForm.threshold_window_seconds}
+            onChange={(e) => setMonForm({ ...monForm, threshold_window_seconds: Number(e.target.value) })}
+          />
+          <Select
+            label="Severity"
+            value={monForm.severity}
+            onChange={(e) => setMonForm({ ...monForm, severity: e.target.value })}
+            options={SEVERITY_OPTIONS}
+          />
           {err ? <p className="apm-form-error">{err}</p> : null}
           <div className="apm-form-actions">
-            <button type="submit" className="sw-button sw-button-primary" disabled={busy}>
+            <Button type="submit" variant="primary" loading={busy}>
               {busy ? 'Creating…' : 'Create'}
-            </button>
+            </Button>
           </div>
         </form>
       </section>
@@ -123,14 +146,14 @@ export default function LogMonitorsTab({ monitors, onChanged, setError }: LogMon
                   <td>{m.threshold_count} / {m.threshold_window_seconds}s</td>
                   <td>{m.severity}</td>
                   <td>
-                    <button type="button" className="sw-button" onClick={() => void toggle(m)}>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => void toggle(m)}>
                       {m.enabled ? 'Disable' : 'Enable'}
-                    </button>
+                    </Button>
                   </td>
                   <td>
-                    <button type="button" className="sw-button sw-button-danger" onClick={() => void remove(m)}>
+                    <Button type="button" variant="danger" size="sm" onClick={() => void remove(m)}>
                       Delete
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
