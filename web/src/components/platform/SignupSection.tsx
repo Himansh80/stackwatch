@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, setToken } from '../../lib/api';
 import PasswordInput from '../../components/PasswordInput';
+import Button from '../shared/Button';
 import {
   motion,
   pageEnter,
@@ -252,9 +253,9 @@ export default function SignupSection() {
             />
           </div>
 
-          <button type="submit" className="signup-submit" disabled={busy}>
+          <Button type="submit" variant="primary" size="md" disabled={busy} className="signup-submit">
             {busy ? 'Creating account…' : 'Create account'}
-          </button>
+          </Button>
           <p className="signup-meta">
             Already have an account? <a href="/login">Sign in</a>
           </p>
@@ -281,31 +282,35 @@ export default function SignupSection() {
             />
           </label>
           <div className="signup-verify-actions">
-            <button type="submit" className="signup-submit" disabled={busy || token.length < 16}>
-              {busy ? 'Verifying…' : 'Verify and sign in'}
-            </button>
-            <button
+            <Button type="submit" variant="primary" size="md" disabled={busy || token.length < 16} className="signup-submit">
+            {busy ? 'Verifying…' : 'Verify and sign in'}
+          </Button>
+            <Button
               type="button"
-              className="signup-resend"
+              variant="secondary"
+              size="md"
               onClick={resendVerification}
               disabled={resendBusy}
+              className="signup-resend"
             >
               {resendBusy ? 'Resending…' : 'Resend token'}
-            </button>
+            </Button>
           </div>
           {resendOk && (
             <p className="signup-meta signup-meta-ok" role="status">
               A new token has been issued. Check your inbox (or the dev-mode response).
             </p>
           )}
-          <button
+          <Button
             type="button"
-            className="signup-back"
+            variant="ghost"
+            size="md"
             onClick={() => setStep('form')}
             disabled={busy}
+            className="signup-back"
           >
             ← Back
-          </button>
+          </Button>
         </form>
       )}
 
@@ -323,20 +328,24 @@ export default function SignupSection() {
             We&apos;ve signed you in as <strong>{form.email}</strong>.
           </p>
           <div className="signup-welcome-actions">
-            <button
+            <Button
               type="button"
-              className="signup-submit"
+              variant="primary"
+              size="md"
               onClick={() => navigate('/dashboard')}
+              className="signup-submit"
             >
               Go to dashboard
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="signup-resend"
+              variant="secondary"
+              size="md"
               onClick={resetWizard}
+              className="signup-resend"
             >
               Sign up another
-            </button>
+            </Button>
           </div>
         </motion.div>
       )}

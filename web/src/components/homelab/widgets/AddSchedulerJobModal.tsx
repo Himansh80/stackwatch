@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { ApiError } from '../../../lib/api';
+import Button from '../../shared/Button';
+import Input from '../../shared/Input';
+import Modal from '../../shared/Modal';
+import Select from '../../shared/Select';
+import Textarea from '../../shared/Textarea';
 import {
   SCHEDULER_ACTION_KINDS,
   SCHEDULER_CONTENT_TYPES,
@@ -28,6 +33,11 @@ import {
  *
  * Validation runs server-side; this component reflects the
  * API error in a friendly message.
+ *
+ * Tier 20 Phase E: refactored to use shared Button/Modal/Input/Select/
+ * Textarea primitives. Custom homelab-modal-backdrop/homelab-search-input
+ * markup and empty-state-cta buttons are gone — the file is now shorter
+ * and uses the dashboard's shared form primitives.
  */
 
 interface AddSchedulerJobModalProps {
@@ -89,204 +99,146 @@ export default function AddSchedulerJobModal({
   // Suppress unused import warning while keeping the import
   // for future API-error surface updates.
   void setLocalError;
-  void setLocalError;
 
   return (
-    <div
-      className="homelab-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        className="homelab-modal-panel"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--surface-2)',
-          borderRadius: 8,
-          padding: 24,
-          minWidth: 420,
-          maxWidth: 560,
-          width: '95%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>New scheduled job</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Name</span>
-            <input
-              type="text"
-              className="homelab-search-input"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Garage door ping"
-              maxLength={100}
+    <Modal open onClose={onClose} title="New scheduled job" size="md">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Input
+          label="Name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="Garage door ping"
+          maxLength={100}
+          required
+          fullWidth
+        />
+        <Select
+          label="Action"
+          value={form.action_kind}
+          onChange={(e) => {
+            const ak = e.target.value as typeof form.action_kind;
+            const method = ak === 'http_post' ? 'POST' : 'GET';
+            setForm({ ...form, action_kind: ak, method });
+          }}
+          options={SCHEDULER_ACTION_KINDS.map((a) => ({ value: a, label: a }))}
+          fullWidth
+        />
+        <Input
+          label="URL"
+          type="url"
+          value={form.url}
+          onChange={(e) => setForm({ ...form, url: e.target.value })}
+          placeholder="https://probe.example.com/heartbeat"
+          description="Public endpoints only — private/loopback addresses are rejected."
+          fullWidth
+        />
+        {form.action_kind === 'http_post' && (
+          <>
+            <Select
+              label="Content-Type"
+              value={form.contentType}
+              onChange={(e) => setForm({ ...form, contentType: e.target.value })}
+              options={SCHEDULER_CONTENT_TYPES.map((c) => ({ value: c, label: c }))}
+              fullWidth
             />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Action</span>
-            <select
-              className="homelab-search-input"
-              value={form.action_kind}
-              onChange={(e) => {
-                const ak = e.target.value as typeof form.action_kind;
-                const method = ak === 'http_post' ? 'POST' : 'GET';
-                setForm({ ...form, action_kind: ak, method });
-              }}
-            >
-              {SCHEDULER_ACTION_KINDS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>URL</span>
-            <input
-              type="url"
-              className="homelab-search-input"
-              value={form.url}
-              onChange={(e) => setForm({ ...form, url: e.target.value })}
-              placeholder="https://probe.example.com/heartbeat"
+            <Textarea
+              label="Body"
+              value={form.body}
+              onChange={(e) => setForm({ ...form, body: e.target.value })}
+              placeholder='{"event":"ping"}'
+              rows={4}
+              maxLength={SCHEDULER_MAX_BODY_BYTES}
+              description={`${form.body.length} / ${SCHEDULER_MAX_BODY_BYTES} bytes`}
+              fullWidth
             />
-            <small style={{ color: 'var(--muted)', fontSize: 11 }}>
-              Public endpoints only — private/loopback addresses are rejected.
+          </>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 600 }}>
+            Headers{' '}
+            <small style={{ color: 'var(--muted)', fontWeight: 400 }}>
+              (max {SCHEDULER_MAX_HEADERS}; Host/Cookie/Authorization blocked)
             </small>
-          </label>
-          {form.action_kind === 'http_post' && (
-            <>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Content-Type</span>
-                <select
-                  className="homelab-search-input"
-                  value={form.contentType}
-                  onChange={(e) => setForm({ ...form, contentType: e.target.value })}
-                >
-                  {SCHEDULER_CONTENT_TYPES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Body</span>
-                <textarea
-                  className="homelab-search-input"
-                  value={form.body}
-                  onChange={(e) => setForm({ ...form, body: e.target.value })}
-                  placeholder='{"event":"ping"}'
-                  rows={4}
-                  maxLength={SCHEDULER_MAX_BODY_BYTES}
-                />
-                <small style={{ color: 'var(--muted)', fontSize: 11 }}>
-                  {form.body.length} / {SCHEDULER_MAX_BODY_BYTES} bytes
-                </small>
-              </label>
-            </>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>
-              Headers <small style={{ color: 'var(--muted)', fontWeight: 400 }}>(max {SCHEDULER_MAX_HEADERS}; Host/Cookie/Authorization blocked)</small>
-            </span>
-            {form.headerRows.map((h, i) => (
-              <div key={i} style={{ display: 'flex', gap: 6 }}>
-                <input
-                  type="text"
-                  className="homelab-search-input"
-                  value={h.name}
-                  onChange={(e) => {
-                    const rows = [...form.headerRows];
-                    rows[i] = { ...rows[i], name: e.target.value };
-                    setForm({ ...form, headerRows: rows });
-                  }}
-                  placeholder="X-Signature"
-                  style={{ flex: 1 }}
-                />
-                <input
-                  type="text"
-                  className="homelab-search-input"
-                  value={h.value}
-                  onChange={(e) => {
-                    const rows = [...form.headerRows];
-                    rows[i] = { ...rows[i], value: e.target.value };
-                    setForm({ ...form, headerRows: rows });
-                  }}
-                  placeholder="value"
-                  style={{ flex: 2 }}
-                />
-                <button
-                  type="button"
-                  className="empty-state-cta"
-                  onClick={() => {
-                    const rows = form.headerRows.filter((_, j) => j !== i);
-                    setForm({ ...form, headerRows: rows });
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            {form.headerRows.length < SCHEDULER_MAX_HEADERS && (
-              <button
+          </span>
+          {form.headerRows.map((h, i) => (
+            <div key={i} style={{ display: 'flex', gap: 6 }}>
+              <Input
+                type="text"
+                value={h.name}
+                onChange={(e) => {
+                  const rows = [...form.headerRows];
+                  rows[i] = { ...rows[i], name: e.target.value };
+                  setForm({ ...form, headerRows: rows });
+                }}
+                placeholder="X-Signature"
+                style={{ flex: 1 }}
+                fullWidth
+              />
+              <Input
+                type="text"
+                value={h.value}
+                onChange={(e) => {
+                  const rows = [...form.headerRows];
+                  rows[i] = { ...rows[i], value: e.target.value };
+                  setForm({ ...form, headerRows: rows });
+                }}
+                placeholder="value"
+                style={{ flex: 2 }}
+                fullWidth
+              />
+              <Button
                 type="button"
-                className="empty-state-cta"
-                onClick={() =>
-                  setForm({
-                    ...form,
-                    headerRows: [...form.headerRows, { name: '', value: '' }],
-                  })
-                }
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const rows = form.headerRows.filter((_, j) => j !== i);
+                  setForm({ ...form, headerRows: rows });
+                }}
+                aria-label="Remove header"
               >
-                + Add header
-              </button>
-            )}
-          </div>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Schedule (cron, 5 fields)</span>
-            <input
-              type="text"
-              className="homelab-search-input"
-              value={form.schedule}
-              onChange={(e) => setForm({ ...form, schedule: e.target.value })}
-              placeholder="0 3 * * 0"
-            />
-            <small style={{ color: 'var(--muted)', fontSize: 11 }}>
-              minute hour day-of-month month day-of-week — e.g. <code>*/5 * * * *</code> every 5 min
-            </small>
-          </label>
-          {(localError || error) ? (
-            <div className="dash-error" role="alert">
-              {localError || error}
+                ×
+              </Button>
             </div>
-          ) : null}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button type="button" className="empty-state-cta" onClick={onClose} disabled={busy}>
-              Cancel
-            </button>
-            <button
+          ))}
+          {form.headerRows.length < SCHEDULER_MAX_HEADERS && (
+            <Button
               type="button"
-              className="empty-state-cta"
-              onClick={handleSubmit}
-              disabled={busy}
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setForm({
+                  ...form,
+                  headerRows: [...form.headerRows, { name: '', value: '' }],
+                })
+              }
             >
-              {busy ? 'Creating…' : 'Create job'}
-            </button>
+              + Add header
+            </Button>
+          )}
+        </div>
+        <Input
+          label="Schedule (cron, 5 fields)"
+          type="text"
+          value={form.schedule}
+          onChange={(e) => setForm({ ...form, schedule: e.target.value })}
+          placeholder="0 3 * * 0"
+          description="minute hour day-of-month month day-of-week — e.g. */5 * * * * every 5 min"
+          fullWidth
+        />
+        {localError || error ? (
+          <div className="dash-error" role="alert">
+            {localError || error}
           </div>
+        ) : null}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="button" variant="primary" size="sm" onClick={handleSubmit} disabled={busy}>
+            {busy ? 'Creating…' : 'Create job'}
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

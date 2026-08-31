@@ -1,16 +1,24 @@
 import type { TodoFormState, TodoPriority } from './types';
+import Button from '../../shared/Button';
+import Input from '../../shared/Input';
+import Modal from '../../shared/Modal';
+import Select from '../../shared/Select';
+import Textarea from '../../shared/Textarea';
 
 /**
  * TodoModal — controlled form for POST/PATCH /homelab/todos.
  *
- * Reuses the same .sw-modal* classes the PinModal uses. Tags are
- * entered as a comma-separated string and split on submit. The
- * due_date input is a datetime-local string ("YYYY-MM-DDTHH:MM");
- * the modal converts it to RFC3339 before sending so the server
- * can accept it via parseFlexibleDate.
+ * Tags are entered as a comma-separated string and split on
+ * submit. The due_date input is a datetime-local string
+ * ("YYYY-MM-DDTHH:MM"); the modal converts it to RFC3339 before
+ * sending so the server can accept it via parseFlexibleDate.
  *
  * Shared between create + edit modes — the parent passes an
  * optional `editingId` to switch between POST and PATCH.
+ *
+ * Tier 20 Phase E: refactored to use shared Modal/Input/Select/Textarea/
+ * Button primitives. Custom sw-modal-backdrop / homelab-pin-form-row
+ * markup and empty-state-cta buttons are gone.
  */
 
 const PRIORITIES: { value: TodoPriority; label: string }[] = [
@@ -51,107 +59,87 @@ export default function TodoModal({
   form, setForm, busy, error, editingId, onClose, onSubmit,
 }: TodoModalProps) {
   return (
-    <div
-      className="sw-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label={editingId ? 'Edit todo' : 'New todo'}
-      onClick={onClose}
+    <Modal
+      open
+      onClose={onClose}
+      title={editingId ? 'Edit todo' : 'New todo'}
+      size="md"
     >
-      <div className="sw-modal" onClick={(e) => e.stopPropagation()}>
-        <form
-          className="homelab-pin-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit();
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 16 }}>
-            {editingId ? 'Edit todo' : 'New todo'}
-          </h3>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      >
+        <Input
+          id="todo-title"
+          label="Title"
+          type="text"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="Buy new SSD for NAS"
+          maxLength={200}
+          required
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="todo-title">Title</label>
-            <input
-              id="todo-title"
-              type="text"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Buy new SSD for NAS"
-              maxLength={200}
-              required
+        <Textarea
+          id="todo-description"
+          label="Description (optional)"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="More context, links, or reminders."
+          rows={4}
+          fullWidth
+        />
+
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <Select
+              id="todo-priority"
+              label="Priority"
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value as TodoPriority })}
+              options={PRIORITIES.map((p) => ({ value: p.value, label: p.label }))}
+              fullWidth
             />
           </div>
-
-          <div className="homelab-pin-form-row">
-            <label htmlFor="todo-description">Description (optional)</label>
-            <textarea
-              id="todo-description"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="More context, links, or reminders."
-              rows={4}
-              style={{
-                background: 'var(--surface-2)',
-                color: 'var(--text)',
-                border: '1px solid var(--surface-3)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                font: 'inherit',
-                resize: 'vertical',
-              }}
+          <div style={{ flex: 1 }}>
+            <Input
+              id="todo-due"
+              label="Due date (optional)"
+              type="datetime-local"
+              value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              fullWidth
             />
           </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div className="homelab-pin-form-row" style={{ flex: 1 }}>
-              <label htmlFor="todo-priority">Priority</label>
-              <select
-                id="todo-priority"
-                value={form.priority}
-                onChange={(e) => setForm({ ...form, priority: e.target.value as TodoPriority })}
-              >
-                {PRIORITIES.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="homelab-pin-form-row" style={{ flex: 1 }}>
-              <label htmlFor="todo-due">Due date (optional)</label>
-              <input
-                id="todo-due"
-                type="datetime-local"
-                value={form.dueDate}
-                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-              />
-            </div>
-          </div>
+        <Input
+          id="todo-tags"
+          label="Tags (comma-separated)"
+          type="text"
+          value={form.tagsRaw}
+          onChange={(e) => setForm({ ...form, tagsRaw: e.target.value })}
+          placeholder="homelab, urgent, todo"
+          maxLength={200}
+          description="Up to 16 tags, 32 chars each."
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="todo-tags">Tags (comma-separated)</label>
-            <input
-              id="todo-tags"
-              type="text"
-              value={form.tagsRaw}
-              onChange={(e) => setForm({ ...form, tagsRaw: e.target.value })}
-              placeholder="homelab, urgent, todo"
-              maxLength={200}
-            />
-            <p className="homelab-pin-form-hint">Up to 16 tags, 32 chars each.</p>
-          </div>
+        {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
-          {error ? <div className="dash-error" role="alert">{error}</div> : null}
-
-          <div className="sw-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button type="button" className="empty-state-cta" onClick={onClose} disabled={busy}>
-              Cancel
-            </button>
-            <button type="submit" className="empty-state-cta" disabled={busy || !form.title.trim()}>
-              {busy ? 'Saving…' : editingId ? 'Save changes' : 'Create todo'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="sw-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" size="sm" disabled={busy || !form.title.trim()}>
+            {busy ? 'Saving…' : editingId ? 'Save changes' : 'Create todo'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
