@@ -56,7 +56,9 @@ export default function HeroCard({
         </div>
       </div>
       <div className="prof-hero-actions">
-        <a className="sw-button sw-button-quiet" href="/billing">Manage plan</a>
+        <a className="btn btn-secondary btn-md" href="/billing">
+          Manage plan
+        </a>
       </div>
     </section>
   );

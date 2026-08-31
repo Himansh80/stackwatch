@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import Button from '../shared/Button';
 
 function SecurityRow({
   label,
@@ -38,6 +39,9 @@ interface SecurityPanelProps {
  * Lists Password / 2FA / Active sessions / API tokens with the
  * appropriate action buttons. Tokens panel itself is owned by
  * TokensPanel (rendered separately) so this stays focused.
+ *
+ * Tier 20 Phase G: refactored raw buttons + sw-button-quiet classes
+ * to shared Button variants (size="sm" to fit the row layout).
  */
 export default function SecurityPanel({
   onSignOut,
@@ -57,39 +61,43 @@ export default function SecurityPanel({
         <SecurityRow
           label="Password"
           value="Last changed at signup"
-          action={<Link className="sw-button sw-button-quiet" to="/settings">Change password</Link>}
+          action={
+            <Link className="btn btn-secondary btn-sm" to="/settings">
+              Change password
+            </Link>
+          }
         />
         <SecurityRow
           label="Two-factor authentication"
           value="Not enabled"
           badge={<span className="prof-badge-warn">Recommended</span>}
           action={
-            <button
-              type="button"
-              className="sw-button sw-button-quiet"
+            <Button
+              variant="secondary"
+              size="sm"
               disabled
               title="Coming soon — 2FA rolls out in a future release"
             >
               Configure
-            </button>
+            </Button>
           }
         />
         <SecurityRow
           label="Active sessions"
           value="1 device · this browser"
           action={
-            <button type="button" className="sw-button sw-button-quiet" onClick={onSignOut}>
+            <Button variant="secondary" size="sm" onClick={onSignOut}>
               Sign out
-            </button>
+            </Button>
           }
         />
         <SecurityRow
           label="API tokens"
           value={tokensOpen ? `${tokenCount} token${tokenCount === 1 ? '' : 's'}` : 'Manage personal access tokens'}
           action={
-            <button type="button" className="sw-button sw-button-quiet" onClick={onToggleTokens}>
+            <Button variant="secondary" size="sm" onClick={onToggleTokens}>
               {tokensOpen ? 'Hide' : 'Manage'}
-            </button>
+            </Button>
           }
         />
       </div>
