@@ -188,8 +188,17 @@ User chose:
 | **Tier order** | T20 first | UI consistency polish before anything else |
 | **Plan rhythm** | A1 — one tier fully planned, then next | Slow, careful; user approves each step |
 | **Build trigger** | B3 — after Tier 20 alone | Start building the moment Tier 20 plans are complete |
+| **Scope (2026-08-31,)** | **Option B — expanded** | Ship ALL 575 drifts in Tier 20 (not just 210 critical). Medium + low drift included. |
 
 **Tier sequence (locked):** T20 → T21 → T15 → T17 → T16 → T18 → T19 → T22 → T23 → T24
+
+**Tier 20 expanded scope:**
+- 210 critical drifts — must fix
+- 327 medium drifts — now also in Tier 20 (was going to T21)
+- 38 low drifts — now also in Tier 20
+- Total: 575 fixes across 27 pages
+- Estimated effort: ~55-60 hours (up from 31-33)
+- Implication: Tier 21 will only need modularity cleanup, no UI consistency work
 
 ---
 
