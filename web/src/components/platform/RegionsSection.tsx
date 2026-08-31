@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../../lib/api';
-import {
-  motion,
-  pageEnter,
-  kpiStagger,
-  buttonSpring,
-  useReducedMotion,
-} from '../../lib/motion';
+import { motion, pageEnter, kpiStagger } from '../../lib/motion';
+import Button from '../shared/Button';
 import EmptyState from '../shared/EmptyState';
 import KpiCard from '../shared/KpiCard';
 import StatusPill from '../shared/StatusPill';
@@ -87,7 +82,6 @@ export default function RegionsSection({ canMutate }: RegionsSectionProps) {
   const [error, setError] = useState('');
   const [modalRegion, setModalRegion] = useState<RegionRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const reduce = useReducedMotion();
 
   // Add-region form fields (controlled — keeps the body valid
   // before submit so we can show inline errors).
@@ -218,29 +212,24 @@ export default function RegionsSection({ canMutate }: RegionsSectionProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <motion.button
-            type="button"
-            onClick={handleProbe}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void handleProbe()}
             disabled={probing || busy}
-            className="btn-secondary"
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
+            loading={probing}
           >
             {probing ? 'Probing…' : 'Probe health'}
-          </motion.button>
+          </Button>
           {canMutate ? (
-            <motion.button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => setAddOpen(true)}
               disabled={busy}
-              className="btn-primary"
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
             >
               + Add region
-            </motion.button>
+            </Button>
           ) : null}
         </div>
       </header>

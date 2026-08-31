@@ -1,9 +1,5 @@
 import React, { FormEvent } from 'react';
-import {
-  motion,
-  buttonSpring,
-  useReducedMotion,
-} from '../lib/motion';
+import Button from './shared/Button';
 import { ApiError, api } from '../lib/api';
 
 /**
@@ -157,7 +153,6 @@ export function ModalActions({
   submitLabel: string;
   onClose: () => void;
 }) {
-  const reduce = useReducedMotion();
   return (
     <div
       style={{
@@ -167,27 +162,24 @@ export function ModalActions({
         justifyContent: 'flex-end',
       }}
     >
-      <motion.button
+      <Button
         type="button"
-        className="sw-button sw-button-secondary"
+        variant="secondary"
+        size="sm"
         onClick={onClose}
-        whileHover={reduce ? undefined : buttonSpring.whileHover}
-        whileTap={reduce ? undefined : buttonSpring.whileTap}
-        transition={buttonSpring.transition}
         disabled={busy}
       >
         Cancel
-      </motion.button>
-      <motion.button
+      </Button>
+      <Button
         type="submit"
-        className="empty-state-cta"
-        whileHover={reduce ? undefined : buttonSpring.whileHover}
-        whileTap={reduce ? undefined : buttonSpring.whileTap}
-        transition={buttonSpring.transition}
+        variant="primary"
+        size="sm"
         disabled={busy}
+        loading={busy}
       >
         {busy ? 'Working…' : submitLabel}
-      </motion.button>
+      </Button>
     </div>
   );
 }

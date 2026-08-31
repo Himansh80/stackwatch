@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api, getToken } from '../../lib/api';
-import {
-  motion,
-  pageEnter,
-  kpiStagger,
-  buttonSpring,
-  useReducedMotion,
-} from '../../lib/motion';
+import { motion, pageEnter, kpiStagger } from '../../lib/motion';
+import Button from '../shared/Button';
 import EmptyState from '../shared/EmptyState';
 import KpiCard from '../shared/KpiCard';
 import RateLimitTables from './RateLimitTables';
@@ -116,7 +111,6 @@ export default function RateLimitSection({ canMutate }: RateLimitSectionProps) {
   // Editable per-plan limit values (string so the input
   // can be empty mid-edit). Commit on blur or "Save".
   const [edit, setEdit] = useState<Record<string, string>>({});
-  const reduce = useReducedMotion();
 
   const requireAuth = (): boolean => {
     if (!getToken()) {
@@ -299,28 +293,24 @@ export default function RateLimitSection({ canMutate }: RateLimitSectionProps) {
         </div>
         {canMutate ? (
           <div className="flex gap-2">
-            <motion.button
-              type="button"
-              onClick={handleReset}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleReset()}
               disabled={resetting || busy}
-              className="btn-secondary"
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
+              loading={resetting}
             >
               {resetting ? 'Resetting…' : 'Reset to defaults'}
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={handleSave}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => void handleSave()}
               disabled={saving || busy}
-              className="btn-primary"
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
+              loading={saving}
             >
               {saving ? 'Saving…' : 'Save limits'}
-            </motion.button>
+            </Button>
           </div>
         ) : null}
       </header>

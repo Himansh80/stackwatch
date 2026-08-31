@@ -5,8 +5,8 @@ import {
   pageEnter,
   kpiStagger,
   kpiEnter,
-  useReducedMotion,
 } from '../../lib/motion';
+import Button from '../shared/Button';
 import EmptyState from '../shared/EmptyState';
 import KpiCard from '../shared/KpiCard';
 import HealthSectionTables, {
@@ -66,7 +66,6 @@ export default function HealthSection({ canRead }: HealthSectionProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [lastUpdated, setLastUpdated] = useState('');
-  const reduce = useReducedMotion();
 
   const loadAll = async () => {
     if (!getToken()) {
@@ -167,16 +166,15 @@ export default function HealthSection({ canRead }: HealthSectionProps) {
             {latest ? ` · snapshot ${new Date(latest.snapshot_at).toLocaleTimeString()}` : null}
           </p>
         </div>
-        <motion.button
-          type="button"
-          onClick={loadAll}
+        <Button
+          variant="primary"
+          size="md"
+          onClick={() => void loadAll()}
           disabled={busy}
-          className="btn-primary"
-          whileHover={reduce ? undefined : { scale: 1.02 }}
-          whileTap={reduce ? undefined : { scale: 0.98 }}
+          loading={busy}
         >
           {busy ? 'Refreshing…' : 'Refresh'}
-        </motion.button>
+        </Button>
       </header>
 
       {error ? <div className="callout-error" role="alert">{error}</div> : null}
