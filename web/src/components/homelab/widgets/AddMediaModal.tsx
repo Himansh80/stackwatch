@@ -1,15 +1,19 @@
+import Button from '../../shared/Button';
+import Input from '../../shared/Input';
+import Modal from '../../shared/Modal';
+import Select from '../../shared/Select';
 import type { MediaServerKind } from './types';
 
 /**
  * AddMediaModal — controlled form for POST /homelab/media/servers.
  *
- * Reuses the shared .sw-modal* classes from styles-tier2.css. The
- * kind dropdown shows all 3 supported kinds (Plex/Jellyfin/Emby);
+ * The kind dropdown shows all 3 supported kinds (Plex/Jellyfin/Emby);
  * the api_key field is shown for every kind but labelled with a
  * link to where to find the token.
  *
- * Lives in its own file (split from MediaWidget.tsx) so the
- * parent stays under 400 LOC.
+ * Tier 20 Phase G: refactored custom sw-modal-backdrop +
+ * homelab-pin-form-row + raw inputs/select to shared Modal + Input
+ * + Select + Button.
  */
 
 const KINDS: MediaServerKind[] = ['plex', 'jellyfin', 'emby'];
@@ -62,103 +66,77 @@ export default function AddMediaModal({
   onSubmit,
 }: AddMediaModalProps) {
   return (
-    <div
-      className="sw-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Pin a new media server"
-      onClick={onClose}
-    >
-      <div className="sw-modal" onClick={(e) => e.stopPropagation()}>
-        <form
-          className="homelab-pin-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit();
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 16 }}>Pin a media server</h3>
+    <Modal open onClose={onClose} title="Pin a media server" size="md">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      >
+        <Input
+          id="media-name"
+          label="Name"
+          type="text"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="Living Room Plex"
+          autoFocus
+          required
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="media-name">Name</label>
-            <input
-              id="media-name"
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Living Room Plex"
-              autoFocus
-              required
-            />
-          </div>
+        <Select
+          id="media-kind"
+          label="Kind"
+          value={form.kind}
+          onChange={(e) =>
+            setForm({ ...form, kind: e.target.value as MediaServerKind })
+          }
+          fullWidth
+          options={KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="media-kind">Kind</label>
-            <select
-              id="media-kind"
-              value={form.kind}
-              onChange={(e) =>
-                setForm({ ...form, kind: e.target.value as MediaServerKind })
-              }
-            >
-              {KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {kindLabel(k)}
-                </option>
-              ))}
-            </select>
-          </div>
+        <Input
+          id="media-url"
+          label="Base URL"
+          type="url"
+          value={form.base_url}
+          onChange={(e) => setForm({ ...form, base_url: e.target.value })}
+          placeholder="http://192.168.1.20:32400"
+          required
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="media-url">Base URL</label>
-            <input
-              id="media-url"
-              type="url"
-              value={form.base_url}
-              onChange={(e) => setForm({ ...form, base_url: e.target.value })}
-              placeholder="http://192.168.1.20:32400"
-              required
-            />
-          </div>
+        <Input
+          id="media-apikey"
+          label="API key / token"
+          type="password"
+          value={form.api_key}
+          onChange={(e) => setForm({ ...form, api_key: e.target.value })}
+          placeholder={kindHelp(form.kind)}
+          autoComplete="off"
+          required
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="media-apikey">API key / token</label>
-            <input
-              id="media-apikey"
-              type="password"
-              value={form.api_key}
-              onChange={(e) => setForm({ ...form, api_key: e.target.value })}
-              placeholder={kindHelp(form.kind)}
-              autoComplete="off"
-              required
-            />
-          </div>
+        {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
-          {error ? (
-            <div className="homelab-pin-form-error" role="alert">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="homelab-pin-form-actions">
-            <button
-              type="button"
-              className="empty-state-cta"
-              onClick={onClose}
-              disabled={busy}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="empty-state-cta"
-              disabled={busy}
-            >
-              {busy ? 'Pinning…' : 'Pin server'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" size="sm" disabled={busy} loading={busy}>
+            {busy ? 'Pinning…' : 'Pin server'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

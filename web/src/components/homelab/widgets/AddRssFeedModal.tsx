@@ -1,4 +1,7 @@
-import { ApiError } from '../../../lib/api';
+import Button from '../../shared/Button';
+import Input from '../../shared/Input';
+import Modal from '../../shared/Modal';
+import Select from '../../shared/Select';
 
 /**
  * AddRssFeedModal — Tier 10 Phase 8 (H9 — RSS).
@@ -9,14 +12,9 @@ import { ApiError } from '../../../lib/api';
  * call. Validation runs server-side; this component only reflects
  * the API error in a friendly message.
  *
- * Props:
- *   form      — controlled form state
- *   setForm   — form state setter
- *   busy      — disables inputs while the POST is in flight
- *   error     — server-side validation error (already-friendly)
- *   onClose   — close without submitting
- *   onSubmit  — fire the POST + close + reload (parent owns the
- *               refresh logic)
+ * Tier 20 Phase G: refactored custom homelab-modal-backdrop +
+ * homelab-modal-panel + homelab-search-input to shared Modal +
+ * Input + Select + Button.
  */
 
 export interface RssFormState {
@@ -43,6 +41,10 @@ interface AddRssFeedModalProps {
   onSubmit: () => void;
 }
 
+function categoryLabel(c: string): string {
+  return c.charAt(0).toUpperCase() + c.slice(1);
+}
+
 export default function AddRssFeedModal({
   form,
   setForm,
@@ -51,93 +53,74 @@ export default function AddRssFeedModal({
   onClose,
   onSubmit,
 }: AddRssFeedModalProps) {
-  // Re-export the helper so RssWidget doesn't have to.
-  void ApiError;
   return (
-    <div
-      className="homelab-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        className="homelab-modal-panel"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--surface-2)',
-          borderRadius: 8,
-          padding: 24,
-          minWidth: 360,
-          maxWidth: 480,
-          width: '90%',
+    <Modal open onClose={onClose} title="Add RSS feed" size="md">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
         }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
       >
-        <h3 style={{ marginTop: 0 }}>Add RSS feed</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Name</span>
-            <input
-              type="text"
-              className="homelab-search-input"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="r/selfhosted"
-              maxLength={200}
-            />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Feed URL</span>
-            <input
-              type="url"
-              className="homelab-search-input"
-              value={form.feed_url}
-              onChange={(e) => setForm({ ...form, feed_url: e.target.value })}
-              placeholder="https://example.com/feed.xml"
-            />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Category</span>
-            <select
-              className="homelab-search-input"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            >
-              {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c.charAt(0).toUpperCase() + c.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
-          {error ? (
-            <div className="dash-error" role="alert">
-              {error}
-            </div>
-          ) : null}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button type="button" className="empty-state-cta" onClick={onClose} disabled={busy}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="empty-state-cta"
-              onClick={onSubmit}
-              disabled={busy || !form.name.trim() || !form.feed_url.trim()}
-            >
-              {busy ? 'Adding…' : 'Add feed'}
-            </button>
-          </div>
+        <Input
+          id="rss-name"
+          label="Name"
+          type="text"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="r/selfhosted"
+          maxLength={200}
+          required
+          fullWidth
+          autoFocus
+        />
+
+        <Input
+          id="rss-url"
+          label="Feed URL"
+          type="url"
+          value={form.feed_url}
+          onChange={(e) => setForm({ ...form, feed_url: e.target.value })}
+          placeholder="https://example.com/feed.xml"
+          required
+          fullWidth
+        />
+
+        <Select
+          id="rss-category"
+          label="Category"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          fullWidth
+          options={CATEGORY_OPTIONS.map((c) => ({
+            value: c,
+            label: categoryLabel(c),
+          }))}
+        />
+
+        {error ? <div className="dash-error" role="alert">{error}</div> : null}
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={busy || !form.name.trim() || !form.feed_url.trim()}
+            loading={busy}
+          >
+            {busy ? 'Adding…' : 'Add feed'}
+          </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

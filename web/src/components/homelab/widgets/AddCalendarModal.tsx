@@ -1,12 +1,17 @@
+import Button from '../../shared/Button';
+import Input from '../../shared/Input';
+import Modal from '../../shared/Modal';
 import type { CalendarFormState } from './types';
 
 /**
  * AddCalendarModal — controlled form for POST /homelab/calendars.
  *
- * Reuses the shared .sw-modal* classes. The color picker is a row
- * of swatches bound to the form's `color` field. Lives in its own
- * file (split from CalendarWidget.tsx) so the parent stays under
- * 400 LOC.
+ * The color picker is a row of swatches bound to the form's `color`
+ * field. Lives in its own file (split from CalendarWidget.tsx) so
+ * the parent stays under 400 LOC.
+ *
+ * Tier 20 Phase G: refactored custom sw-modal-backdrop +
+ * homelab-pin-form-row + raw inputs to shared Modal + Input + Button.
  */
 
 const PALETTE: Array<{ hex: string; label: string }> = [
@@ -32,101 +37,103 @@ export default function AddCalendarModal({
   form, setForm, busy, error, onClose, onSubmit,
 }: AddCalendarModalProps) {
   return (
-    <div
-      className="sw-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Add calendar"
-      onClick={onClose}
-    >
-      <div className="sw-modal" onClick={(e) => e.stopPropagation()}>
-        <form
-          className="homelab-pin-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit();
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 16 }}>Add calendar</h3>
+    <Modal open onClose={onClose} title="Add calendar" size="md">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      >
+        <Input
+          id="cal-name"
+          label="Name"
+          type="text"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="Work"
+          maxLength={200}
+          required
+          fullWidth
+          autoFocus
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="cal-name">Name</label>
-            <input
-              id="cal-name"
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Work"
-              maxLength={200}
-              required
-            />
-          </div>
+        <Input
+          id="cal-url"
+          label="iCal URL"
+          type="text"
+          value={form.ical_url}
+          onChange={(e) => setForm({ ...form, ical_url: e.target.value })}
+          placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+          description="Paste the read-only iCal URL from Google / Outlook / Apple Calendar."
+          required
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="cal-url">iCal URL</label>
-            <input
-              id="cal-url"
-              type="text"
-              value={form.ical_url}
-              onChange={(e) => setForm({ ...form, ical_url: e.target.value })}
-              placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
-              required
-            />
-            <p className="homelab-pin-form-hint">
-              Paste the read-only iCal URL from Google / Outlook / Apple Calendar.
-            </p>
-          </div>
-
-          <div className="homelab-pin-form-row">
-            <label htmlFor="cal-color">Color</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {PALETTE.map((p) => (
+        <div>
+          <label
+            htmlFor="cal-color"
+            style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: 4,
+              color: 'var(--color-text)',
+            }}
+          >
+            Color
+          </label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {PALETTE.map((p) => {
+              const selected = form.color === p.hex;
+              return (
                 <button
                   key={p.hex}
                   type="button"
                   onClick={() => setForm({ ...form, color: p.hex })}
                   title={p.label}
                   aria-label={p.label}
+                  aria-pressed={selected}
                   style={{
                     width: 24,
                     height: 24,
                     borderRadius: 12,
                     background: p.hex,
-                    border: form.color === p.hex
-                      ? '3px solid var(--text)'
-                      : '2px solid var(--surface-3)',
+                    border: selected
+                      ? '3px solid var(--color-text)'
+                      : '2px solid var(--color-border)',
                     cursor: 'pointer',
                     padding: 0,
                   }}
                 />
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
 
-          {error ? <div className="dash-error" role="alert">{error}</div> : null}
+        {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
-          <div
-            className="sw-form-actions"
-            style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={busy}
           >
-            <button
-              type="button"
-              className="empty-state-cta"
-              onClick={onClose}
-              disabled={busy}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="empty-state-cta"
-              disabled={busy || !form.name.trim() || !form.ical_url.trim()}
-            >
-              {busy ? 'Adding…' : 'Add calendar'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={busy || !form.name.trim() || !form.ical_url.trim()}
+            loading={busy}
+          >
+            {busy ? 'Adding…' : 'Add calendar'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
