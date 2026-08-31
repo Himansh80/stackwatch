@@ -5,14 +5,10 @@ import {
   useMemo,
   useState,
 } from 'react';
+import Button from './shared/Button';
 import KpiCard from './shared/KpiCard';
 import AuditArchiveCard, { AuditArchiveRow } from './shared/AuditArchiveCard';
-import {
-  motion,
-  buttonSpring,
-  kpiStagger,
-  useReducedMotion,
-} from '../lib/motion';
+import { motion, kpiStagger } from '../lib/motion';
 import {
   ArchiveForm,
   ExportForm,
@@ -86,7 +82,6 @@ export default function AuditSection({
   onChanged,
   sessionToken,
 }: AuditSectionProps) {
-  const reduce = useReducedMotion();
   const [sectionBusy, setSectionBusy] = useState(false);
   const isBusy = busy || sectionBusy;
   const [showArchive, setShowArchive] = useState(false);
@@ -196,29 +191,23 @@ export default function AuditSection({
             <h2 className="dash-section-title">Archives</h2>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <motion.button
-              type="button"
-              className="empty-state-cta"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => setShowArchive(true)}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
               disabled={isBusy}
             >
               + Create archive
-            </motion.button>
-            <motion.button
-              type="button"
-              className="sw-button sw-button-secondary"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setShowExport(true)}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
               disabled={isBusy || !sessionToken}
               title={!sessionToken ? 'Sign in to enable downloads' : 'Export filtered audit events'}
             >
               Export logs
-            </motion.button>
+            </Button>
           </div>
         </div>
 

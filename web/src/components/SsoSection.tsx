@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Button from './shared/Button';
 import EmptyState from './shared/EmptyState';
 import KpiCard from './shared/KpiCard';
 import SsoProviderCard, { SsoProviderRow } from './shared/SsoProviderCard';
@@ -7,7 +8,7 @@ import SsoProviderForm, {
   SsoProviderDraft,
 } from './shared/SsoProviderForm';
 import { ApiError, api } from '../lib/api';
-import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motion';
+import { motion, kpiStagger } from '../lib/motion';
 
 /**
  * SsoSection — Tier 9.1 (Phase 1) UI surface for the Single
@@ -51,7 +52,6 @@ export default function SsoSection({
   onError,
   onChanged,
 }: SsoSectionProps) {
-  const reduce = useReducedMotion();
   const [sectionBusy, setSectionBusy] = useState(false);
   const isBusy = busy || sectionBusy;
 
@@ -193,28 +193,22 @@ export default function SsoSection({
         )}
 
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-          <motion.button
-            type="button"
-            className="empty-state-cta"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => openModal('oidc')}
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
             disabled={isBusy}
           >
             + Add OIDC provider
-          </motion.button>
-          <motion.button
-            type="button"
-            className="sw-button sw-button-secondary"
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => openModal('saml')}
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
             disabled={isBusy}
           >
             + Add SAML provider
-          </motion.button>
+          </Button>
         </div>
       </section>
 

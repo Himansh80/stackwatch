@@ -5,16 +5,12 @@ import {
   useMemo,
   useState,
 } from 'react';
+import Button from './shared/Button';
 import KpiCard from './shared/KpiCard';
 import ComplianceReportCard, {
   ComplianceReportRow,
 } from './shared/ComplianceReportCard';
-import {
-  motion,
-  buttonSpring,
-  kpiStagger,
-  useReducedMotion,
-} from '../lib/motion';
+import { motion, kpiStagger } from '../lib/motion';
 import {
   GenerateReportForm,
   Modal,
@@ -92,7 +88,6 @@ export default function ComplianceSection({
   onSchedulesChanged,
   sessionToken,
 }: ComplianceSectionProps) {
-  const reduce = useReducedMotion();
   const [sectionBusy, setSectionBusy] = useState(false);
   const isBusy = busy || sectionBusy;
   const [tab, setTab] = useState<Tab>('reports');
@@ -238,28 +233,22 @@ export default function ComplianceSection({
             <h2 className="dash-section-title">Evidence Packages</h2>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <motion.button
-              type="button"
-              className="empty-state-cta"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => setShowGenerate(true)}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
               disabled={isBusy}
             >
               + Generate report
-            </motion.button>
-            <motion.button
-              type="button"
-              className="sw-button sw-button-secondary"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setShowSchedule(true)}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
               disabled={isBusy}
             >
               + Schedule report
-            </motion.button>
+            </Button>
           </div>
         </div>
 
@@ -293,25 +282,16 @@ export default function ComplianceSection({
               },
             ]
           ).map((t) => (
-            <motion.button
+            <Button
               key={t.id}
-              type="button"
+              variant={tab === t.id ? 'primary' : 'ghost'}
+              size="sm"
               role="tab"
               aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={`sw-button sw-button-secondary`}
-              style={{
-                borderBottom:
-                  tab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-                borderRadius: 0,
-                opacity: tab === t.id ? 1 : 0.65,
-              }}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
             >
               {t.label}
-            </motion.button>
+            </Button>
           ))}
         </div>
 

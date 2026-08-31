@@ -1,3 +1,5 @@
+import Button from './Button';
+
 /**
  * ThreatCard — compact card showing one security_threats row.
  *
@@ -10,6 +12,8 @@
  * When `resolved_at` is set, the card renders muted/strikethrough so
  * resolved threats visibly recede. Honors design tokens (--green,
  * --amber, --red with their -soft/-text variants). No hex literals.
+ *
+ * Tier 20 Phase G: resolve button uses shared Button variant=secondary.
  */
 export interface ThreatCardProps {
   threat: {
@@ -80,13 +84,14 @@ export default function ThreatCard({ threat, onResolve }: ThreatCardProps) {
             resolved
           </span>
         ) : onResolve ? (
-          <button
-            type="button"
-            className="sw-button sw-button-secondary threat-card-resolve-btn"
+          <Button
+            variant="secondary"
+            size="sm"
+            className="threat-card-resolve-btn"
             onClick={() => onResolve(threat.id)}
           >
             Resolve
-          </button>
+          </Button>
         ) : null}
       </div>
     </article>
