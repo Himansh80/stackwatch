@@ -1386,3 +1386,49 @@ Live routes HTTP 200:
 5. Tier 23 — Security Hardening (CRITICAL — before prod promotion)
 
 TIER 20 (UI Consistency Polish) is now 100% COMPLETE.
+---
+### TIER 20 — Phase G COMPLETE (2026-09-01 03:38 IST)
+
+Subagent dispatched 9 batches (A–I) + manual commits:
+
+- 9506840 ErrorBar/TimeWidget/ProfileMenu/HomelabGrid
+- 4f99424 TodosWidget
+- d0e0d3c NameFormPanel
+- 9274aa8 batch-A (7 widgets + LogSearchBar)
+- 8a5bbf4 batch-B (HeroCard + SecurityPanel)
+- 5018cdf batch-C (TokensPanel + ProfileMenu)
+- c1884e9 batch-D (RssWidget + 4 modals)
+- 3a54803 batch-E (4 modals: AddCalendar/Media/Rss + EventDetail)
+- 53e475f batch-F (LogRetentionTab)
+- 4889af5 batch-G (SsoSection/ThreatCard/ComplianceSection/AuditSection)
+- 5f4b840 batch-H (4 platform sections)
+- 8ca353c batch-I (Landing + 4 textareas)
+- 4139067 TrueNAS checkbox minor
+
+### Final audit (verified)
+
+- Raw button: 1 file (TimeWidget — 2 icon-only calendar nav with aria-label)
+- Raw input:  1 file (TrueNASWorkspace — 1 checkbox with cb-input class)
+- Raw textarea: 0
+- Raw select: 0
+- sw-modal markup: 0
+- Custom btn classes: 0
+
+Shared component usage:
+- Button: 66 imports
+- Modal: 20 imports
+- Input: 27 imports
+- Select: 19 imports
+- Textarea: 6 imports
+
+### Bundle deployed to .115
+
+- index.html 1b318fd339adde34db17f0dd173d2d39
+- index-X9UCbSOG.js b253315cba13e7bdbb1007ae649e388f
+- index-CUowLdFe.css e1ceb842f9115db138f1358f70e18efd
+
+MD5 local ↔ remote: VERIFIED identical.
+Live: /health, /style-guide → 200.
+
+### TIER 20 FINAL: 100% SUBSTANTIVE COMPLETE
+Remaining grep hits are all benign (icon-only buttons, checkboxes, motion divs, CSS classes inside shared Modal).
