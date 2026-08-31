@@ -786,3 +786,91 @@ body:has(.modal-backdrop) {
   resize: vertical;
   font-family: var(--font-sans);
 }
+
+/* ============================================================
+ * Tier 20 — SkeletonCard (shared)
+ * Spec §3.8. Card-shaped loading placeholder with pulse.
+ * ============================================================ */
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    background: var(--color-surface);
+  }
+  50% {
+    background: var(--color-surface-hover);
+  }
+}
+
+.skeleton-card-eyebrow {
+  width: 40%;
+  height: 11px;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-card-value {
+  width: 70%;
+  height: 30px;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.skeleton-card-block {
+  width: 100%;
+  height: 16px;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-card-list-block {
+  width: 100%;
+  height: 12px;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+ * Tier 20 — BrandLogo (shared)
+ * Spec §16. SVG mark + wordmark.
+ * ============================================================ */
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-primary);
+}
+
+.brand-logo svg {
+  flex-shrink: 0;
+}
+
+.brand-logo-wordmark {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text);
+}
+
+.brand-logo-wordmark strong {
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+}
+
+.brand-logo-wordmark small {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: var(--leading-tight);
+}
