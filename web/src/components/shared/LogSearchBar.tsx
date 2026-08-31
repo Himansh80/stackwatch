@@ -1,4 +1,7 @@
 import { FormEvent, useState } from 'react';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
 
 export interface LogFilters {
   /** Free-text query string. */
@@ -24,8 +27,7 @@ interface LogSearchBarProps {
  * Submits on Enter or button click. All inputs are uncontrolled-once-
  * submitted (caller owns the resulting state via onSearch).
  *
- * Visual contract: reuses the same form-row spacing as
- * .apm-register-form so the Logs page sits flush next to APM.
+ * Tier 20 Phase G: refactored to shared Button + Input + Select.
  */
 export default function LogSearchBar({ onSearch, initialFilters }: LogSearchBarProps) {
   const [query, setQuery] = useState(initialFilters?.query ?? '');
@@ -42,58 +44,52 @@ export default function LogSearchBar({ onSearch, initialFilters }: LogSearchBarP
 
   return (
     <form className="log-search-bar" onSubmit={submit} role="search">
-      <label className="log-search-bar-field">
-        <span>Query</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="search messages…"
-          aria-label="log query"
-          maxLength={1024}
-        />
-      </label>
-      <label className="log-search-bar-field">
-        <span>Level</span>
-        <select
-          value={level}
-          onChange={(e) => setLevel(e.target.value)}
-          aria-label="log level"
-        >
-          <option value="">any</option>
-          <option value="error">error</option>
-          <option value="warn">warn</option>
-          <option value="info">info</option>
-          <option value="debug">debug</option>
-        </select>
-      </label>
-      <label className="log-search-bar-field">
-        <span>Service</span>
-        <input
-          type="text"
-          value={service}
-          onChange={(e) => setService(e.target.value)}
-          placeholder="api"
-          aria-label="service filter"
-          maxLength={128}
-        />
-      </label>
-      <label className="log-search-bar-field">
-        <span>Range</span>
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value as LogFilters['timeRange'])}
-          aria-label="time range"
-        >
-          <option value="3600">last 1h</option>
-          <option value="86400">last 24h</option>
-          <option value="604800">last 7d</option>
-          <option value="custom">custom</option>
-        </select>
-      </label>
-      <button type="submit" className="sw-button sw-button-primary">
+      <Input
+        type="search"
+        label="Query"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="search messages…"
+        aria-label="log query"
+        maxLength={1024}
+      />
+      <Select
+        label="Level"
+        value={level}
+        onChange={(e) => setLevel(e.target.value)}
+        aria-label="log level"
+        options={[
+          { value: '', label: 'any' },
+          { value: 'error', label: 'error' },
+          { value: 'warn', label: 'warn' },
+          { value: 'info', label: 'info' },
+          { value: 'debug', label: 'debug' },
+        ]}
+      />
+      <Input
+        type="text"
+        label="Service"
+        value={service}
+        onChange={(e) => setService(e.target.value)}
+        placeholder="api"
+        aria-label="service filter"
+        maxLength={128}
+      />
+      <Select
+        label="Range"
+        value={timeRange}
+        onChange={(e) => setTimeRange(e.target.value as LogFilters['timeRange'])}
+        aria-label="time range"
+        options={[
+          { value: '3600', label: 'last 1h' },
+          { value: '86400', label: 'last 24h' },
+          { value: '604800', label: 'last 7d' },
+          { value: 'custom', label: 'custom' },
+        ]}
+      />
+      <Button type="submit" variant="primary" size="md">
         Search
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../../../lib/api';
 import { motion, kpiEnter, kpiStagger, pageEnter } from '../../../lib/motion';
+import Button from '../../shared/Button';
 import AddDownloadModal from './AddDownloadModal';
 import DownloadClientCard from './DownloadClientCard';
 import { fmtBytes, fmtSpeed, kindLabel } from './downloadFormatters';
@@ -218,17 +219,17 @@ export default function DownloadStatsWidget({
       ) : null}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type="button" className="empty-state-cta" onClick={openForm}>
+        <Button variant="primary" size="sm" onClick={openForm}>
           + Add client
-        </button>
-        <button
-          type="button"
-          className="empty-state-cta"
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => void load()}
           disabled={loading}
         >
           ↻ Refresh
-        </button>
+        </Button>
       </div>
 
       {/* 3 KPI cards — Datadog-style. Reuses kpiEnter + kpiStagger

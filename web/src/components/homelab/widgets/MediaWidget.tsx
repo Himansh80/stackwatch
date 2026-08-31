@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../../../lib/api';
 import { motion, kpiEnter, kpiStagger, pageEnter } from '../../../lib/motion';
+import Button from '../../shared/Button';
 import AddMediaModal from './AddMediaModal';
 import MediaServerCard from './MediaServerCard';
 import NowPlayingList from './NowPlayingList';
@@ -244,17 +245,17 @@ export default function MediaWidget({
         }}
       >
         <h3 style={{ margin: 0, fontSize: 18 }}>Media</h3>
-        <button type="button" className="empty-state-cta" onClick={openForm}>
+        <Button variant="primary" size="sm" onClick={openForm}>
           + Add server
-        </button>
-        <button
-          type="button"
-          className="empty-state-cta"
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => void load()}
           disabled={loading}
         >
           ↻ Refresh
-        </button>
+        </Button>
       </div>
 
       {/* Tab strip: All / Plex / Jellyfin / Emby. Datadog-style. */}

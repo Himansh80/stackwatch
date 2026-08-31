@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../../../lib/api';
 import { motion, pageEnter } from '../../../lib/motion';
+import Button from '../../shared/Button';
 import AddCalendarModal from './AddCalendarModal';
 import EventDetailModal from './EventDetailModal';
 import {
@@ -208,17 +209,17 @@ export default function CalendarWidget({ config: _config }: { config?: { calenda
       {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type="button" className="empty-state-cta" onClick={openForm}>
+        <Button variant="primary" size="sm" onClick={openForm}>
           + Add calendar
-        </button>
-        <button
-          type="button"
-          className="empty-state-cta"
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => void refreshAll()}
           disabled={calendars.length === 0}
         >
           Refresh all
-        </button>
+        </Button>
       </div>
 
       {calendars.length === 0 ? (

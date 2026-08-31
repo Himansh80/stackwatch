@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../../../lib/api';
 import { motion, pageEnter } from '../../../lib/motion';
+import Button from '../../shared/Button';
 import ServiceTile from './ServiceTile';
 import PinModal from './PinModal';
 import type {
@@ -188,12 +189,17 @@ export default function ServiceStatusWidget({ config: _config }: { config?: { li
       {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button type="button" className="empty-state-cta" onClick={openPinForm}>
+        <Button variant="primary" size="sm" onClick={openPinForm}>
           + Pin service
-        </button>
-        <button type="button" className="empty-state-cta" onClick={() => void probeAll()} disabled={services.length === 0}>
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void probeAll()}
+          disabled={services.length === 0}
+        >
           Probe all
-        </button>
+        </Button>
       </div>
 
       {services.length === 0 ? (

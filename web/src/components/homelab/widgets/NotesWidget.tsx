@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../../../lib/api';
 import { motion, pageEnter } from '../../../lib/motion';
+import Button from '../../shared/Button';
 import NoteModal from './NoteModal';
 import type { NoteFormState, NoteRow, NotesResponse } from './types';
 
@@ -277,9 +278,9 @@ export default function NotesWidget({ config: _config }: NotesWidgetProps) {
       {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type="button" className="empty-state-cta" onClick={openCreate}>
+        <Button variant="primary" size="sm" onClick={openCreate}>
           + New note
-        </button>
+        </Button>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
           <input
             type="search"
@@ -302,18 +303,18 @@ export default function NotesWidget({ config: _config }: NotesWidgetProps) {
               minWidth: 200,
             }}
           />
-          <button
-            type="button"
-            className="empty-state-cta"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={runSearch}
             disabled={!searchQ.trim()}
           >
             Search
-          </button>
+          </Button>
           {appliedQuery ? (
-            <button type="button" className="empty-state-cta" onClick={clearSearch}>
+            <Button variant="ghost" size="sm" onClick={clearSearch}>
               Clear
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
