@@ -1288,3 +1288,45 @@ Tier 8 is the FIRST tier that used the full speckit workflow from start to finis
 The speckit method worked perfectly. Recommend applying it retroactively to Tier 9 (Security & Enterprise).
 
 TIER 8 COMPLETE. Next Tier 9 Security and Enterprise.
+---
+
+# Tier 20 — UI Consistency Polish (2026-08-31)
+
+**Status: Phase D (page refactor) COMPLETE + DEPLOYED to .115.**
+
+## Phase A (Audit) — done before this session
+- docs/UI-AUDIT-REPORT.md (2216 lines, 575 drifts, 210 critical)
+
+## Phase B (Shared Components) — done before this session
+- Button, Modal, DataTable, Input, Select, Textarea, BrandLogo, SkeletonCard, EmptyState
+- All with tests (Button.test.tsx, Modal.test.tsx, etc.)
+
+## Phase C (Dead Code) — done before this session
+- Deleted AppSidebar.tsx, Sidebar.tsx (173 LOC of emoji-driven legacy)
+
+## Phase D (Page Refactor) — THIS SESSION
+- 17 pages refactored to use shared components
+- 4 subagents in parallel
+- 4 new commits (adb3390, bf4ef35, 05a14c5, 5e35eb1)
+- Build PASS, bundle deployed, MD5 match local ↔ remote
+
+## Phase E (Component Refactor) — NEXT
+- 13 component files still have raw primitives
+- Proxmox/* excluded (own scope)
+
+## Files refactored this session
+SharedDashboards, Platform, Database, Cspm, Cicd, Security, Synthetics, Apm, TrueNASWorkspace, Intelligence, Incidents, Enterprise, Notebook, LogsFull, RumSession, RumFull, ApmService, Homelab
+
+## Bundle deployed to .115
+- index.html 92273f12ea6ce44f98e90101362c3145
+- index-D15HZPh1.js 15ef7f59226f0cecdcda013d6325a60c
+- index-CUowLdFe.css e1ceb842f9115db138f1358f70e18efd
+- index.esm-2apmolpF.js 7201ff8209a044835e759b2d51247a03
+
+## Live verification
+- /health → 200 db:ok
+- /dashboard, /style-guide, /login → 200
+- Tier 20 BrandLogo SVG (was letter "S")
+- /style-guide route accessible (was 404 before this session)
+
+TIER 20 PHASE D COMPLETE.
