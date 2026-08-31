@@ -186,7 +186,7 @@ export default function TrueNASWorkspace() {
             <Input label="Username" value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} />
             <Input label="Password" type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} />
             <Input label="API key (optional)" type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} />
-            <label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label>
+            <label className="sw-checkbox"><input type="checkbox" className="cb-input" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label>
             <div className="sw-form-actions">
               <Button variant="ghost" type="button" onClick={() => setShowHostForm(false)}>Cancel</Button>
               <Button variant="primary" type="submit" loading={busy} disabled={busy}>Test and save</Button>
