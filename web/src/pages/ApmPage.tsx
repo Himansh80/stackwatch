@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Button from '../components/shared/Button';
 import { ApiError, api, getToken } from '../lib/api';
 import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
@@ -224,9 +225,14 @@ export default function ApmPage() {
                 </label>
                 {registerErr ? <p className="apm-form-error">{registerErr}</p> : null}
                 <div className="apm-form-actions">
-                  <button type="submit" className="sw-button sw-button-primary" disabled={registerBusy}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    loading={registerBusy}
+                    disabled={registerBusy}
+                  >
                     {registerBusy ? 'Registering…' : 'Register'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </section>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
+import Button from '../components/shared/Button';
 import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
 import SlaBadge from '../components/shared/SlaBadge';
@@ -256,9 +257,14 @@ export default function SyntheticsPage() {
                 </label>
                 {formErr ? <p className="apm-form-error">{formErr}</p> : null}
                 <div className="apm-form-actions">
-                  <button type="submit" className="sw-button sw-button-primary" disabled={busy}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    loading={busy}
+                    disabled={busy}
+                  >
                     {busy ? 'Creating…' : 'Create'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </section>
