@@ -385,7 +385,7 @@ function Pricing() {
               </header>
             ),
             items: ['Unlimited hosts and workloads', 'Full command center + terminal', 'All alert rules and integrations', 'Source-available, audit your own code'],
-            cta: <Link className="landing-button landing-button-ghost" to="/signup">Get the binary</Link>,
+            cta: <Link className="btn btn-secondary btn-md" to="/signup">Get the binary</Link>,
           },
           {
             planClass: 'landing-plan landing-plan-featured',
@@ -397,7 +397,7 @@ function Pricing() {
               </>
             ),
             items: ['1 connected host, unlimited workloads', 'Hosted control plane at stackwatch.smarthomelab.fun', 'All dashboards, alerts, terminals', 'Community support'],
-            cta: <Link className="landing-button landing-button-primary" to="/signup">Start free</Link>,
+            cta: <Link className="btn btn-primary btn-md" to="/signup">Start free</Link>,
           },
           {
             planClass: 'landing-plan',
@@ -410,7 +410,7 @@ function Pricing() {
               </header>
             ),
             items: ['Unlimited hosts and workloads', 'SAML SSO, role-based access', 'Audit log retention, priority support', 'Email and chat onboarding'],
-            cta: <Link className="landing-button landing-button-ghost" to="/signup">Start 14-day trial</Link>,
+            cta: <Link className="btn btn-secondary btn-md" to="/signup">Start 14-day trial</Link>,
           },
         ].map((plan) => (
           <motion.article
@@ -448,10 +448,10 @@ function BottomCta() {
       </div>
       <div className="landing-cta-actions">
         <motion.div whileHover={cardLift} whileTap={buttonSpring.whileTap} className="landing-button-wrap">
-          <Link className="landing-button landing-button-primary landing-button-large" to="/signup">Create free account</Link>
+          <Link className="btn btn-primary btn-lg" to="/signup">Create free account</Link>
         </motion.div>
         <motion.div whileHover={cardLift} className="landing-button-wrap">
-          <Link className="landing-button landing-button-ghost landing-button-large" to="/login">Sign in</Link>
+          <Link className="btn btn-secondary btn-lg" to="/login">Sign in</Link>
         </motion.div>
       </div>
     </motion.section>

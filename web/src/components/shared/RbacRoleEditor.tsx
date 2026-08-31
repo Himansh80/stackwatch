@@ -1,5 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { motion, buttonSpring, useReducedMotion } from '../../lib/motion';
+import Button from './Button';
+import Input from './Input';
+import Textarea from './Textarea';
 
 /**
  * RbacRoleEditor — Tier 9.3 (Phase 3) Datadog-style editor for a
@@ -113,7 +115,6 @@ export default function RbacRoleEditor({
   onCancel,
   busy = false,
 }: RbacRoleEditorProps) {
-  const reduce = useReducedMotion();
   const [draft, setDraft] = useState<RbacRoleDraft>(() => initialFromRole(role));
 
   // Re-sync when the role prop changes (e.g., user clicks "Edit"
@@ -182,68 +183,33 @@ export default function RbacRoleEditor({
         </span>
       </div>
 
-      <label
-        style={{
-          display: 'block',
-          marginTop: 12,
-          fontSize: 12,
-          color: 'var(--text-muted)',
-        }}
-      >
-        Name
-        <input
-          type="text"
-          value={draft.name}
-          onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-          placeholder="ReadOnly, NightOps, DevOps, …"
-          maxLength={64}
-          required
-          disabled={isReadOnly}
-          style={{
-            display: 'block',
-            width: '100%',
-            marginTop: 4,
-            padding: 8,
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text)',
-            opacity: isReadOnly ? 0.6 : 1,
-          }}
-        />
-      </label>
+      <Input
+        label="Name"
+        type="text"
+        value={draft.name}
+        onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+        placeholder="ReadOnly, NightOps, DevOps, …"
+        maxLength={64}
+        required
+        disabled={isReadOnly}
+        fullWidth
+      />
 
-      <label
+      <Textarea
+        label="Description"
+        value={draft.description}
+        onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+        placeholder="What is this role for? (optional, max 256 chars)"
+        maxLength={256}
+        rows={2}
+        disabled={isReadOnly}
+        fullWidth
         style={{
-          display: 'block',
-          marginTop: 12,
-          fontSize: 12,
-          color: 'var(--text-muted)',
+          fontFamily: 'inherit',
+          resize: 'vertical',
+          opacity: isReadOnly ? 0.6 : 1,
         }}
-      >
-        Description
-        <textarea
-          value={draft.description}
-          onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-          placeholder="What is this role for? (optional, max 256 chars)"
-          maxLength={256}
-          rows={2}
-          disabled={isReadOnly}
-          style={{
-            display: 'block',
-            width: '100%',
-            marginTop: 4,
-            padding: 8,
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text)',
-            fontFamily: 'inherit',
-            resize: 'vertical',
-            opacity: isReadOnly ? 0.6 : 1,
-          }}
-        />
-      </label>
+      />
 
       <div
         style={{
@@ -326,28 +292,25 @@ export default function RbacRoleEditor({
           }}
         >
           {onCancel ? (
-            <motion.button
+            <Button
               type="button"
-              className="sw-button sw-button-secondary"
+              variant="ghost"
+              size="sm"
               onClick={onCancel}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
               disabled={busy}
             >
               Cancel
-            </motion.button>
+            </Button>
           ) : null}
-          <motion.button
+          <Button
             type="submit"
-            className="empty-state-cta"
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
+            variant="primary"
+            size="sm"
             disabled={busy || !draft.name.trim()}
+            loading={busy}
           >
             {busy ? 'Saving…' : isNew ? 'Create role' : 'Save changes'}
-          </motion.button>
+          </Button>
         </div>
       ) : null}
     </form>

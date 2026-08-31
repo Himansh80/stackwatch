@@ -1,5 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { motion, buttonSpring, useReducedMotion } from '../../lib/motion';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
+import Textarea from './Textarea';
 
 /**
  * OrgSettingsForm — Tier 9.6 (Phase 6) Datadog-style settings form
@@ -74,7 +77,6 @@ export default function OrgSettingsForm({
   busy = false,
   errorMessage,
 }: OrgSettingsFormProps) {
-  const reduce = useReducedMotion();
   const initial = (org.settings ?? {}) as OrgSettings;
   const dashboards = dashboardOptions ?? DEFAULT_DASHBOARD_OPTIONS;
 
@@ -165,73 +167,48 @@ export default function OrgSettingsForm({
           marginTop: 12,
         }}
       >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-          <span style={{ color: 'var(--muted)' }}>Theme</span>
-          <select
-            className="form-input"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            disabled={busy}
-          >
-            {THEMES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label="Theme"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+          disabled={busy}
+          options={THEMES}
+          fullWidth
+        />
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-          <span style={{ color: 'var(--muted)' }}>Default dashboard</span>
-          <select
-            className="form-input"
-            value={defaultDashboard}
-            onChange={(e) => setDefaultDashboard(e.target.value)}
-            disabled={busy}
-          >
-            {dashboards.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label="Default dashboard"
+          value={defaultDashboard}
+          onChange={(e) => setDefaultDashboard(e.target.value)}
+          disabled={busy}
+          options={dashboards.map((d) => ({ value: d, label: d }))}
+          fullWidth
+        />
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-          <span style={{ color: 'var(--muted)' }}>Default landing path</span>
-          <input
-            className="form-input"
-            type="text"
-            value={defaultLanding}
-            onChange={(e) => setDefaultLanding(e.target.value)}
-            placeholder="/dashboard"
-            disabled={busy}
-          />
-        </label>
-      </div>
+        <Input
+          label="Default landing path"
+          type="text"
+          value={defaultLanding}
+          onChange={(e) => setDefaultLanding(e.target.value)}
+          placeholder="/dashboard"
+          disabled={busy}
+          fullWidth
+        />
 
-      <label
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-          fontSize: 12,
-          marginTop: 12,
-        }}
-      >
-        <span style={{ color: 'var(--muted)' }}>
-          Custom settings (JSON object — open-ended for future fields)
-        </span>
-        <textarea
-          className="form-input"
+        <Textarea
+          label="Custom settings (JSON object — open-ended for future fields)"
           value={customJson}
           onChange={(e) => setCustomJson(e.target.value)}
           placeholder='{ "alert_email": "ops@example.com" }'
           rows={4}
-          style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 12 }}
           disabled={busy}
+          fullWidth
+          style={{
+            fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+            fontSize: 12,
+          }}
         />
-      </label>
+      </div>
 
       {errorMessage ? (
         <div
@@ -252,29 +229,25 @@ export default function OrgSettingsForm({
 
       <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
         {onCancel ? (
-          <motion.button
+          <Button
             type="button"
-            className="empty-state-cta"
+            variant="ghost"
+            size="sm"
             onClick={onCancel}
             disabled={busy}
-            style={{ background: 'transparent', border: '1px solid var(--border)' }}
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
           >
             Cancel
-          </motion.button>
+          </Button>
         ) : null}
-        <motion.button
+        <Button
           type="submit"
-          className="empty-state-cta"
+          variant="primary"
+          size="sm"
           disabled={busy}
-          whileHover={reduce ? undefined : buttonSpring.whileHover}
-          whileTap={reduce ? undefined : buttonSpring.whileTap}
-          transition={buttonSpring.transition}
+          loading={busy}
         >
           {busy ? 'Saving…' : 'Save settings'}
-        </motion.button>
+        </Button>
       </div>
     </form>
   );

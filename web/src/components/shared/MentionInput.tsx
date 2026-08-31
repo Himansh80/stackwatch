@@ -36,6 +36,7 @@
  */
 
 import { KeyboardEvent, useMemo, useRef, useState } from 'react';
+import Textarea from './Textarea';
 
 export interface MentionUser {
   id: string;
@@ -191,11 +192,8 @@ export default function MentionInput({
 
   return (
     <div className="mention-input">
-      <textarea
-        className="notebook-editor-textarea"
-        rows={rows}
+      <Textarea
         value={text}
-        maxLength={8192}
         onChange={(e) => {
           const v = e.target.value;
           const caret = e.target.selectionStart ?? v.length;
@@ -203,7 +201,13 @@ export default function MentionInput({
         }}
         onKeyDown={onKeyDown}
         placeholder={placeholder || 'Type a comment. Use @name to mention teammates.'}
+        rows={rows}
+        maxLength={8192}
         spellCheck={false}
+        fullWidth
+        style={{
+          fontFamily: 'var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
+        }}
       />
 
       {showMenu && filtered.length > 0 ? (

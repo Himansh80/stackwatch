@@ -23,7 +23,9 @@
  */
 
 import { useState } from 'react';
-import { motion, buttonSpring, useReducedMotion } from '../../lib/motion';
+import Button from './Button';
+import Input from './Input';
+import Textarea from './Textarea';
 
 export interface NotebookCollaborator {
   user_id: string;
@@ -60,7 +62,6 @@ function collabClass(tone: 'viewer' | 'editor' | 'owner'): string {
 }
 
 export default function NotebookEditor({ notebook, onSave, onClose }: NotebookEditorProps) {
-  const reduce = useReducedMotion();
   // Local controlled state — parent passes initial values, we buffer
   // edits and flush via onSave when the user clicks Save.
   const [title, setTitle] = useState<string>(notebook.title);
@@ -103,16 +104,15 @@ export default function NotebookEditor({ notebook, onSave, onClose }: NotebookEd
       </div>
 
       <div className="notebook-editor-body">
-        <label className="notebook-editor-title-label">
-          <span>Title</span>
-          <input
-            type="text"
-            value={title}
-            maxLength={256}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Production runbook — Database failover"
-          />
-        </label>
+        <Input
+          label="Title"
+          type="text"
+          value={title}
+          maxLength={256}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Production runbook — Database failover"
+          fullWidth
+        />
 
         <div className="notebook-editor-collab-row">
           <span className="notebook-editor-collab-label">Collaborators</span>
@@ -130,17 +130,21 @@ export default function NotebookEditor({ notebook, onSave, onClose }: NotebookEd
           )}
         </div>
 
-        <label className="notebook-editor-content-label">
-          <span>Markdown content</span>
-          <textarea
-            className="notebook-editor-textarea"
-            value={content}
-            maxLength={131072}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={`# Runbook\n\n## Overview\nDescribe the system here.\n\n## Steps\n1. ...\n\n\`\`\`bash\necho run the command\n\`\`\``}
-            spellCheck={false}
-          />
-        </label>
+        <Textarea
+          label="Markdown content"
+          value={content}
+          maxLength={131072}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder={`# Runbook\n\n## Overview\nDescribe the system here.\n\n## Steps\n1. ...\n\n\`\`\`bash\necho run the command\n\`\`\``}
+          rows={16}
+          fullWidth
+          spellCheck={false}
+          style={{
+            fontFamily: 'var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
+            minHeight: 400,
+            resize: 'vertical',
+          }}
+        />
 
         <div className="notebook-editor-actions">
           <span className="notebook-editor-meta">
@@ -148,24 +152,23 @@ export default function NotebookEditor({ notebook, onSave, onClose }: NotebookEd
             <code>{lastEdited}</code>
           </span>
           <div className="notebook-editor-actions-right">
-            <button
+            <Button
               type="button"
-              className="dash-icon-button"
+              variant="ghost"
+              size="sm"
               onClick={onClose}
             >
               Close
-            </button>
-            <motion.button
+            </Button>
+            <Button
               type="button"
-              className="empty-state-cta"
+              variant="primary"
+              size="sm"
               disabled={!dirty}
               onClick={() => onSave(content)}
-              whileHover={reduce ? undefined : buttonSpring.whileHover}
-              whileTap={reduce ? undefined : buttonSpring.whileTap}
-              transition={buttonSpring.transition}
             >
               {dirty ? 'Save' : 'Saved'}
-            </motion.button>
+            </Button>
           </div>
         </div>
       </div>
