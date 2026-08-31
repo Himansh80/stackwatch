@@ -5,6 +5,8 @@ import PasswordInput from '../components/PasswordInput';
 import PasswordField from '../components/PasswordField';
 import { friendlyPasswordMessage } from '../lib/password';
 import { motion, pageEnter } from '../lib/motion';
+import Button from '../components/shared/Button';
+import Input from '../components/shared/Input';
 
 type Tenant = {
   id: string;
@@ -162,7 +164,9 @@ export default function SettingsPage() {
             <div className="dash-error">
               <strong>Could not load your settings</strong>
               <span>{error}</span>
-              <button onClick={() => window.location.reload()}>Retry</button>
+              <Button variant="primary" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
             </div>
           )}
           {loading ? (
@@ -189,21 +193,20 @@ export default function SettingsPage() {
                     <div><span className="dash-eyebrow">Workspace</span><h3>Rename workspace</h3></div>
                   </div>
                   <form onSubmit={onSaveName} className="sw-form-grid" style={{ padding: '18px 20px 20px' }}>
-                    <label className="sw-field">
-                      <span>Workspace name</span>
-                      <input
-                        type="text"
-                        value={nameDraft}
-                        onChange={(e) => { setNameDraft(e.target.value); setNameError(null); setNameMessage(null); }}
-                        placeholder="Your team or project name"
-                        required
-                      />
-                    </label>
+                    <Input
+                      label="Workspace name"
+                      type="text"
+                      value={nameDraft}
+                      onChange={(e) => { setNameDraft(e.target.value); setNameError(null); setNameMessage(null); }}
+                      placeholder="Your team or project name"
+                      required
+                      fullWidth
+                    />
                     {nameError && <div className="auth-error" style={{ gridColumn: '1 / -1' }}>{nameError}</div>}
                     {nameMessage && !nameError && <div className="dash-banner-ok" style={{ gridColumn: '1 / -1' }}>{nameMessage}</div>}
                     <div className="sw-form-actions">
-                      <button type="button" className="sw-button sw-button-quiet" onClick={() => { setNameDraft(tenant?.name || ''); setNameError(null); setNameMessage(null); }} disabled={nameSaving}>Discard</button>
-                      <button type="submit" className="sw-button sw-button-primary" disabled={nameSaving || !nameDraft.trim() || nameDraft.trim() === (tenant?.name || '')}>{nameSaving ? 'Saving...' : 'Save name'}</button>
+                      <Button variant="ghost" onClick={() => { setNameDraft(tenant?.name || ''); setNameError(null); setNameMessage(null); }} disabled={nameSaving}>Discard</Button>
+                      <Button type="submit" variant="primary" loading={nameSaving || !nameDraft.trim() || nameDraft.trim() === (tenant?.name || '')} disabled={nameSaving || !nameDraft.trim() || nameDraft.trim() === (tenant?.name || '')}>{nameSaving ? 'Saving...' : 'Save name'}</Button>
                     </div>
                   </form>
                 </article>
@@ -247,8 +250,8 @@ export default function SettingsPage() {
                     {pwError && <div className="auth-error" style={{ gridColumn: '1 / -1' }}>{pwError}</div>}
                     {pwMessage && !pwError && <div className="dash-banner-ok" style={{ gridColumn: '1 / -1' }}>{pwMessage}</div>}
                     <div className="sw-form-actions">
-                      <button type="button" className="sw-button sw-button-quiet" onClick={() => { setOldPw(''); setNewPw(''); setNewPw2(''); setPwError(null); setPwErrorCode(undefined); setPwMessage(null); }} disabled={pwSaving}>Discard</button>
-                      <button type="submit" className="sw-button sw-button-primary" disabled={pwSaving || !oldPw || !newPw || !newPw2}>{pwSaving ? 'Saving...' : 'Update password'}</button>
+                      <Button variant="ghost" onClick={() => { setOldPw(''); setNewPw(''); setNewPw2(''); setPwError(null); setPwErrorCode(undefined); setPwMessage(null); }} disabled={pwSaving}>Discard</Button>
+                      <Button type="submit" variant="primary" loading={pwSaving || !oldPw || !newPw || !newPw2} disabled={pwSaving || !oldPw || !newPw || !newPw2}>{pwSaving ? 'Saving...' : 'Update password'}</Button>
                     </div>
                   </form>
                 </article>
