@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   motion,
   useReducedMotion,
@@ -12,8 +12,20 @@ import {
   LiveDot,
   type Variants,
 } from '../lib/motion';
+import BrandLogo from '../components/shared/BrandLogo';
+import Button from '../components/shared/Button';
+import {
+  DatabaseIcon,
+  ServerIcon,
+  LayersIcon,
+  CogIcon,
+  AlertTriangleIcon,
+  UsersIcon,
+} from '../components/icons';
 
 // ---------- Demo data (unchanged) --------------------------------------
+// Feature icons now use SVG components (icons.tsx) — no more ⌁◫▤⌘△◇ emoji
+// Per DESIGN-SYSTEM.md anti-slop: emoji forbidden as primary UI.
 const NODE_NAMES = ['edge-01', 'core-a', 'core-b', 'mgmt-01', 'gpu-02', 'storage-1', 'hypervisor-eu', 'worker-3', 'bastion', 'observability-1', 'db-primary', 'cache-01', 'ci-runner-2'];
 const WORKLOAD_NAMES = [
   'web-api', 'auth-svc', 'payments', 'image-worker', 'search-indexer',
@@ -96,32 +108,32 @@ function generatePreview() {
 // ---------- Content (unchanged) ----------------------------------------
 const features = [
   {
-    icon: '⌁',
+    Icon: DatabaseIcon,
     title: 'Unified infrastructure view',
     body: 'See Proxmox, TrueNAS, and bare-metal workloads on one canvas — no more flipping between five tabs to find the slow VM.',
   },
   {
-    icon: '◫',
+    Icon: ShieldIcon,
     title: 'Self-hosted by default',
     body: 'Your servers, your data, your audit trail. Run on your own hardware with no third-party telemetry leaving the building.',
   },
   {
-    icon: '▤',
+    Icon: LayersIcon,
     title: 'Drill into any layer',
     body: 'Click a node to see its VMs, containers, pools, and services. Click a workload to see live CPU, memory, and disk pressure.',
   },
   {
-    icon: '⌘',
+    Icon: CogIcon,
     title: 'Browser terminal built in',
     body: 'Open a real shell to any registered server from the dashboard — no SSH client required.',
   },
   {
-    icon: '△',
+    Icon: AlertTriangleIcon,
     title: 'Alerts that respect context',
     body: 'See firing alerts with the affected workload right beside the rule that triggered them. Acknowledge or resolve in one click.',
   },
   {
-    icon: '◇',
+    Icon: UsersIcon,
     title: 'Built for small teams',
     body: 'Designed for operators who own five servers and want them all in one place, not enterprise teams with five hundred dashboards.',
   },
@@ -148,30 +160,31 @@ function LandingTopbar() {
       transition={{ duration: 0.32, ease: EASE_OUT }}
     >
       <Link className="landing-brand" to="/">
-        <span className="landing-brand-mark">S</span>
-        <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
-      </Link>
-      <nav className="landing-nav">
-        <a href="#features">Features</a>
-        <a href="#how">How it works</a>
-        <a href="#pricing">Pricing</a>
-        <a href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
-      </nav>
-      <div className="landing-top-actions">
-        <motion.div whileHover={cardLift} className="landing-button-wrap">
-          <Link className="landing-button landing-button-ghost" to="/login">Sign in</Link>
-        </motion.div>
-        <motion.div whileHover={cardLift} className="landing-button-wrap">
-          <Link className="landing-button landing-button-primary" to="/signup">Sign up free</Link>
-        </motion.div>
-      </div>
-    </motion.header>
-  );
-}
+              <BrandLogo variant="mark" size={32} />
+              <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
+            </Link>
+            <nav className="landing-nav">
+              <a href="#features">Features</a>
+              <a href="#how">How it works</a>
+              <a href="#pricing">Pricing</a>
+              <a href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
+            </nav>
+            <div className="landing-top-actions">
+              <motion.div whileHover={cardLift} className="landing-button-wrap">
+                <Button variant="ghost" onClick={() => nav('/login')}>Sign in</Button>
+              </motion.div>
+              <motion.div whileHover={cardLift} className="landing-button-wrap">
+                <Button variant="primary" onClick={() => nav('/signup')}>Sign up free</Button>
+              </motion.div>
+            </div>
+          </motion.header>
+        );
+      }
 
 // ---------- Hero --------------------------------------------------------
 function LandingHero({ preview }: { preview: ReturnType<typeof generatePreview> }) {
   const reduce = useReducedMotion();
+  const nav = useNavigate();
   const heroItemVariants: Variants = {
     hidden: { opacity: 0, y: 16 },
     show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE_OUT } },
@@ -197,17 +210,17 @@ function LandingHero({ preview }: { preview: ReturnType<typeof generatePreview> 
           terminals — in a single place, on hardware you control.
         </motion.p>
         <motion.div className="landing-hero-actions" variants={heroItemVariants}>
-          <motion.div whileHover={cardLift} whileTap={buttonSpring.whileTap} className="landing-button-wrap">
-            <Link className="landing-button landing-button-primary landing-button-large" to="/signup">
-              Create a free account
-            </Link>
-          </motion.div>
-          <motion.div whileHover={cardLift} className="landing-button-wrap">
-            <Link className="landing-button landing-button-ghost landing-button-large" to="/login">
-              I already have one
-            </Link>
-          </motion.div>
-        </motion.div>
+                  <motion.div whileHover={cardLift} whileTap={buttonSpring.whileTap} className="landing-button-wrap">
+                    <Button variant="primary" size="lg" onClick={() => nav('/signup')}>
+                      Create a free account
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={cardLift} className="landing-button-wrap">
+                    <Button variant="ghost" size="lg" onClick={() => nav('/login')}>
+                      I already have one
+                    </Button>
+                  </motion.div>
+                </motion.div>
         <motion.div className="landing-hero-meta" variants={heroItemVariants}>
           <span><span className="landing-meta-dot" />No credit card</span>
           <span><span className="landing-meta-dot" />Free tier for 1 host</span>
@@ -289,15 +302,15 @@ function FeatureGrid() {
       >
         {features.map((feature) => (
           <motion.article
-            className="landing-feature"
-            key={feature.title}
-            variants={fadeUp}
-            whileHover={reduce ? undefined : { y: -4, transition: { type: 'spring', stiffness: 360, damping: 24 } }}
-          >
-            <span className="landing-feature-icon">{feature.icon}</span>
-            <strong>{feature.title}</strong>
-            <p>{feature.body}</p>
-          </motion.article>
+                      className="landing-feature"
+                      key={feature.title}
+                      variants={fadeUp}
+                      whileHover={reduce ? undefined : { y: -4, transition: { type: 'spring', stiffness: 360, damping: 24 } }}
+                    >
+                      <span className="landing-feature-icon"><feature.Icon size={24} /></span>
+                      <strong>{feature.title}</strong>
+                      <p>{feature.body}</p>
+                    </motion.article>
         ))}
       </motion.div>
     </motion.section>
@@ -461,7 +474,7 @@ export default function Landing() {
         <div className="landing-footer-grid">
           <div>
             <Link className="landing-brand" to="/">
-              <span className="landing-brand-mark">S</span>
+              <BrandLogo variant="mark" size={32} />
               <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
             </Link>
             <p className="landing-footer-tag">Own your monitoring. StackWatch is source-available and runs on your own hardware.</p>
