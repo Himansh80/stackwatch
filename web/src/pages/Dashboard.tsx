@@ -6,6 +6,7 @@ import TrendChart from '../components/dashboard/TrendChart';
 import HostList from '../components/dashboard/HostList';
 import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
+import Input from '../components/shared/Input';
 import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import ErrorBar from '../components/dashboard/ErrorBar';
 import { motion, kpiStagger } from '../lib/motion';
@@ -257,7 +258,7 @@ export default function Dashboard() {
             <h3>Workloads and resources</h3>
           </div>
           <div className="dash-panel-controls">
-            <input
+            <Input
               className="dash-search"
               type="search"
               value={search}
