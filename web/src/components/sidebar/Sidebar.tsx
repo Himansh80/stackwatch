@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { NAV_SECTIONS } from './nav-config';
 import SidebarSection from './SidebarSection';
 import SidebarFooter from './SidebarFooter';
+import BrandLogo from '../shared/BrandLogo';
 
 interface SidebarProps {
   onItemClick?: () => void;
@@ -23,7 +24,7 @@ export default function Sidebar({ onItemClick, inDrawer = false }: SidebarProps)
   return (
     <aside className={'sb' + (inDrawer ? ' sb-drawer' : '')}>
       <Link to="/dashboard" className="sb-brand" onClick={onItemClick}>
-        <span className="sb-brand-mark" aria-hidden="true">S</span>
+        <BrandLogo variant="mark" size={28} />
         <span className="sb-brand-text">
           <strong>StackWatch</strong>
           <small>Infrastructure Control Plane</small>
