@@ -3,6 +3,7 @@ import { ApiError, api, getToken } from '../lib/api';
 import { motion, pageEnter } from '../lib/motion';
 import HomelabGrid from '../components/homelab/HomelabGrid';
 import HomelabKpiStrip from '../components/homelab/HomelabKpiStrip';
+import Button from '../components/shared/Button';
 
 /**
  * HomelabPage — Tier 10 Phase 1 (H1 — Widget Framework + Page shell).
@@ -219,16 +220,16 @@ export default function HomelabPage() {
               theme overrides if needed in a later polish pass). */}
           <div className="homelab-tabs" role="tablist" aria-label="Homelab sections" style={{ marginTop: 16 }}>
             {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
-              <button
+              <Button
                 key={t}
-                role="tab"
-                type="button"
-                aria-selected={tab === t}
-                className={`logs-tab ${tab === t ? 'logs-tab-active' : ''}`}
+                variant={tab === t ? 'primary' : 'ghost'}
+                size="sm"
                 onClick={() => setTab(t)}
+                aria-selected={tab === t}
+                role="tab"
               >
                 {TAB_LABELS[t]}
-              </button>
+              </Button>
             ))}
           </div>
 
