@@ -1,12 +1,15 @@
+import Button from '../../shared/Button';
+import Input from '../../shared/Input';
+import Modal from '../../shared/Modal';
+import Select from '../../shared/Select';
 import type { PinFormState, ServiceKind } from './types';
 
 /**
  * PinModal — controlled form for POST /homelab/services.
  *
- * Uses the shared .sw-modal* classes from styles-tier2.css so it
- * inherits the platform modal look without re-styling. Lives in
- * its own file (split out of ServiceStatusWidget.tsx) so the
- * parent file stays under 400 LOC.
+ * Tier 20 Phase G: refactored custom sw-modal-backdrop +
+ * sw-modal + homelab-pin-form-row + raw inputs to shared
+ * Modal + Input + Select + Button.
  */
 
 const KIND_HINT: Record<ServiceKind, string> = {
@@ -29,87 +32,81 @@ export default function PinModal({
   form, setForm, busy, error, onClose, onSubmit,
 }: PinModalProps) {
   return (
-    <div
-      className="sw-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Pin a new service"
-      onClick={onClose}
-    >
-      <div className="sw-modal" onClick={(e) => e.stopPropagation()}>
-        <form
-          className="homelab-pin-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit();
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 16 }}>Pin a service</h3>
+    <Modal open onClose={onClose} title="Pin a service" size="md">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      >
+        <Input
+          id="pin-name"
+          label="Name"
+          type="text"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="Proxmox"
+          maxLength={64}
+          required
+          fullWidth
+          autoFocus
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="pin-name">Name</label>
-            <input
-              id="pin-name"
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Proxmox"
-              maxLength={64}
-              required
-            />
-          </div>
+        <Input
+          id="pin-url"
+          label="URL"
+          type="text"
+          value={form.url}
+          onChange={(e) => setForm({ ...form, url: e.target.value })}
+          placeholder={KIND_HINT[form.kind]}
+          description={KIND_HINT[form.kind]}
+          required
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="pin-url">URL</label>
-            <input
-              id="pin-url"
-              type="text"
-              value={form.url}
-              onChange={(e) => setForm({ ...form, url: e.target.value })}
-              placeholder={KIND_HINT[form.kind]}
-              required
-            />
-            <p className="homelab-pin-form-hint">{KIND_HINT[form.kind]}</p>
-          </div>
+        <Select
+          id="pin-kind"
+          label="Kind"
+          value={form.kind}
+          onChange={(e) => setForm({ ...form, kind: e.target.value as ServiceKind })}
+          fullWidth
+          options={[
+            { value: 'http', label: 'http' },
+            { value: 'https', label: 'https' },
+            { value: 'tcp', label: 'tcp (host:port)' },
+            { value: 'icmp', label: 'icmp (ping)' },
+          ]}
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="pin-kind">Kind</label>
-            <select
-              id="pin-kind"
-              value={form.kind}
-              onChange={(e) => setForm({ ...form, kind: e.target.value as ServiceKind })}
-            >
-              <option value="http">http</option>
-              <option value="https">https</option>
-              <option value="tcp">tcp (host:port)</option>
-              <option value="icmp">icmp (ping)</option>
-            </select>
-          </div>
+        <Input
+          id="pin-icon"
+          label="Icon (emoji or short text)"
+          type="text"
+          value={form.icon}
+          onChange={(e) => setForm({ ...form, icon: e.target.value })}
+          placeholder="🛜"
+          maxLength={8}
+          fullWidth
+        />
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="pin-icon">Icon (emoji or short text)</label>
-            <input
-              id="pin-icon"
-              type="text"
-              value={form.icon}
-              onChange={(e) => setForm({ ...form, icon: e.target.value })}
-              placeholder="🛜"
-              maxLength={8}
-            />
-          </div>
+        {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
-          {error ? <div className="dash-error" role="alert">{error}</div> : null}
-
-          <div className="sw-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button type="button" className="empty-state-cta" onClick={onClose} disabled={busy}>
-              Cancel
-            </button>
-            <button type="submit" className="empty-state-cta" disabled={busy || !form.name.trim() || !form.url.trim()}>
-              {busy ? 'Pinning…' : 'Pin service'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={busy || !form.name.trim() || !form.url.trim()}
+            loading={busy}
+          >
+            {busy ? 'Pinning…' : 'Pin service'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../../../lib/api';
 import { motion, pageEnter } from '../../../lib/motion';
+import Button from '../../shared/Button';
 import AddRssFeedModal, { type RssFormState } from './AddRssFeedModal';
 import RssFeedCard from './RssFeedCard';
 import RssItemDetailModal, { type RssItemRowForModal } from './RssItemDetailModal';
@@ -188,12 +189,12 @@ export default function RssWidget({ config: _config }: { config?: { feed_id?: st
       {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type="button" className="empty-state-cta" onClick={openForm}>
+        <Button variant="primary" size="sm" onClick={openForm}>
           + Add feed
-        </button>
-        <button type="button" className="empty-state-cta" onClick={() => void refreshAll()}>
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => void refreshAll()}>
           Refresh
-        </button>
+        </Button>
         {totalUnread > 0 ? (
           <span
             className="homelab-service-pill"

@@ -1,3 +1,5 @@
+import Button from '../../shared/Button';
+import Modal from '../../shared/Modal';
 import {
   schedulerRelativeTime,
   schedulerStatusColor,
@@ -21,6 +23,9 @@ import {
  * runs list when triggered via the parent's `openDetail`
  * helper, so a manual run from the row shows up here
  * immediately on the next open.
+ *
+ * Tier 20 Phase G: refactored custom homelab-modal-backdrop +
+ * empty-state-cta close button to shared Modal + Button.
  */
 
 interface SchedulerJobDetailModalProps {
@@ -35,44 +40,32 @@ export default function SchedulerJobDetailModal({
   onClose,
 }: SchedulerJobDetailModalProps) {
   return (
-    <div
-      className="homelab-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        className="homelab-modal-panel"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--surface-2)',
-          borderRadius: 8,
-          padding: 24,
-          minWidth: 480,
-          maxWidth: 640,
-          width: '95%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>{job.name || '(unnamed)'}</h3>
-        <small style={{ color: 'var(--muted)' }}>
-          <code>{job.method}</code> {job.url}
-        </small>
-        <p>
-          <strong>Schedule:</strong> <code>{job.schedule}</code>
-        </p>
+    <Modal open onClose={onClose} title={job.name || '(unnamed)'} size="md">
+      <small style={{ color: 'var(--muted)' }}>
+        <code>{job.method}</code> {job.url}
+      </small>
+      <p>
+        <strong>Schedule:</strong> <code>{job.schedule}</code>
+      </p>
+      <div>
+        <strong>Headers:</strong>
+        <pre
+          style={{
+            background: 'var(--surface-1)',
+            padding: 8,
+            borderRadius: 4,
+            overflow: 'auto',
+            fontSize: 12,
+          }}
+        >
+          {Object.entries(job.headers)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('\n') || '(none)'}
+        </pre>
+      </div>
+      {job.body ? (
         <div>
-          <strong>Headers:</strong>
+          <strong>Body:</strong>
           <pre
             style={{
               background: 'var(--surface-1)',
@@ -82,68 +75,50 @@ export default function SchedulerJobDetailModal({
               fontSize: 12,
             }}
           >
-            {Object.entries(job.headers)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join('\n') || '(none)'}
+            {job.body}
           </pre>
         </div>
-        {job.body ? (
-          <div>
-            <strong>Body:</strong>
-            <pre
-              style={{
-                background: 'var(--surface-1)',
-                padding: 8,
-                borderRadius: 4,
-                overflow: 'auto',
-                fontSize: 12,
-              }}
-            >
-              {job.body}
-            </pre>
-          </div>
-        ) : null}
-        <div>
-          <strong>Recent runs ({runs.length})</strong>
-          <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 8 }}>
-            {runs.length === 0 ? (
-              <small style={{ color: 'var(--muted)' }}>No runs yet.</small>
-            ) : (
-              runs.map((r) => (
-                <div
-                  key={r.id}
+      ) : null}
+      <div>
+        <strong>Recent runs ({runs.length})</strong>
+        <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 8 }}>
+          {runs.length === 0 ? (
+            <small style={{ color: 'var(--muted)' }}>No runs yet.</small>
+          ) : (
+            runs.map((r) => (
+              <div
+                key={r.id}
+                style={{
+                  padding: 6,
+                  borderBottom: '1px solid var(--border)',
+                  fontSize: 12,
+                }}
+              >
+                <span
                   style={{
-                    padding: 6,
-                    borderBottom: '1px solid var(--border)',
-                    fontSize: 12,
+                    background: schedulerStatusColor(r.status),
+                    color: 'white',
+                    padding: '1px 6px',
+                    borderRadius: 3,
+                    marginRight: 6,
                   }}
                 >
-                  <span
-                    style={{
-                      background: schedulerStatusColor(r.status),
-                      color: 'white',
-                      padding: '1px 6px',
-                      borderRadius: 3,
-                      marginRight: 6,
-                    }}
-                  >
-                    {r.status}
-                  </span>
-                  {r.http_status_code ? `${r.http_status_code} • ` : ''}
-                  {r.duration_ms ? `${r.duration_ms}ms • ` : ''}
-                  {schedulerRelativeTime(r.started_at)}
-                  {r.error_message ? ` — ${r.error_message.slice(0, 60)}` : ''}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-        <div style={{ marginTop: 12, textAlign: 'right' }}>
-          <button type="button" className="empty-state-cta" onClick={onClose}>
-            Close
-          </button>
+                  {r.status}
+                </span>
+                {r.http_status_code ? `${r.http_status_code} • ` : ''}
+                {r.duration_ms ? `${r.duration_ms}ms • ` : ''}
+                {schedulerRelativeTime(r.started_at)}
+                {r.error_message ? ` — ${r.error_message.slice(0, 60)}` : ''}
+              </div>
+            ))
+          )}
         </div>
       </div>
-    </div>
+      <div style={{ marginTop: 12, textAlign: 'right' }}>
+        <Button variant="secondary" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </Modal>
   );
 }

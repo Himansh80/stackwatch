@@ -1,13 +1,20 @@
+import Button from '../../shared/Button';
+import Input from '../../shared/Input';
+import Modal from '../../shared/Modal';
+import Textarea from '../../shared/Textarea';
 import type { NoteFormState } from './types';
 
 /**
  * NoteModal — controlled form for POST/PATCH /homelab/notes.
  *
- * Reuses the same .sw-modal* classes the PinModal uses. Tags are
- * entered as a comma-separated string and split on submit (the
- * server stores them as text[]). The form is shared between
+ * Tags are entered as a comma-separated string and split on submit
+ * (the server stores them as text[]). The form is shared between
  * create + edit modes — the parent passes an optional `editingId`
  * to switch between POST and PATCH.
+ *
+ * Tier 20 Phase G: refactored custom sw-modal-backdrop +
+ * sw-modal + homelab-pin-form-row + raw inputs/textarea to shared
+ * Modal + Input + Textarea + Button.
  */
 
 interface NoteModalProps {
@@ -24,95 +31,84 @@ export default function NoteModal({
   form, setForm, busy, error, editingId, onClose, onSubmit,
 }: NoteModalProps) {
   return (
-    <div
-      className="sw-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label={editingId ? 'Edit note' : 'New note'}
-      onClick={onClose}
+    <Modal
+      open
+      onClose={onClose}
+      title={editingId ? 'Edit note' : 'New note'}
+      size="md"
     >
-      <div className="sw-modal" onClick={(e) => e.stopPropagation()}>
-        <form
-          className="homelab-pin-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit();
-          }}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      >
+        <Input
+          id="note-title"
+          label="Title"
+          type="text"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="Buy new SSD for NAS"
+          maxLength={200}
+          required
+          autoFocus
+          fullWidth
+        />
+
+        <Textarea
+          id="note-body"
+          label="Body (Markdown allowed)"
+          value={form.body}
+          onChange={(e) => setForm({ ...form, body: e.target.value })}
+          placeholder="Notes go here. Plain text or Markdown."
+          rows={6}
+          fullWidth
+        />
+
+        <Input
+          id="note-tags"
+          label="Tags (comma-separated)"
+          type="text"
+          value={form.tagsRaw}
+          onChange={(e) => setForm({ ...form, tagsRaw: e.target.value })}
+          placeholder="homelab, urgent, todo"
+          maxLength={200}
+          description="Up to 16 tags, 32 chars each."
+          fullWidth
+        />
+
+        <label
+          htmlFor="note-pinned"
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
         >
-          <h3 style={{ margin: 0, fontSize: 16 }}>
-            {editingId ? 'Edit note' : 'New note'}
-          </h3>
+          <input
+            id="note-pinned"
+            type="checkbox"
+            checked={form.pinned}
+            onChange={(e) => setForm({ ...form, pinned: e.target.checked })}
+          />
+          Pin to top of list
+        </label>
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="note-title">Title</label>
-            <input
-              id="note-title"
-              type="text"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Buy new SSD for NAS"
-              maxLength={200}
-              required
-            />
-          </div>
+        {error ? <div className="dash-error" role="alert">{error}</div> : null}
 
-          <div className="homelab-pin-form-row">
-            <label htmlFor="note-body">Body (Markdown allowed)</label>
-            <textarea
-              id="note-body"
-              value={form.body}
-              onChange={(e) => setForm({ ...form, body: e.target.value })}
-              placeholder="Notes go here. Plain text or Markdown."
-              rows={6}
-              style={{
-                background: 'var(--surface-2)',
-                color: 'var(--text)',
-                border: '1px solid var(--surface-3)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                font: 'inherit',
-                resize: 'vertical',
-              }}
-            />
-          </div>
-
-          <div className="homelab-pin-form-row">
-            <label htmlFor="note-tags">Tags (comma-separated)</label>
-            <input
-              id="note-tags"
-              type="text"
-              value={form.tagsRaw}
-              onChange={(e) => setForm({ ...form, tagsRaw: e.target.value })}
-              placeholder="homelab, urgent, todo"
-              maxLength={200}
-            />
-            <p className="homelab-pin-form-hint">Up to 16 tags, 32 chars each.</p>
-          </div>
-
-          <div className="homelab-pin-form-row">
-            <label htmlFor="note-pinned" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                id="note-pinned"
-                type="checkbox"
-                checked={form.pinned}
-                onChange={(e) => setForm({ ...form, pinned: e.target.checked })}
-              />
-              Pin to top of list
-            </label>
-          </div>
-
-          {error ? <div className="dash-error" role="alert">{error}</div> : null}
-
-          <div className="sw-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button type="button" className="empty-state-cta" onClick={onClose} disabled={busy}>
-              Cancel
-            </button>
-            <button type="submit" className="empty-state-cta" disabled={busy || !form.title.trim()}>
-              {busy ? 'Saving…' : editingId ? 'Save changes' : 'Create note'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={busy || !form.title.trim()}
+            loading={busy}
+          >
+            {busy ? 'Saving…' : editingId ? 'Save changes' : 'Create note'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
