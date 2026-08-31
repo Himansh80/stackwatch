@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, Key, useCallback, useEffect, useMemo, useState } from 'react';
 import { createTrueNASHost, deleteTrueNASHost, listTrueNASHosts, testTrueNASHost, truenasCall, TNHost, TNRow } from '../lib/truenas';
 import FilterBar from '../components/FilterBar';
 import EmptyState from '../components/shared/EmptyState';
@@ -7,7 +7,11 @@ import KpiCard from '../components/shared/KpiCard';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
-import { motion, kpiStagger, pageEnter } from '../lib/motion';
+import Select from '../components/shared/Select';
+import Textarea from '../components/shared/Textarea';
+import Modal from '../components/shared/Modal';
+import DataTable, { type Column } from '../components/shared/DataTable';
+import { motion, kpiStagger } from '../lib/motion';
 
 type Section = { id: string; label: string; path: string };
 const sections: Section[] = [
@@ -172,13 +176,142 @@ function formatBytesLocal(bytes: number): string {
   return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
+/**
+ * columnsFor — section-aware column set for the live upstream
+ * response DataTable. Each TrueNAS section returns 3-4 sensible
+ * columns built from the dynamic TNRow keys we know exist for
+ * that endpoint (the row payload schema is documented in the
+ * middleware handler for `/api/v1/truenas/call`).
+ */
+function columnsFor(sectionId: string): Column<TNRow>[] {
+  const idColumn: Column<TNRow> = {
+    key: 'id',
+    header: 'ID',
+    render: (row) => <code>{String(row.id ?? row.name ?? '—')}</code>,
+  };
+  switch (sectionId) {
+    case 'pools':
+      return [
+        { key: 'name', header: 'Pool', render: (row) => String(row.name ?? '—'), sortable: true },
+        {
+          key: 'status',
+          header: 'Health',
+          render: (row) => (
+            <StatusPill status={poolHealthTone(row)} label={String(row.status ?? row.health ?? 'unknown')} size="sm" />
+          ),
+        },
+        {
+          key: 'size',
+          header: 'Size',
+          align: 'right',
+          render: (row) => formatBytesLocal(readNumber(row, 'size', 'total')),
+        },
+        {
+          key: 'allocated',
+          header: 'Used',
+          align: 'right',
+          render: (row) => {
+            const used = readNumber(row, 'allocated', 'used');
+            const total = readNumber(row, 'size', 'total');
+            const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+            return `${formatBytesLocal(used)} (${pct}%)`;
+          },
+        },
+      ];
+    case 'datasets':
+      return [
+        idColumn,
+        { key: 'name', header: 'Dataset', render: (row) => String(row.name ?? '—'), sortable: true },
+        {
+          key: 'available',
+          header: 'Available',
+          align: 'right',
+          render: (row) => formatBytesLocal(readNumber(row, 'available', 'avail')),
+        },
+      ];
+    case 'nfs':
+    case 'smb':
+      return [
+        idColumn,
+        { key: 'path', header: 'Path', render: (row) => String(row.path ?? row.name ?? '—') },
+        {
+          key: 'enabled',
+          header: 'State',
+          render: (row) => {
+            const enabled = row.enabled !== false && row.enabled !== 'false';
+            return <StatusPill status={enabled ? 'up' : 'down'} label={enabled ? 'enabled' : 'disabled'} size="sm" />;
+          },
+        },
+      ];
+    case 'iscsi':
+      return [
+        idColumn,
+        { key: 'name', header: 'Target', render: (row) => String(row.name ?? '—') },
+        { key: 'type', header: 'Type', render: (row) => String(row.type ?? '—') },
+      ];
+    case 'snapshots':
+      return [
+        idColumn,
+        { key: 'name', header: 'Snapshot', render: (row) => String(row.name ?? '—') },
+        {
+          key: 'creation',
+          header: 'Created',
+          render: (row) => {
+            const t = row.creation ?? row.created_at;
+            if (!t) return '—';
+            const d = new Date(String(t));
+            return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+          },
+        },
+      ];
+    case 'disks':
+      return [
+        idColumn,
+        { key: 'name', header: 'Disk', render: (row) => String(row.name ?? '—') },
+        {
+          key: 'temperature',
+          header: 'Temp',
+          align: 'right',
+          render: (row) => `${readNumber(row, 'temperature', 'temp')}°C`,
+        },
+      ];
+    case 'users':
+    case 'system':
+    case 'cloud':
+    default:
+      return [
+        idColumn,
+        { key: 'name', header: 'Name', render: (row) => String(row.name ?? '—') },
+      ];
+  }
+}
+
+/**
+ * filterRows — client-side filter for the live upstream response
+ * table. The JSON-RPC payload is small enough that filtering in
+ * place is fine — no need for a backend roundtrip per keystroke.
+ */
+function filterRows(rows: TNRow[], search: string): TNRow[] {
+  if (!search.trim()) return rows;
+  const needle = search.toLowerCase();
+  return rows.filter((row) =>
+    Object.values(row).some((value) => {
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'object') {
+        try { return JSON.stringify(value).toLowerCase().includes(needle); }
+        catch { return false; }
+      }
+      return String(value).toLowerCase().includes(needle);
+    }),
+  );
+}
+
 export default function TrueNASWorkspace() {
   const [hosts, setHosts] = useState<TNHost[]>([]);
   const [hostId, setHostId] = useState('');
   const [section, setSection] = useState('overview');
   const [rows, setRows] = useState<TNRow[]>([]);
-  const [raw, setRaw] = useState<unknown>(null);
-  const [busy, setBusy] = useState(false);
+    const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [showHostForm, setShowHostForm] = useState(false);
@@ -190,7 +323,8 @@ export default function TrueNASWorkspace() {
   // fine — no need for a backend roundtrip per keystroke.
   const [search, setSearch] = useState('');
   const selected = useMemo(() => hosts.find((host) => host.id === hostId), [hosts, hostId]);
-  const current = sections.find((item) => item.id === section) ?? sections[0];
+    const current = sections.find((item) => item.id === section) ?? sections[0];
+    const filteredRows = useMemo(() => filterRows(rows, search), [rows, search]);
 
   // KPI strip metrics — derived client-side from the loaded hosts list
   // and the currently-loaded section rows. Each card links to a section.
@@ -211,15 +345,15 @@ export default function TrueNASWorkspace() {
   }, [hostId]);
 
   const loadData = useCallback(async (nextSection: string, nextHost: string) => {
-    if (!nextHost) return;
-    const descriptor = sections.find((item) => item.id === nextSection) ?? sections[0];
-    setBusy(true); setError('');
-    try {
-      const payload = await truenasCall(descriptor.path, { host_id: nextHost });
-      setRaw(payload); setRows(rowsFrom(payload));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'TrueNAS request failed.'); setRows([]); setRaw(null); }
-    finally { setBusy(false); }
-  }, []);
+      if (!nextHost) return;
+      const descriptor = sections.find((item) => item.id === nextSection) ?? sections[0];
+      setBusy(true); setError('');
+      try {
+        const payload = await truenasCall(descriptor.path, { host_id: nextHost });
+        setRows(rowsFrom(payload));
+      } catch (cause) { setError(cause instanceof Error ? cause.message : 'TrueNAS request failed.'); setRows([]); }
+      finally { setBusy(false); }
+    }, []);
 
   useEffect(() => { void loadHosts().catch((cause) => setError(cause instanceof Error ? cause.message : 'Unable to load TrueNAS hosts.')); }, [loadHosts]);
   useEffect(() => { if (hostId) void loadData(section, hostId); }, [hostId, section, loadData]);
@@ -240,7 +374,8 @@ export default function TrueNASWorkspace() {
     finally { setBusy(false); }
   }
 
-  async function removeHost() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    async function removeHost() {
     if (!hostId || !window.confirm('Remove this saved TrueNAS connection?')) return;
     setBusy(true); setError('');
     try { await deleteTrueNASHost(hostId); setHostId(''); setMessage('TrueNAS host removed.'); await loadHosts(); }
@@ -268,29 +403,29 @@ export default function TrueNASWorkspace() {
           <p className="px-page-sub">{selected ? `${selected.name} · ${selected.base_url}` : 'Register a TrueNAS SCALE host to begin.'}</p>
         </div>
         <div className="px-page-actions">
-          <select
-            className="px-host-select"
-            aria-label="Active TrueNAS host"
-            value={hostId}
-            onChange={(event) => setHostId(event.target.value)}
-          >
-            <option value="">Select host</option>
-            {hosts.map((host) => (
-              <option key={host.id} value={host.id}>
-                {host.name} · {host.base_url}
-              </option>
-            ))}
-          </select>
-          {hostId && <button className="px-button px-button-primary" onClick={() => void runTest()} disabled={busy}>
-            Test connection
-          </button>}
-          {hostId && actionPaths[section] && <button className="px-button px-button-primary" onClick={() => setShowAction(true)} disabled={busy}>
-            + Create
-          </button>}
-          <button className="px-button px-button-primary" onClick={() => setShowHostForm((open) => !open)}>
-            + Add TrueNAS
-          </button>
-        </div>
+                  <Select
+                    options={[
+                      { value: '', label: 'Select host', disabled: true },
+                      ...hosts.map((host) => ({
+                        value: host.id,
+                        label: `${host.name} · ${host.base_url}`,
+                      })),
+                    ]}
+                    value={hostId}
+                    onChange={(event) => setHostId(event.target.value)}
+                    aria-label="Active TrueNAS host"
+                    className="px-host-select"
+                  />
+                  {hostId && <Button variant="primary" onClick={() => void runTest()} disabled={busy}>
+                    Test connection
+                  </Button>}
+                  {hostId && actionPaths[section] && <Button variant="primary" onClick={() => setShowAction(true)} disabled={busy}>
+                    + Create
+                  </Button>}
+                  <Button variant="primary" onClick={() => setShowHostForm((open) => !open)}>
+                    + Add TrueNAS
+                  </Button>
+                </div>
       </div>
 
       {hostId && (
@@ -365,29 +500,41 @@ export default function TrueNASWorkspace() {
           </div>
           <FilterBar search={search} onSearchChange={setSearch} placeholder={`Filter ${current.label.toLowerCase()} by name, ID, or any column…`} ariaLabel={`Search ${current.label}`} />
           <DataTable
-            rows={rows}
-            search={search}
-            empty={busy ? 'Loading live resources…' : `No ${current.label.toLowerCase()} found.`}
-            columns={columnsFor(section)}
-          />
+                      rows={filteredRows}
+                      columns={columnsFor(section)}
+                      rowKey={(row: TNRow): Key => String(row.id ?? row.name ?? JSON.stringify(row).slice(0, 32))}
+                      loading={busy}
+                      emptyTitle={busy ? 'Loading live resources…' : `No ${current.label.toLowerCase()} found.`}
+                      emptyDescription={busy ? 'Fetching the latest data from this TrueNAS host.' : 'Try adjusting your search or selecting a different section.'}
+                    />
         </section>
       )}
       {showAction && current && (
-        <div className="sw-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="sw-modal">
-            <div className="sw-panel-head">
-              <div><span className="sw-eyebrow">Authenticated mutation</span><h2>Create {current.label}</h2></div>
-              <Button variant="ghost" onClick={() => setShowAction(false)}>Close</Button>
-            </div>
-            <form onSubmit={runAction}>
-              <textarea className="sw-json-editor" value={actionJSON} onChange={(e) => setActionJSON(e.target.value)} spellCheck={false} />
-              <div className="sw-form-actions">
-                <Button variant="ghost" type="button" onClick={() => setShowAction(false)}>Cancel</Button>
-                <Button variant="primary" type="submit" loading={busy} disabled={busy}>Submit action</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <Modal
+                open={showAction}
+                onClose={() => setShowAction(false)}
+                title={`Create ${current.label}`}
+                description="Submit an authenticated mutation to this TrueNAS host."
+                size="md"
+                footer={
+                  <>
+                    <Button variant="ghost" type="button" onClick={() => setShowAction(false)}>Cancel</Button>
+                    <Button variant="primary" type="submit" form="truenas-action-form" loading={busy} disabled={busy}>Submit action</Button>
+                  </>
+                }
+              >
+                <form id="truenas-action-form" onSubmit={runAction}>
+                  <Textarea
+                    label="JSON body"
+                    description="The request body sent to the TrueNAS JSON-RPC endpoint."
+                    value={actionJSON}
+                    onChange={(event) => setActionJSON(event.target.value)}
+                    spellCheck={false}
+                    rows={8}
+                    fullWidth
+                  />
+                </form>
+              </Modal>
+            )}
     </>);
     }
