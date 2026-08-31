@@ -1330,3 +1330,59 @@ SharedDashboards, Platform, Database, Cspm, Cicd, Security, Synthetics, Apm, Tru
 - /style-guide route accessible (was 404 before this session)
 
 TIER 20 PHASE D COMPLETE.
+
+---
+
+# Tier 20 Phase E + F — Component Refactor + TrueNAS Split (2026-08-31 23:10 IST)
+
+## Phase E (Components) — COMPLETE
+
+**4 commits, 15 component files refactored, ~110 drifts fixed.**
+
+| Commit | Files | Drifts |
+|---|---|---|
+| `46bcc55` | LogArchivesTab, LogMonitorsTab | 18 (10 inputs + 2 selects + 6 buttons) |
+| `105b8d4` | LimitsChangeModal, RegionsSectionModals, ScimSection | 13 (modal + button + select) |
+| `d696c1f` | AddSchedulerJobModal, AddDownloadModal, TodoModal, SignupSection | 30+ (modal + input + select + textarea + button) |
+| `bd2dd0a` | ComplianceSectionFormViews, ComplianceSectionModals, SsoProviderForm, RbacSection, PredictiveAlertsSection, CorrelationsSection | 50+ (modal + form + button + input + select + textarea) |
+
+## Phase F (TrueNASWorkspace split) — COMPLETE
+
+**1 commit, 5 files from 540 LOC monolith.**
+
+| File | LOC | Purpose |
+|---|---|---|
+| `TrueNASWorkspace.types.ts` | 19 | Section type + sections + actionPaths |
+| `TrueNASWorkspace.helpers.ts` | 73 | value, readNumber, poolHealthTone, rowsFrom, formatBytesLocal, filterRows |
+| `TrueNASWorkspace.cards.tsx` | 93 | PoolHealthCard, DiskTempCard, SnapshotGroup |
+| `TrueNASWorkspace.columns.ts` | 119 | columnsFor function |
+| `TrueNASWorkspace.tsx` | 263 | Main page component |
+
+All files UNDER 400 LOC cap. Build PASS. Behavior preserved.
+
+## Bundle deployed to .115
+- index.html `d965b4c6f00b28957dcbf71e6220df5a`
+- index-CXGKm6AF.js `9a8111f52ad432265b6b306eaf3cdead` (891 KB)
+- index-CUowLdFe.css `e1ceb842f9115db138f1358f70e18efd` (148 KB)
+
+MD5 local ↔ remote: VERIFIED identical.
+
+Live routes HTTP 200:
+- /health → 200
+- /style-guide → 200
+
+## Combined Tier 20 stats (Phases D+E+F)
+
+- 17 pages refactored (Phase D)
+- 15 components refactored (Phase E)
+- 1 page split (Phase F)
+- ~250+ drifts fixed total
+
+## Tier 20 scope remaining (gated on user)
+1. Tier 21 — Modularity Cleanup
+2. Tier 15 — On-Call and SLOs
+3. Tier 17 — Observability Depth
+4. Tier 16 — K8s + Edge + RBAC
+5. Tier 23 — Security Hardening (CRITICAL — before prod promotion)
+
+TIER 20 (UI Consistency Polish) is now 100% COMPLETE.
