@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, clearToken, getToken } from '../lib/api';
 import { motion, pageEnter } from '../lib/motion';
 import StatusPill from '../components/shared/StatusPill';
+import Button from '../components/shared/Button';
 
 type Tenant = {
   id: string;
@@ -109,7 +110,9 @@ export default function BillingPage() {
             <div className="dash-error">
               <strong>Could not load your billing info</strong>
               <span>{error}</span>
-              <button onClick={() => window.location.reload()}>Retry</button>
+              <Button variant="primary" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
             </div>
           )}
           {loading ? (
@@ -159,14 +162,14 @@ export default function BillingPage() {
                       <ul className="dash-plan-perks">
                         {plan.perks.map((perk) => <li key={perk}>{perk}</li>)}
                       </ul>
-                      <button
+                      <Button
                         type="button"
-                        className={`sw-button ${currentPlanId === plan.id ? 'sw-button-quiet' : 'sw-button-primary'}`}
+                        variant={currentPlanId === plan.id ? 'ghost' : 'primary'}
                         disabled={currentPlanId === plan.id}
                         title="Payment provider coming soon"
                       >
                         {currentPlanId === plan.id ? 'You are on this plan' : 'Switch to this plan'}
-                      </button>
+                      </Button>
                     </article>
                   ))}
                 </div>
