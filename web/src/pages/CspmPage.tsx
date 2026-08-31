@@ -3,6 +3,7 @@ import { ApiError, api, getToken } from '../lib/api';
 import CspmSeverityBadge from '../components/shared/CspmSeverityBadge';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
+import Select from '../components/shared/Select';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
@@ -189,31 +190,31 @@ export default function CspmPage() {
             <span className="dash-eyebrow">Findings</span>
             <h2 className="dash-section-title">Misconfigurations detected by CSPM</h2>
             <div className="synth-filter-row">
-              <label>
-                <span>Severity</span>
-                <select
-                  value={sevFilter}
-                  onChange={(e) => setSevFilter(e.target.value as SevFilter)}
-                >
-                  <option value="all">All</option>
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                  <option value="info">Info</option>
-                </select>
-              </label>
-              <label>
-                <span>Status</span>
-                <select
-                  value={resolvedFilter}
-                  onChange={(e) => setResolvedFilter(e.target.value as ResolvedFilter)}
-                >
-                  <option value="open">Open</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="all">All</option>
-                </select>
-              </label>
+              <Select
+                label="Severity"
+                size="sm"
+                value={sevFilter}
+                onChange={(e) => setSevFilter(e.target.value as SevFilter)}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'critical', label: 'Critical' },
+                  { value: 'high', label: 'High' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'low', label: 'Low' },
+                  { value: 'info', label: 'Info' },
+                ]}
+              />
+              <Select
+                label="Status"
+                size="sm"
+                value={resolvedFilter}
+                onChange={(e) => setResolvedFilter(e.target.value as ResolvedFilter)}
+                options={[
+                  { value: 'open', label: 'Open' },
+                  { value: 'resolved', label: 'Resolved' },
+                  { value: 'all', label: 'All' },
+                ]}
+              />
             </div>
             {findings.length === 0 ? (
               <EmptyState

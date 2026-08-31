@@ -4,6 +4,7 @@ import EmptyState from '../components/shared/EmptyState';
 import ThreatCard from '../components/shared/ThreatCard';
 import ComplianceBar from '../components/shared/ComplianceBar';
 import KpiCard from '../components/shared/KpiCard';
+import Select from '../components/shared/Select';
 import StatusPill from '../components/shared/StatusPill';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import { motion, pageEnter, kpiStagger } from '../lib/motion';
@@ -183,30 +184,30 @@ export default function SecurityPage() {
                 </section>
               )}
               <div className="synth-filter-row">
-                <label>
-                  <span>Severity</span>
-                  <select
-                    value={threatFilter}
-                    onChange={(e) => setThreatFilter(e.target.value as typeof threatFilter)}
-                  >
-                    <option value="all">All</option>
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Status</span>
-                  <select
-                    value={threatResolved}
-                    onChange={(e) => setThreatResolved(e.target.value as typeof threatResolved)}
-                  >
-                    <option value="open">Open</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="all">All</option>
-                  </select>
-                </label>
+                <Select
+                  label="Severity"
+                  size="sm"
+                  value={threatFilter}
+                  onChange={(e) => setThreatFilter(e.target.value as typeof threatFilter)}
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'critical', label: 'Critical' },
+                    { value: 'high', label: 'High' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'low', label: 'Low' },
+                  ]}
+                />
+                <Select
+                  label="Status"
+                  size="sm"
+                  value={threatResolved}
+                  onChange={(e) => setThreatResolved(e.target.value as typeof threatResolved)}
+                  options={[
+                    { value: 'open', label: 'Open' },
+                    { value: 'resolved', label: 'Resolved' },
+                    { value: 'all', label: 'All' },
+                  ]}
+                />
               </div>
               {threats.length === 0 ? (
                 <EmptyState
@@ -294,19 +295,19 @@ export default function SecurityPage() {
               <span className="dash-eyebrow">SIEM</span>
               <h2 className="dash-section-title">Security event stream</h2>
               <div className="synth-filter-row">
-                <label>
-                  <span>Severity</span>
-                  <select
-                    value={siemSev}
-                    onChange={(e) => setSiemSev(e.target.value as typeof siemSev)}
-                  >
-                    <option value="all">All</option>
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </label>
+                <Select
+                  label="Severity"
+                  size="sm"
+                  value={siemSev}
+                  onChange={(e) => setSiemSev(e.target.value as typeof siemSev)}
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'critical', label: 'Critical' },
+                    { value: 'high', label: 'High' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'low', label: 'Low' },
+                  ]}
+                />
               </div>
               {siem.length === 0 ? (
                 <EmptyState

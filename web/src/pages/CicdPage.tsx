@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
+import Select from '../components/shared/Select';
 import StatusPill from '../components/shared/StatusPill';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import PipelineCard from '../components/shared/PipelineCard';
@@ -180,19 +181,19 @@ export default function CicdPage() {
               <span className="dash-eyebrow">Pipelines</span>
               <h2 className="dash-section-title">Recent CI/CD runs</h2>
               <div className="synth-filter-row">
-                <label>
-                  <span>Status</span>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                  >
-                    <option value="all">All</option>
-                    <option value="success">Success</option>
-                    <option value="failed">Failed</option>
-                    <option value="running">Running</option>
-                    <option value="pending">Pending</option>
-                  </select>
-                </label>
+                <Select
+                  label="Status"
+                  size="sm"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'success', label: 'Success' },
+                    { value: 'failed', label: 'Failed' },
+                    { value: 'running', label: 'Running' },
+                    { value: 'pending', label: 'Pending' },
+                  ]}
+                />
               </div>
               {pipelines.length === 0 ? (
                 <EmptyState
@@ -215,18 +216,18 @@ export default function CicdPage() {
               <span className="dash-eyebrow">Deployments</span>
               <h2 className="dash-section-title">Artifact deployments to APM services</h2>
               <div className="synth-filter-row">
-                <label>
-                  <span>Environment</span>
-                  <select
-                    value={envFilter}
-                    onChange={(e) => setEnvFilter(e.target.value as EnvFilter)}
-                  >
-                    <option value="all">All</option>
-                    <option value="production">Production</option>
-                    <option value="staging">Staging</option>
-                    <option value="preview">Preview</option>
-                  </select>
-                </label>
+                <Select
+                  label="Environment"
+                  size="sm"
+                  value={envFilter}
+                  onChange={(e) => setEnvFilter(e.target.value as EnvFilter)}
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'production', label: 'Production' },
+                    { value: 'staging', label: 'Staging' },
+                    { value: 'preview', label: 'Preview' },
+                  ]}
+                />
               </div>
               {deployments.length === 0 ? (
                 <EmptyState

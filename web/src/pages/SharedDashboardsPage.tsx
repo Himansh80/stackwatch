@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
+import Button from '../components/shared/Button';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
 import StatusPill from '../components/shared/StatusPill';
@@ -228,14 +229,16 @@ export default function SharedDashboardsPage() {
                           <span className="threat-card-meta-label">context</span>
                           <code>{m.context_id.slice(0, 8)}…</code>
                         </span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           className="threat-card-resolve-btn"
                           disabled={busy}
                           onClick={() => void markRead(m.id)}
                         >
                           Mark read →
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}

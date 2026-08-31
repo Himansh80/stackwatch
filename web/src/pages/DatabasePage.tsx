@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
+import Button from '../components/shared/Button';
 import EmptyState from '../components/shared/EmptyState';
 import KpiCard from '../components/shared/KpiCard';
+import Select from '../components/shared/Select';
 import SlowQueryTable, { SlowQuery } from '../components/shared/SlowQueryTable';
 import StatusPill from '../components/shared/StatusPill';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
@@ -195,19 +197,19 @@ export default function DatabasePage() {
           )}
 
           <div className="synth-filter-row">
-            <label>
-              <span>Database</span>
-              <select
-                value={dbFilter}
-                onChange={(e) => setDbFilter(e.target.value as DbFilter)}
-              >
-                <option value="all">All</option>
-                <option value="postgres">Postgres</option>
-                <option value="mysql">MySQL</option>
-                <option value="mariadb">MariaDB</option>
-                <option value="mongodb">MongoDB</option>
-              </select>
-            </label>
+            <Select
+              label="Database"
+              size="sm"
+              value={dbFilter}
+              onChange={(e) => setDbFilter(e.target.value as DbFilter)}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'postgres', label: 'Postgres' },
+                { value: 'mysql', label: 'MySQL' },
+                { value: 'mariadb', label: 'MariaDB' },
+                { value: 'mongodb', label: 'MongoDB' },
+              ]}
+            />
           </div>
 
           {tab === 'slow' ? (
@@ -230,13 +232,16 @@ export default function DatabasePage() {
                 <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
                   <div className="slow-query-explain-modal-head">
                     <strong>Explain · {explain.database} · {explain.query_hash.slice(0, 12)}</strong>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       className="slow-query-explain-close"
+                      aria-label="Close explain dialog"
                       onClick={() => setExplain(null)}
                     >
                       ✕
-                    </button>
+                    </Button>
                   </div>
                   <pre className="slow-query-explain-text">{explain.query_text}</pre>
                   <div className="slow-query-explain-stats">

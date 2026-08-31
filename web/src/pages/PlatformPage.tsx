@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, api, me } from '../lib/api';
 import { motion, pageEnter } from '../lib/motion';
+import Button from '../components/shared/Button';
 import StatusPill from '../components/shared/StatusPill';
 
 // Tier 11 Phase 8 — Platform & Commerce unified 6-tab
@@ -120,26 +121,24 @@ export default function PlatformPage() {
             {TABS.map((tab) => {
               const isActive = tab.key === active;
               return (
-                <button
+                <Button
                   key={tab.key}
                   type="button"
+                  variant={isActive ? 'primary' : 'ghost'}
+                  size="sm"
                   onClick={() => setActive(tab.key)}
-                  className={`px-3 py-2 rounded-t-md text-sm transition-colors ${
-                    isActive
-                      ? 'bg-white/10 border-b-2 border-cyan-400'
-                      : 'opacity-70 hover:opacity-100'
-                  }`}
                   aria-current={isActive ? 'page' : undefined}
+                  className={isActive ? 'platform-tab platform-tab-active' : 'platform-tab'}
                 >
-                  <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-2">
                     <StatusPill
                       status={isActive ? 'up' : 'unknown'}
                       label={tab.label}
                       size="sm"
                     />
                     <span className="block text-xs opacity-60">{tab.subtitle}</span>
-                  </div>
-                </button>
+                  </span>
+                </Button>
               );
             })}
           </nav>
