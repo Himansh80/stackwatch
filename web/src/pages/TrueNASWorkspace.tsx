@@ -1,310 +1,28 @@
 import { FormEvent, Key, useCallback, useEffect, useMemo, useState } from 'react';
-import { createTrueNASHost, deleteTrueNASHost, listTrueNASHosts, testTrueNASHost, truenasCall, TNHost, TNRow } from '../lib/truenas';
+import {
+  createTrueNASHost,
+  deleteTrueNASHost,
+  listTrueNASHosts,
+  testTrueNASHost,
+  truenasCall,
+  TNHost,
+  TNRow,
+} from '../lib/truenas';
 import FilterBar from '../components/FilterBar';
 import EmptyState from '../components/shared/EmptyState';
 import StatusPill from '../components/shared/StatusPill';
 import KpiCard from '../components/shared/KpiCard';
-import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
 import Textarea from '../components/shared/Textarea';
 import Modal from '../components/shared/Modal';
-import DataTable, { type Column } from '../components/shared/DataTable';
+import DataTable from '../components/shared/DataTable';
 import { motion, kpiStagger } from '../lib/motion';
-
-type Section = { id: string; label: string; path: string };
-const sections: Section[] = [
-  { id: 'overview', label: 'Overview', path: '/system/info' },
-  { id: 'pools', label: 'ZFS Pools', path: '/pools/list' },
-  { id: 'datasets', label: 'Datasets', path: '/datasets/list' },
-  { id: 'nfs', label: 'NFS Shares', path: '/nfs/list' },
-  { id: 'smb', label: 'SMB Shares', path: '/smb/list' },
-  { id: 'iscsi', label: 'iSCSI', path: '/iscsi/extents/list' },
-  { id: 'snapshots', label: 'Snapshots', path: '/snapshots/list' },
-  { id: 'disks', label: 'Disk Health', path: '/disks/list' },
-  { id: 'users', label: 'Users & Groups', path: '/users/list' },
-  { id: 'system', label: 'System Services', path: '/system/services/list' },
-  { id: 'cloud', label: 'Cloud Sync', path: '/cloud/sync/list' },
-];
-
-const actionPaths: Record<string, string> = {
-  pools: '/pools/create', datasets: '/datasets/create', nfs: '/nfs/create', smb: '/smb/create',
-  snapshots: '/snapshots/create', users: '/users/create', cloud: '/cloud/sync/create',
-};
-
-function value(row: TNRow, key: string): string {
-  const raw = row[key];
-  if (raw === null || raw === undefined) return '—';
-  if (typeof raw === 'object') return JSON.stringify(raw);
-  return String(raw);
-}
-
-function readNumber(row: TNRow, ...keys: string[]): number {
-  for (const k of keys) {
-    const v = row[k];
-    if (typeof v === 'number' && Number.isFinite(v)) return v;
-    if (typeof v === 'string') {
-      const n = Number(v);
-      if (!Number.isNaN(n)) return n;
-    }
-  }
-  return 0;
-}
-
-function poolHealthTone(row: TNRow): 'ok' | 'warn' | 'crit' | 'unknown' {
-  const status = String(row.status ?? row.health ?? '').toLowerCase();
-  if (status.includes('online') || status === 'ok' || status === 'healthy') return 'ok';
-  if (status.includes('degraded')) return 'warn';
-  if (status.includes('offline') || status.includes('faulted') || status.includes('error')) return 'crit';
-  return 'unknown';
-}
-
-function rowsFrom(payload: unknown): TNRow[] {
-  if (Array.isArray(payload)) return payload as TNRow[];
-  if (!payload || typeof payload !== 'object') return [];
-  const record = payload as Record<string, unknown>;
-  for (const key of ['data', 'rows', 'items', 'pools', 'datasets', 'shares', 'snapshots', 'disks', 'users', 'groups', 'services', 'tasks']) {
-    if (Array.isArray(record[key])) return record[key] as TNRow[];
-    if (record[key] && typeof record[key] === 'object') {
-      const nested = rowsFrom(record[key]);
-      if (nested.length) return nested;
-    }
-  }
-  return [record];
-}
-
-/**
- * PoolHealthCard — one card per ZFS pool showing health pill + used/total
- * bar + fragmentation %. Renders inside a 4-col grid.
- */
-function PoolHealthCard({ pool }: { pool: TNRow }) {
-  const tone = poolHealthTone(pool);
-  const used = readNumber(pool, 'allocated', 'used');
-  const total = readNumber(pool, 'size', 'total');
-  const frag = readNumber(pool, 'fragmentation', 'frag_percent');
-  const usedPct = total > 0 ? Math.round((used / total) * 100) : 0;
-  const name = String(pool.name ?? pool.id ?? 'pool');
-  const toneLabel = tone === 'ok' ? 'Healthy' : tone === 'warn' ? 'Degraded' : tone === 'crit' ? 'Faulted' : 'Unknown';
-  return (
-    <article className={`tru-pool-card tru-pool-${tone}`}>
-      <header className="tru-pool-head">
-        <strong>{name}</strong>
-        <StatusPill status={tone} label={toneLabel} size="sm" />
-      </header>
-      <div className="tru-pool-bar" aria-label={`Used ${usedPct}%`}>
-        <div className="tru-pool-bar-fill" style={{ width: `${Math.min(100, usedPct)}%` }} />
-      </div>
-      <div className="tru-pool-stats">
-        <span><strong>{usedPct}%</strong> used</span>
-        <span>frag <strong>{frag.toFixed(1)}%</strong></span>
-        <span className="tru-pool-size">{formatBytesLocal(used)} / {formatBytesLocal(total)}</span>
-      </div>
-    </article>
-  );
-}
-
-/**
- * DiskTempCard — one card per disk showing online/offline pill + a
- * TimeSeriesChart fed by the disk's recent temp samples. Falls back
- * to a single sparkline when only one data point exists.
- */
-function DiskTempCard({ disk }: { disk: TNRow }) {
-  const tone = String(disk.status ?? '').toLowerCase().includes('offline') ? 'down' : 'up';
-  const temp = readNumber(disk, 'temperature', 'temp');
-  const name = String(disk.name ?? disk.id ?? 'disk');
-  // Synthesize a small sparkline from temp ± jitter so the chart
-  // always has visible data without requiring historical samples.
-  const series = Array.from({ length: 12 }, (_, i) =>
-    Math.max(20, Math.round(temp + Math.sin(i / 2) * 4 + (i % 3) - 1)),
-  );
-  return (
-    <article className="tru-disk-card">
-      <header className="tru-disk-head">
-        <div>
-          <strong>{name}</strong>
-          <span className="tru-disk-model">{String(disk.model ?? disk.serial ?? '—')}</span>
-        </div>
-        <StatusPill status={tone} label={tone === 'up' ? `${temp}°C` : 'Offline'} size="sm" />
-      </header>
-      <TimeSeriesChart values={series} unit="°C" color={tone === 'up' ? 'cyan' : 'red'} height={72} emptyMessage="No temperature data" />
-    </article>
-  );
-}
-
-/**
- * SnapshotGroup — one row per dataset showing the most-recent
- * snapshot age plus a sparkline of the ages of the last N snapshots.
- */
-function SnapshotGroup({ group, items }: { group: string; items: TNRow[] }) {
-  const ages = items
-    .map((s) => {
-      const t = s.creation ?? s.created_at;
-      if (!t) return 0;
-      const d = new Date(String(t));
-      if (Number.isNaN(d.getTime())) return 0;
-      return Math.max(0, Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)));
-    })
-    .slice(0, 12);
-  const last = ages[0] ?? 0;
-  const tone: 'ok' | 'warn' = last > 14 ? 'warn' : 'ok';
-  const lastName = String(items[0]?.name ?? items[0]?.snapshot_name ?? items[0]?.id ?? 'snapshot');
-  return (
-    <article className="tru-snap-group">
-      <header className="tru-snap-head">
-        <strong>{group}</strong>
-        <StatusPill status={tone} label={tone === 'ok' ? `${last}d ago` : `${last}d · stale`} size="sm" />
-      </header>
-      <div className="tru-snap-meta">
-        <span><strong>{items.length}</strong> snapshots</span>
-        <span>last: <code>{lastName}</code></span>
-      </div>
-      <TimeSeriesChart values={ages} unit="d" color={tone === 'ok' ? 'green' : 'amber'} height={56} emptyMessage="No snapshot ages" />
-    </article>
-  );
-}
-
-function formatBytesLocal(bytes: number): string {
-  if (!bytes) return '—';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let v = bytes;
-  let i = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i += 1;
-  }
-  return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
-}
-
-/**
- * columnsFor — section-aware column set for the live upstream
- * response DataTable. Each TrueNAS section returns 3-4 sensible
- * columns built from the dynamic TNRow keys we know exist for
- * that endpoint (the row payload schema is documented in the
- * middleware handler for `/api/v1/truenas/call`).
- */
-function columnsFor(sectionId: string): Column<TNRow>[] {
-  const idColumn: Column<TNRow> = {
-    key: 'id',
-    header: 'ID',
-    render: (row) => <code>{String(row.id ?? row.name ?? '—')}</code>,
-  };
-  switch (sectionId) {
-    case 'pools':
-      return [
-        { key: 'name', header: 'Pool', render: (row) => String(row.name ?? '—'), sortable: true },
-        {
-          key: 'status',
-          header: 'Health',
-          render: (row) => (
-            <StatusPill status={poolHealthTone(row)} label={String(row.status ?? row.health ?? 'unknown')} size="sm" />
-          ),
-        },
-        {
-          key: 'size',
-          header: 'Size',
-          align: 'right',
-          render: (row) => formatBytesLocal(readNumber(row, 'size', 'total')),
-        },
-        {
-          key: 'allocated',
-          header: 'Used',
-          align: 'right',
-          render: (row) => {
-            const used = readNumber(row, 'allocated', 'used');
-            const total = readNumber(row, 'size', 'total');
-            const pct = total > 0 ? Math.round((used / total) * 100) : 0;
-            return `${formatBytesLocal(used)} (${pct}%)`;
-          },
-        },
-      ];
-    case 'datasets':
-      return [
-        idColumn,
-        { key: 'name', header: 'Dataset', render: (row) => String(row.name ?? '—'), sortable: true },
-        {
-          key: 'available',
-          header: 'Available',
-          align: 'right',
-          render: (row) => formatBytesLocal(readNumber(row, 'available', 'avail')),
-        },
-      ];
-    case 'nfs':
-    case 'smb':
-      return [
-        idColumn,
-        { key: 'path', header: 'Path', render: (row) => String(row.path ?? row.name ?? '—') },
-        {
-          key: 'enabled',
-          header: 'State',
-          render: (row) => {
-            const enabled = row.enabled !== false && row.enabled !== 'false';
-            return <StatusPill status={enabled ? 'up' : 'down'} label={enabled ? 'enabled' : 'disabled'} size="sm" />;
-          },
-        },
-      ];
-    case 'iscsi':
-      return [
-        idColumn,
-        { key: 'name', header: 'Target', render: (row) => String(row.name ?? '—') },
-        { key: 'type', header: 'Type', render: (row) => String(row.type ?? '—') },
-      ];
-    case 'snapshots':
-      return [
-        idColumn,
-        { key: 'name', header: 'Snapshot', render: (row) => String(row.name ?? '—') },
-        {
-          key: 'creation',
-          header: 'Created',
-          render: (row) => {
-            const t = row.creation ?? row.created_at;
-            if (!t) return '—';
-            const d = new Date(String(t));
-            return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
-          },
-        },
-      ];
-    case 'disks':
-      return [
-        idColumn,
-        { key: 'name', header: 'Disk', render: (row) => String(row.name ?? '—') },
-        {
-          key: 'temperature',
-          header: 'Temp',
-          align: 'right',
-          render: (row) => `${readNumber(row, 'temperature', 'temp')}°C`,
-        },
-      ];
-    case 'users':
-    case 'system':
-    case 'cloud':
-    default:
-      return [
-        idColumn,
-        { key: 'name', header: 'Name', render: (row) => String(row.name ?? '—') },
-      ];
-  }
-}
-
-/**
- * filterRows — client-side filter for the live upstream response
- * table. The JSON-RPC payload is small enough that filtering in
- * place is fine — no need for a backend roundtrip per keystroke.
- */
-function filterRows(rows: TNRow[], search: string): TNRow[] {
-  if (!search.trim()) return rows;
-  const needle = search.toLowerCase();
-  return rows.filter((row) =>
-    Object.values(row).some((value) => {
-      if (value === null || value === undefined) return false;
-      if (typeof value === 'object') {
-        try { return JSON.stringify(value).toLowerCase().includes(needle); }
-        catch { return false; }
-      }
-      return String(value).toLowerCase().includes(needle);
-    }),
-  );
-}
+import { DiskTempCard, PoolHealthCard, SnapshotGroup } from './TrueNASWorkspace.cards';
+import { columnsFor } from './TrueNASWorkspace.columns';
+import { filterRows, poolHealthTone, readNumber, rowsFrom } from './TrueNASWorkspace.helpers';
+import { actionPaths, sections, type Section } from './TrueNASWorkspace.types';
 
 export default function TrueNASWorkspace() {
   const [hosts, setHosts] = useState<TNHost[]>([]);
@@ -538,3 +256,9 @@ export default function TrueNASWorkspace() {
             )}
     </>);
     }
+
+// Keep these helper imports alive so the file still re-exports them in
+// the unlikely event any downstream module imports them from here.
+// The component below is the only public export — these are not.
+export { poolHealthTone, readNumber };
+export type { Section };
