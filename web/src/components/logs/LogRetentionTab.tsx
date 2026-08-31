@@ -1,5 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ApiError, api } from '../../lib/api';
+import Button from '../shared/Button';
+import Input from '../shared/Input';
 
 export interface LogRetention {
   id: string;
@@ -15,6 +17,10 @@ interface LogRetentionTabProps {
   onChanged: () => void | Promise<void>;
 }
 
+/**
+ * Tier 20 Phase G: refactored raw inputs + sw-button class to
+ * shared Input + Button primitives.
+ */
 export default function LogRetentionTab({ policies, onChanged }: LogRetentionTabProps) {
   const [form, setForm] = useState({ service: '', hot_days: 7, cold_days: 90 });
   const [busy, setBusy] = useState(false);
@@ -49,23 +55,34 @@ export default function LogRetentionTab({ policies, onChanged }: LogRetentionTab
         <span className="dash-eyebrow">New policy</span>
         <h2 className="dash-section-title">Set a retention window</h2>
         <form className="log-retention-form" onSubmit={submit}>
-          <label>
-            <span>Service</span>
-            <input type="text" value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })} placeholder="api" maxLength={128} required />
-          </label>
-          <label>
-            <span>Hot days</span>
-            <input type="number" min={1} value={form.hot_days} onChange={(e) => setForm({ ...form, hot_days: Number(e.target.value) })} />
-          </label>
-          <label>
-            <span>Cold days</span>
-            <input type="number" min={1} value={form.cold_days} onChange={(e) => setForm({ ...form, cold_days: Number(e.target.value) })} />
-          </label>
+          <Input
+            label="Service"
+            type="text"
+            value={form.service}
+            onChange={(e) => setForm({ ...form, service: e.target.value })}
+            placeholder="api"
+            maxLength={128}
+            required
+          />
+          <Input
+            label="Hot days"
+            type="number"
+            min={1}
+            value={form.hot_days}
+            onChange={(e) => setForm({ ...form, hot_days: Number(e.target.value) })}
+          />
+          <Input
+            label="Cold days"
+            type="number"
+            min={1}
+            value={form.cold_days}
+            onChange={(e) => setForm({ ...form, cold_days: Number(e.target.value) })}
+          />
           {err ? <p className="apm-form-error">{err}</p> : null}
           <div className="apm-form-actions">
-            <button type="submit" className="sw-button sw-button-primary" disabled={busy}>
+            <Button type="submit" variant="primary" size="sm" disabled={busy} loading={busy}>
               {busy ? 'Saving…' : 'Save policy'}
-            </button>
+            </Button>
           </div>
         </form>
       </section>
