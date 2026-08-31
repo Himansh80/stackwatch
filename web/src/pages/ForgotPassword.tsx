@@ -1,24 +1,21 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../lib/api';
+import Button from '../components/shared/Button';
+import Input from '../components/shared/Input';
+import BrandLogo from '../components/shared/BrandLogo';
 import {
   motion,
   AnimatePresence,
   cardEntrance,
   staggerFormRows,
   formRow,
-  buttonSpring,
   EASE_OUT,
   useReducedMotion,
 } from '../lib/motion';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// /auth/forgot returns the reset link in the response body when SMTP
-// is not configured. When SMTP IS configured the backend strips those
-// fields and just sends the email. Either way the frontend should not
-// assume the email went out — it should display whatever the backend
-// gave it.
 interface ForgotResponse {
   ok: boolean;
   message?: string;
@@ -35,7 +32,6 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<ForgotResponse | null>(null);
 
-  // Reduced-motion: snap into show state, no AnimatePresence cross-fades.
   const reduce = useReducedMotion();
 
   async function onSubmit(event: FormEvent) {
@@ -79,21 +75,16 @@ export default function ForgotPassword() {
     nav(`${u.pathname}${u.search}`);
   }
 
-  // Whether the backend surfaced a clickable reset link in this
-  // response. We treat it as the canonical source of truth regardless
-  // of whether SMTP was supposed to send the email — if a link is in
-  // the body, we show it.
   const resetLink = response?.reset_url
     ? `${window.location.origin}${response.reset_url}`
     : null;
 
-  // Whether to render the form (asking for email) vs the result panel.
   const showForm = !response;
 
   return (
     <div className="auth-shell">
       <Link className="auth-brand" to="/">
-        <span className="auth-brand-mark">S</span>
+        <BrandLogo variant="mark" size={36} />
         <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
       </Link>
       <motion.div
@@ -106,16 +97,11 @@ export default function ForgotPassword() {
           <span className="auth-eyebrow">Account recovery</span>
           <h1>{showForm ? 'Reset your password' : 'Check your inbox'}</h1>
           {showForm ? (
-            <p>Enter the email tied to your workspace. We&apos;ll start the reset.</p>
+            <p>Enter the email tied to your workspace. We'll start the reset.</p>
           ) : (
             <p>{response?.message || 'If that email exists, a reset link has been generated.'}</p>
           )}
         </motion.header>
-        {/*
-          Cross-fade between the form and the result panel. When reduced-motion
-          is on, AnimatePresence still runs but with no x offset so the user
-          just sees one block replace another in place.
-        */}
         <AnimatePresence mode="wait" initial={false}>
           {showForm ? (
             <motion.form
@@ -127,9 +113,9 @@ export default function ForgotPassword() {
               exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6, transition: { duration: 0.16 } }}
               variants={staggerFormRows}
             >
-              <motion.label variants={formRow}>
-                <span>Email</span>
-                <input
+              <motion.div variants={formRow}>
+                <Input
+                  label="Email"
                   type="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(null); }}
@@ -137,8 +123,9 @@ export default function ForgotPassword() {
                   required
                   autoFocus
                   autoComplete="email"
+                  fullWidth
                 />
-              </motion.label>
+              </motion.div>
               {error && (
                 <motion.div
                   className="auth-error"
@@ -151,16 +138,16 @@ export default function ForgotPassword() {
                   {error}
                 </motion.div>
               )}
-              <motion.button
-                type="submit"
-                className="auth-button-primary"
-                disabled={loading}
-                whileHover={loading ? undefined : buttonSpring.whileHover}
-                whileTap={loading ? undefined : buttonSpring.whileTap}
-                transition={buttonSpring.transition}
-              >
+              <motion.div variants={formRow}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  loading={loading}
+                >
                 {loading ? 'Working…' : 'Reset password'}
-              </motion.button>
+              </Button>
+              </motion.div>
               <motion.p className="auth-switch" variants={formRow}>
                 <Link to="/login">← Back to sign in</Link>
               </motion.p>
@@ -180,32 +167,24 @@ export default function ForgotPassword() {
                     Click the button below to open the reset page and set a new password. The link expires in 1 hour.
                   </p>
                   <div className="auth-success-actions">
-                    <motion.button
-                      type="button"
-                      className="auth-button-primary"
+                    <Button
+                      variant="primary"
                       onClick={() => goToReset(resetLink)}
-                      whileHover={buttonSpring.whileHover}
-                      whileTap={buttonSpring.whileTap}
-                      transition={buttonSpring.transition}
                     >
                       Open reset page
-                    </motion.button>
-                    <motion.button
-                      type="button"
-                      className="sw-button sw-button-quiet"
+                    </Button>
+                    <Button
+                      variant="ghost"
                       onClick={() => copyLink(resetLink)}
-                      whileHover={buttonSpring.whileHover}
-                      whileTap={buttonSpring.whileTap}
-                      transition={buttonSpring.transition}
                     >
                       Copy link
-                    </motion.button>
+                    </Button>
                   </div>
                   <pre className="auth-success-pre">{resetLink}</pre>
                   <details className="auth-success-details">
                     <summary>Use a different email?</summary>
                     <form onSubmit={(e) => { e.preventDefault(); setResponse(null); setEmail(''); }} className="auth-success-resend">
-                      <button type="submit" className="auth-button-ghost">Send a fresh reset link</button>
+                      <Button type="submit" variant="ghost">Send a fresh reset link</Button>
                     </form>
                   </details>
                 </>
@@ -215,9 +194,9 @@ export default function ForgotPassword() {
                     Check your email for a link to set a new password. The link expires in 1 hour.
                   </p>
                   <details className="auth-success-details">
-                    <summary>Didn&apos;t get the email?</summary>
+                    <summary>Didn't get the email?</summary>
                     <form onSubmit={(e) => { e.preventDefault(); setResponse(null); setEmail(''); }} className="auth-success-resend">
-                      <button type="submit" className="auth-button-ghost">Send a fresh reset link</button>
+                      <Button type="submit" variant="ghost">Send a fresh reset link</Button>
                     </form>
                   </details>
                 </>

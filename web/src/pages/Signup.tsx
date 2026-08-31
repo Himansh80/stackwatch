@@ -2,13 +2,15 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, api, setToken } from '../lib/api';
 import PasswordInput from '../components/PasswordInput';
+import Button from '../components/shared/Button';
+import Input from '../components/shared/Input';
+import BrandLogo from '../components/shared/BrandLogo';
 import { friendlyPasswordMessage } from '../lib/password';
 import {
   motion,
   cardEntrance,
   staggerFormRows,
   formRow,
-  buttonSpring,
   useReducedMotion,
 } from '../lib/motion';
 
@@ -88,7 +90,7 @@ export default function Signup() {
   return (
     <div className="auth-shell">
       <Link className="auth-brand" to="/">
-        <span className="auth-brand-mark">S</span>
+        <BrandLogo variant="mark" size={36} />
         <span><strong>StackWatch</strong><small>Self-hosted infrastructure platform</small></span>
       </Link>
       <motion.div
@@ -108,48 +110,51 @@ export default function Signup() {
           animate="show"
           variants={staggerFormRows}
         >
-          <motion.label variants={formRow}>
-            <span>Workspace name</span>
-            <input
+          <motion.div variants={formRow}>
+            <Input
+              label="Workspace name"
               type="text"
               value={tenantName}
               onChange={(e) => setTenantName(e.target.value)}
               placeholder="Your team or project name"
+              description="Shared by everyone in your team. You can rename later."
               required
               autoFocus
+              fullWidth
             />
-            <small>Shared by everyone in your team. You can rename later.</small>
-          </motion.label>
-          <motion.label variants={formRow}>
-            <span>Your name</span>
-            <input
+          </motion.div>
+          <motion.div variants={formRow}>
+            <Input
+              label="Your name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your full name"
               required
+              fullWidth
             />
-          </motion.label>
-          <motion.label variants={formRow}>
-            <span>Work email</span>
-            <input
+          </motion.div>
+          <motion.div variants={formRow}>
+            <Input
+              label="Work email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
+              fullWidth
             />
-          </motion.label>
-          <motion.label className="auth-pwd-label" variants={formRow}>
-            <span>Password</span>
+          </motion.div>
+          <motion.div className="auth-pwd-label" variants={formRow}>
+            <span className="auth-pwd-label-text">Password</span>
             <PasswordInput
               value={password}
               onChange={setPassword}
               errorCode={error?.code}
               required
             />
-            <small>Minimum 10 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
-          </motion.label>
+            <small className="auth-pwd-help">Minimum 10 characters. Use a passphrase you don't reuse elsewhere.</small>
+          </motion.div>
           {error && (
             <motion.div
               className="auth-error"
@@ -162,16 +167,16 @@ export default function Signup() {
               {error.message}
             </motion.div>
           )}
-          <motion.button
-            type="submit"
-            className="auth-button-primary"
-            disabled={loading}
-            whileHover={loading ? undefined : buttonSpring.whileHover}
-            whileTap={loading ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
-          >
-            {loading ? 'Creating workspace...' : 'Create free account'}
-          </motion.button>
+          <motion.div variants={formRow}>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={loading}
+            >
+              {loading ? 'Creating workspace...' : 'Create free account'}
+            </Button>
+          </motion.div>
         </motion.form>
         <motion.p
           className="auth-switch"

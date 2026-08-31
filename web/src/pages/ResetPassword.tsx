@@ -3,13 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, api, setToken } from '../lib/api';
 import PasswordInput from '../components/PasswordInput';
 import PasswordField from '../components/PasswordField';
+import Button from '../components/shared/Button';
+import BrandLogo from '../components/shared/BrandLogo';
 import { friendlyPasswordMessage } from '../lib/password';
 import {
   motion,
   cardEntrance,
   staggerFormRows,
   formRow,
-  buttonSpring,
   EASE_OUT,
   useReducedMotion,
 } from '../lib/motion';
@@ -31,7 +32,6 @@ export default function ResetPassword() {
   const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
-  // If no token in URL, this page is unusable.
   useEffect(() => {
     if (!token)
       setError(
@@ -39,7 +39,6 @@ export default function ResetPassword() {
       );
   }, [token]);
 
-  // Reduced-motion: snap into show state, no framer variants.
   const reduce = useReducedMotion();
 
   async function onSubmit(event: FormEvent) {
@@ -67,7 +66,6 @@ export default function ResetPassword() {
         false,
       );
       if (body.token) {
-        // Auto-login the user so they land on the dashboard instead of the sign-in page.
         setToken(body.token);
         nav('/dashboard');
       } else {
@@ -76,7 +74,6 @@ export default function ResetPassword() {
     } catch (cause: any) {
       if (cause instanceof ApiError) {
         const code = (cause as ApiError & { code?: string }).code;
-        // Backend returns 401 with code 'invalid_token' (or similar) for bad tokens.
         if (cause.status === 401) {
           setError(
             'This reset link is invalid or has expired. Request a new one from the forgot-password page.',
@@ -98,7 +95,7 @@ export default function ResetPassword() {
   return (
     <div className="auth-shell">
       <Link className="auth-brand" to="/">
-        <span className="auth-brand-mark">S</span>
+        <BrandLogo variant="mark" size={36} />
         <span>
           <strong>StackWatch</strong>
           <small>Self-hosted infrastructure platform</small>
@@ -122,8 +119,8 @@ export default function ResetPassword() {
           animate="show"
           variants={staggerFormRows}
         >
-          <motion.label className="auth-pwd-label" variants={formRow}>
-            <span>New password</span>
+          <motion.div className="auth-pwd-label" variants={formRow}>
+            <span className="auth-pwd-label-text">New password</span>
             <PasswordInput
               value={password}
               onChange={(v) => {
@@ -135,19 +132,20 @@ export default function ResetPassword() {
               autoFocus
               required
             />
-            <small>Minimum 10 characters. Use a passphrase you don&apos;t reuse elsewhere.</small>
-          </motion.label>
-          <motion.label variants={formRow}>
-            <span>Confirm new password</span>
+            <small className="auth-pwd-help">Minimum 10 characters. Use a passphrase you don't reuse elsewhere.</small>
+          </motion.div>
+          <motion.div variants={formRow}>
             <PasswordField
+              label="Confirm new password"
               value={password2}
               onChange={(v) => { setPassword2(v); setError(null); }}
               placeholder="Type your new password again"
               autoComplete="new-password"
               required
               minLength={10}
+              fullWidth
             />
-          </motion.label>
+          </motion.div>
           {error && (
             <motion.div
               className="auth-error"
@@ -160,20 +158,21 @@ export default function ResetPassword() {
               {error}
             </motion.div>
           )}
-          <motion.button
-            type="submit"
-            className="auth-button-primary"
-            disabled={loading || !token}
-            whileHover={loading || !token ? undefined : buttonSpring.whileHover}
-            whileTap={loading || !token ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
-          >
-            {loading ? 'Saving…' : 'Set new password'}
-          </motion.button>
+          <motion.div variants={formRow}>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={loading || !token}
+              disabled={loading || !token}
+            >
+              {loading ? 'Saving…' : 'Set new password'}
+            </Button>
+          </motion.div>
           <motion.p
             className="auth-switch"
             variants={formRow}
-            initial={reduce ? false : "hidden"}
+            initial={reduce ? false : 'hidden'}
             animate="show"
           >
             <Link to="/login">← Back to sign in</Link>
