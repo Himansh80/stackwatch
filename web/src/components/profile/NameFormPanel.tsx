@@ -1,4 +1,6 @@
 import { FormEvent } from 'react';
+import Button from '../shared/Button';
+import Input from '../shared/Input';
 
 interface NameFormPanelProps {
   draft: string;
@@ -35,28 +37,25 @@ export default function NameFormPanel({
         </div>
       </div>
       <form onSubmit={onSubmit} className="sw-form-grid prof-form">
-        <label className="sw-field">
-          <span>Display name</span>
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => onDraftChange(e.target.value)}
-            placeholder="Your full name"
-            maxLength={255}
-            required
-            autoFocus
-          />
-          <small>This is the name shown across the dashboard and in alerts.</small>
-        </label>
+        <Input
+          label="Display name"
+          value={draft}
+          onChange={(e) => onDraftChange(e.target.value)}
+          placeholder="Your full name"
+          maxLength={255}
+          required
+          autoFocus
+          description="This is the name shown across the dashboard and in alerts."
+        />
         {error && <div className="auth-error prof-form-msg">{error}</div>}
         {message && !error && <div className="dash-banner-ok prof-form-msg">{message}</div>}
         <div className="sw-form-actions">
-          <button type="button" className="sw-button sw-button-quiet" onClick={onDiscard} disabled={saving}>
+          <Button type="button" variant="ghost" onClick={onDiscard} disabled={saving}>
             Discard
-          </button>
-          <button type="submit" className="sw-button sw-button-primary" disabled={saving || unchanged}>
+          </Button>
+          <Button type="submit" variant="primary" loading={saving} disabled={saving || unchanged}>
             {saving ? 'Saving…' : 'Save name'}
-          </button>
+          </Button>
         </div>
       </form>
     </article>
