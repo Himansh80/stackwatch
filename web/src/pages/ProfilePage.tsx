@@ -9,6 +9,7 @@ import NameFormPanel from '../components/profile/NameFormPanel';
 import SecurityPanel from '../components/profile/SecurityPanel';
 import TokensPanel from '../components/profile/TokensPanel';
 import { api } from '../lib/api';
+import Button from '../components/shared/Button';
 
 type Profile = {
   email: string;
@@ -172,7 +173,9 @@ export default function ProfilePage() {
             <div className="dash-error">
               <strong>Could not load your profile</strong>
               <span>{error}</span>
-              <button onClick={() => window.location.reload()}>Retry</button>
+              <Button variant="primary" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
             </div>
           )}
           {loading ? (
