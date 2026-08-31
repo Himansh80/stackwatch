@@ -1,5 +1,8 @@
-import { motion, buttonSpring, useReducedMotion } from '../../lib/motion';
 import type { RegionRow } from './RegionsSection';
+import Button from '../shared/Button';
+import Input from '../shared/Input';
+import Modal from '../shared/Modal';
+import Select, { type SelectOption } from '../shared/Select';
 
 // Tier 11 Phase 6 — Multi-Region / HA (PL6).
 //
@@ -19,50 +22,82 @@ import type { RegionRow } from './RegionsSection';
 // Both modals are intentionally small (under 100 LOC each) so
 // this file stays well under the 400-LOC cap.
 
+const REGION_KIND_OPTIONS: SelectOption[] = [
+  { value: 'primary', label: 'primary' },
+  { value: 'replica', label: 'replica' },
+  { value: 'standby', label: 'standby' },
+];
+
 interface RegionsDetailModalProps {
   region: RegionRow | null;
   onClose: () => void;
 }
 
 export function RegionsDetailModal({ region, onClose }: RegionsDetailModalProps) {
-  if (!region) return null;
   return (
-    <div
-      className="modal-backdrop"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
+    <Modal
+      open={!!region}
+      onClose={onClose}
+      title={region?.display_name ?? ''}
     >
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold">{region.display_name}</h3>
-        <p className="text-sm opacity-70 font-mono">{region.code}</p>
-        <dl className="grid grid-cols-2 gap-2 text-sm mt-3">
-          <dt className="opacity-60">Kind</dt>
-          <dd>{region.region_kind}</dd>
-          <dt className="opacity-60">Endpoint</dt>
-          <dd className="font-mono break-all">{region.endpoint_url}</dd>
-          <dt className="opacity-60">Last status</dt>
-          <dd>{region.last_health_status || 'unknown'}</dd>
-          <dt className="opacity-60">Latency</dt>
-          <dd>
-            {region.last_health_latency_ms != null
-              ? `${region.last_health_latency_ms} ms`
-              : '—'}
-          </dd>
-          <dt className="opacity-60">Last error</dt>
-          <dd>{region.last_health_error || '—'}</dd>
-          <dt className="opacity-60">Last probe</dt>
-          <dd>
-            {region.last_health_at
-              ? new Date(region.last_health_at).toLocaleString()
-              : 'never'}
-          </dd>
-        </dl>
-        <button type="button" className="btn-secondary mt-4" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    </div>
+      {region ? (
+        <>
+          <p
+            style={{
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize: 13,
+              color: 'var(--text-muted)',
+              margin: '0 0 var(--space-4)',
+            }}
+          >
+            {region.code}
+          </p>
+          <dl
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'auto 1fr',
+              gap: 'var(--space-2) var(--space-4)',
+              fontSize: 14,
+              margin: 0,
+            }}
+          >
+            <dt style={{ color: 'var(--text-muted)' }}>Kind</dt>
+            <dd style={{ margin: 0 }}>{region.region_kind}</dd>
+            <dt style={{ color: 'var(--text-muted)' }}>Endpoint</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', wordBreak: 'break-all' }}>
+              {region.endpoint_url}
+            </dd>
+            <dt style={{ color: 'var(--text-muted)' }}>Last status</dt>
+            <dd style={{ margin: 0 }}>{region.last_health_status || 'unknown'}</dd>
+            <dt style={{ color: 'var(--text-muted)' }}>Latency</dt>
+            <dd style={{ margin: 0 }}>
+              {region.last_health_latency_ms != null
+                ? `${region.last_health_latency_ms} ms`
+                : '—'}
+            </dd>
+            <dt style={{ color: 'var(--text-muted)' }}>Last error</dt>
+            <dd style={{ margin: 0 }}>{region.last_health_error || '—'}</dd>
+            <dt style={{ color: 'var(--text-muted)' }}>Last probe</dt>
+            <dd style={{ margin: 0 }}>
+              {region.last_health_at
+                ? new Date(region.last_health_at).toLocaleString()
+                : 'never'}
+            </dd>
+          </dl>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              marginTop: 'var(--space-4)',
+            }}
+          >
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </>
+      ) : null}
+    </Modal>
   );
 }
 
@@ -97,94 +132,83 @@ export function RegionsAddModal({
   onSubmit,
   onClose,
 }: RegionsAddModalProps) {
-  const reduce = useReducedMotion();
-  if (!open) return null;
   return (
-    <div
-      className="modal-backdrop"
-      onClick={() => !creating && onClose()}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold">Add region</h3>
-        <p className="text-sm opacity-70">
-          Register a new region. The probe path will hit the
-          endpoint_url within ~1s of save.
-        </p>
-        <label className="block mt-3 text-sm">
-          <span className="opacity-70">Code (lowercase URL-safe)</span>
-          <input
-            type="text"
-            value={addCode}
-            onChange={(e) => onChangeCode(e.target.value)}
-            placeholder="us-east-1"
-            className="input mt-1 w-full"
-            disabled={creating}
-          />
-        </label>
-        <label className="block mt-3 text-sm">
-          <span className="opacity-70">Display name</span>
-          <input
-            type="text"
-            value={addName}
-            onChange={(e) => onChangeName(e.target.value)}
-            placeholder="US East (primary)"
-            className="input mt-1 w-full"
-            disabled={creating}
-          />
-        </label>
-        <label className="block mt-3 text-sm">
-          <span className="opacity-70">Kind</span>
-          <select
-            value={addKind}
-            onChange={(e) => onChangeKind(e.target.value)}
-            className="input mt-1 w-full"
-            disabled={creating}
-          >
-            <option value="primary">primary</option>
-            <option value="replica">replica</option>
-            <option value="standby">standby</option>
-          </select>
-        </label>
-        <label className="block mt-3 text-sm">
-          <span className="opacity-70">Endpoint URL (http/https)</span>
-          <input
-            type="text"
-            value={addUrl}
-            onChange={(e) => onChangeUrl(e.target.value)}
-            placeholder="https://us-east-1.example.com/health"
-            className="input mt-1 w-full"
-            disabled={creating}
-          />
-        </label>
+    <Modal open={open} onClose={onClose} title="Add region">
+      <p
+        style={{
+          fontSize: 13,
+          color: 'var(--text-muted)',
+          margin: '0 0 var(--space-4)',
+        }}
+      >
+        Register a new region. The probe path will hit the
+        endpoint_url within ~1s of save.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <Input
+          label="Code (lowercase URL-safe)"
+          value={addCode}
+          onChange={(e) => onChangeCode(e.target.value)}
+          placeholder="us-east-1"
+          disabled={creating}
+          fullWidth
+        />
+        <Input
+          label="Display name"
+          value={addName}
+          onChange={(e) => onChangeName(e.target.value)}
+          placeholder="US East (primary)"
+          disabled={creating}
+          fullWidth
+        />
+        <Select
+          label="Kind"
+          value={addKind}
+          onChange={(e) => onChangeKind(e.target.value)}
+          options={REGION_KIND_OPTIONS}
+          disabled={creating}
+          fullWidth
+        />
+        <Input
+          label="Endpoint URL (http/https)"
+          value={addUrl}
+          onChange={(e) => onChangeUrl(e.target.value)}
+          placeholder="https://us-east-1.example.com/health"
+          disabled={creating}
+          fullWidth
+        />
         {addErr ? (
-          <div className="callout-error mt-3" role="alert">
+          <div className="callout-error" role="alert">
             {addErr}
           </div>
         ) : null}
-        <div className="flex gap-2 mt-4 justify-end">
-          <button
+        <div
+          style={{
+            display: 'flex',
+            gap: 'var(--space-2)',
+            justifyContent: 'flex-end',
+            marginTop: 'var(--space-2)',
+          }}
+        >
+          <Button
             type="button"
-            className="btn-secondary"
+            variant="secondary"
             onClick={onClose}
             disabled={creating}
           >
             Cancel
-          </button>
-          <motion.button
+          </Button>
+          <Button
             type="button"
-            className="btn-primary"
+            variant="primary"
             onClick={onSubmit}
             disabled={creating}
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
+            loading={creating}
           >
             {creating ? 'Adding…' : 'Add region'}
-          </motion.button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

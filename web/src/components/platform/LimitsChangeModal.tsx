@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from '../../lib/motion';
+import Button from '../shared/Button';
+import Modal from '../shared/Modal';
 
 // Tier 11 Phase 4 — Tenant Limits (PL4).
 //
@@ -63,95 +64,94 @@ export default function LimitsChangeModal({
   definitions,
   current,
 }: LimitsChangeModalProps) {
-  const reduce = useReducedMotion();
-  if (!open) return null;
-
   // Render plans ASC by price so the cheapest option is
   // first (matches the marketing-site ordering convention).
   const sortedDefs = [...definitions].sort(
     (a, b) => a.monthly_price_cents - b.monthly_price_cents
   );
 
+  const switchDisabled =
+    patching || !pendingPlan || pendingPlan === current.plan_name;
+
   return (
-    <div
-      className="sw-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Change plan"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="sw-modal">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (pendingPlan && pendingPlan !== current.plan_name) {
-              onSubmit(pendingPlan);
-            }
+    <Modal open={open} onClose={onClose} title="Change plan">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (pendingPlan && pendingPlan !== current.plan_name) {
+            onSubmit(pendingPlan);
+          }
+        }}
+        noValidate
+      >
+        <p
+          style={{
+            margin: '0 0 var(--space-4)',
+            fontSize: 14,
+            color: 'var(--text-muted)',
           }}
-          noValidate
         >
-          <h3 className="limits-modal-title">Change plan</h3>
-          <p className="limits-modal-sub">
-            Current plan: <strong>{current.plan_display_name}</strong>
-          </p>
-          <div className="limits-modal-grid">
-            {sortedDefs.map((p) => (
-              <label
-                key={p.name}
-                className={`limits-modal-option ${
-                  pendingPlan === p.name ? 'limits-modal-option-active' : ''
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="plan"
-                  value={p.name}
-                  checked={pendingPlan === p.name}
-                  onChange={() => setPendingPlan(p.name)}
-                />
-                <div className="limits-modal-option-name">{p.display_name}</div>
-                <div className="limits-modal-option-price">
-                  {formatUSD(p.monthly_price_cents)} / mo
-                </div>
-                <ul className="limits-modal-option-features">
-                  <li>
-                    {p.max_servers >= 999999 ? '∞' : p.max_servers} servers
-                  </li>
-                  <li>{p.max_alerts >= 999999 ? '∞' : p.max_alerts} alerts</li>
-                  <li>{p.data_retention_days}d retention</li>
-                  <li>
-                    {p.storage_gb_limit >= 99999 ? '∞' : p.storage_gb_limit}GB
-                    storage
-                  </li>
-                </ul>
-              </label>
-            ))}
-          </div>
-          <div className="sw-form-actions">
-            <motion.button
-              type="submit"
-              className="signup-submit"
-              disabled={
-                patching || !pendingPlan || pendingPlan === current.plan_name
-              }
-              whileHover={reduce ? undefined : { y: -1 }}
-              whileTap={reduce ? undefined : { scale: 0.98 }}
+          Current plan: <strong>{current.plan_display_name}</strong>
+        </p>
+        <div className="limits-modal-grid">
+          {sortedDefs.map((p) => (
+            <label
+              key={p.name}
+              className={`limits-modal-option ${
+                pendingPlan === p.name ? 'limits-modal-option-active' : ''
+              }`}
             >
-              {patching ? 'Switching…' : `Switch to ${pendingPlan || '?'}`}
-            </motion.button>
-            <button
-              type="button"
-              className="signup-back"
-              onClick={onClose}
-              disabled={patching}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <input
+                type="radio"
+                name="plan"
+                value={p.name}
+                checked={pendingPlan === p.name}
+                onChange={() => setPendingPlan(p.name)}
+              />
+              <div className="limits-modal-option-name">{p.display_name}</div>
+              <div className="limits-modal-option-price">
+                {formatUSD(p.monthly_price_cents)} / mo
+              </div>
+              <ul className="limits-modal-option-features">
+                <li>
+                  {p.max_servers >= 999999 ? '∞' : p.max_servers} servers
+                </li>
+                <li>{p.max_alerts >= 999999 ? '∞' : p.max_alerts} alerts</li>
+                <li>{p.data_retention_days}d retention</li>
+                <li>
+                  {p.storage_gb_limit >= 99999 ? '∞' : p.storage_gb_limit}GB
+                  storage
+                </li>
+              </ul>
+            </label>
+          ))}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 'var(--space-2)',
+            justifyContent: 'flex-end',
+            marginTop: 'var(--space-4)',
+          }}
+        >
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={patching}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={switchDisabled}
+            loading={patching}
+          >
+            {patching ? 'Switching…' : `Switch to ${pendingPlan || '?'}`}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

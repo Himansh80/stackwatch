@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import KpiCard from './shared/KpiCard';
 import CopyBox from './shared/CopyBox';
 import ScimTokenTable, { ScimTokenRow } from './shared/ScimTokenTable';
+import Button from './shared/Button';
+import Input from './shared/Input';
+import Modal from './shared/Modal';
 import { ApiError, api } from '../lib/api';
-import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motion';
+import { motion, kpiStagger } from '../lib/motion';
 
 /**
  * ScimSection — Tier 9.2 (Phase 2) UI surface for the SCIM
@@ -22,9 +25,11 @@ import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motio
  *   - Instructions card explaining how to wire the IdP (URL +
  *     "use the bearer token you generated above").
  *
- * Motion: reuses existing exports (kpiStagger, buttonSpring) — no
- * new variants. Tokens: --surface, --border, --accent, --green,
- * --amber, --red via inline styles.
+ * Motion: reuses existing exports (kpiStagger) — no new variants.
+ * Tokens: --surface, --border, --accent, --green, --amber, --red
+ * via inline styles.
+ *
+ * Tier 20 Phase E: refactored to use shared Modal + Button + Input.
  */
 
 const SCOPE_OPTIONS: { value: string; label: string; description: string }[] = [
@@ -60,7 +65,6 @@ export default function ScimSection({
   onError,
   onChanged,
 }: ScimSectionProps) {
-  const reduce = useReducedMotion();
   const [sectionBusy, setSectionBusy] = useState(false);
   const isBusy = busy || sectionBusy;
   const [showCreate, setShowCreate] = useState(false);
@@ -229,149 +233,126 @@ export default function ScimSection({
         </article>
       </section>
 
-      {showCreate ? (
-        <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
-          <div className="slow-query-explain-modal-head">
-            <strong>New SCIM token</strong>
-            <button
-              type="button"
-              className="slow-query-explain-close"
-              onClick={closeCreate}
-              aria-label="Close"
-              disabled={justCreatedToken !== null}
+      <Modal
+        open={showCreate}
+        onClose={closeCreate}
+        title="New SCIM token"
+        closeOnBackdrop={justCreatedToken === null}
+        closeOnEscape={justCreatedToken === null}
+      >
+        {justCreatedToken ? (
+          <>
+            <p
+              style={{
+                color: 'var(--amber)',
+                fontSize: 13,
+                margin: '0 0 var(--space-3)',
+              }}
             >
-              ✕
-            </button>
-          </div>
-          {justCreatedToken ? (
-            <div style={{ padding: 16 }}>
-              <p
-                style={{
-                  color: 'var(--amber)',
-                  fontSize: 13,
-                  margin: '0 0 12px',
-                }}
-              >
-                Copy this token now — we&apos;ll never show it again.
-              </p>
-              <CopyBox value={justCreatedToken} />
-              <div style={{ marginTop: 12, textAlign: 'right' }}>
-                <motion.button
-                  type="button"
-                  className="empty-state-cta"
-                  onClick={closeCreate}
-                  whileHover={reduce ? undefined : buttonSpring.whileHover}
-                  whileTap={reduce ? undefined : buttonSpring.whileTap}
-                  transition={buttonSpring.transition}
-                >
-                  Done
-                </motion.button>
-              </div>
+              Copy this token now — we&apos;ll never show it again.
+            </p>
+            <CopyBox value={justCreatedToken} />
+            <div
+              style={{
+                marginTop: 'var(--space-3)',
+                display: 'flex',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <Button type="button" variant="primary" onClick={closeCreate}>
+                Done
+              </Button>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} style={{ padding: 16 }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: 12,
-                  color: 'var(--text-muted)',
-                  marginBottom: 6,
-                }}
-              >
-                Token name
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  placeholder="Okta SCIM, Azure AD SCIM, ..."
-                  maxLength={64}
+          </>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <Input
+                label="Token name"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="Okta SCIM, Azure AD SCIM, ..."
+                maxLength={64}
+                required
+                fullWidth
+              />
+              <div>
+                <div
                   style={{
-                    display: 'block',
-                    width: '100%',
-                    marginTop: 4,
-                    padding: 8,
-                    background: 'var(--surface-2)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
+                    fontSize: 14,
+                    fontWeight: 500,
                     color: 'var(--text)',
+                    marginBottom: 'var(--space-1)',
                   }}
-                  required
-                />
-              </label>
-              <div
-                style={{
-                  marginTop: 12,
-                  fontSize: 12,
-                  color: 'var(--text-muted)',
-                }}
-              >
-                Scopes
-              </div>
-              <div style={{ marginTop: 6 }}>
-                {SCOPE_OPTIONS.map((opt) => (
-                  <label
-                    key={opt.value}
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      alignItems: 'flex-start',
-                      marginBottom: 6,
-                      fontSize: 12,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={form.scopes.includes(opt.value)}
-                      onChange={() => toggleScope(opt.value)}
-                      style={{ marginTop: 2 }}
-                    />
-                    <span>
-                      <strong style={{ color: 'var(--text)' }}>{opt.label}</strong>
-                      <br />
-                      <span style={{ color: 'var(--text-muted)' }}>
-                        {opt.description}
+                >
+                  Scopes
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--space-2)',
+                  }}
+                >
+                  {SCOPE_OPTIONS.map((opt) => (
+                    <label
+                      key={opt.value}
+                      style={{
+                        display: 'flex',
+                        gap: 'var(--space-2)',
+                        alignItems: 'flex-start',
+                        fontSize: 13,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.scopes.includes(opt.value)}
+                        onChange={() => toggleScope(opt.value)}
+                        style={{ marginTop: 3 }}
+                      />
+                      <span>
+                        <strong style={{ color: 'var(--text)' }}>{opt.label}</strong>
+                        <br />
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          {opt.description}
+                        </span>
                       </span>
-                    </span>
-                  </label>
-                ))}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div
                 style={{
-                  marginTop: 16,
                   display: 'flex',
-                  gap: 8,
+                  gap: 'var(--space-2)',
                   justifyContent: 'flex-end',
+                  marginTop: 'var(--space-2)',
                 }}
               >
-                <motion.button
+                <Button
                   type="button"
-                  className="sw-button sw-button-secondary"
+                  variant="secondary"
                   onClick={closeCreate}
-                  whileHover={reduce ? undefined : buttonSpring.whileHover}
-                  whileTap={reduce ? undefined : buttonSpring.whileTap}
-                  transition={buttonSpring.transition}
                   disabled={isBusy}
                 >
                   Cancel
-                </motion.button>
-                <motion.button
+                </Button>
+                <Button
                   type="submit"
-                  className="empty-state-cta"
-                  whileHover={reduce ? undefined : buttonSpring.whileHover}
-                  whileTap={reduce ? undefined : buttonSpring.whileTap}
-                  transition={buttonSpring.transition}
+                  variant="primary"
                   disabled={isBusy}
+                  loading={isBusy}
                 >
                   {isBusy ? 'Creating…' : 'Create token'}
-                </motion.button>
+                </Button>
               </div>
-            </form>
-          )}
-        </div>
-      ) : null}
+            </div>
+          </form>
+        )}
+      </Modal>
     </>
   );
 }
