@@ -5,6 +5,8 @@ import EmptyState from '../components/shared/EmptyState';
 import StatusPill from '../components/shared/StatusPill';
 import KpiCard from '../components/shared/KpiCard';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
+import Button from '../components/shared/Button';
+import Input from '../components/shared/Input';
 import { motion, kpiStagger, pageEnter } from '../lib/motion';
 
 type Section = { id: string; label: string; path: string };
@@ -306,21 +308,36 @@ export default function TrueNASWorkspace() {
           <KpiCard label="Disks" value={kpi.diskCount ?? '—'} delta="Disk health" accent="red" onClick={() => setSection('disks')} />
         </motion.section>
       )}
-      {message && <div className="sw-alert sw-alert-success"><strong>Success</strong><span>{message}</span><button onClick={() => setMessage('')}>×</button></div>}
-      {error && <div className="sw-alert sw-alert-error"><strong>Error</strong><span>{error}</span><button onClick={() => setError('')}>×</button></div>}
+      {message && (
+        <div className="sw-alert sw-alert-success">
+          <strong>Success</strong>
+          <span>{message}</span>
+          <Button variant="ghost" size="sm" onClick={() => setMessage('')}>×</Button>
+        </div>
+      )}
+      {error && (
+        <div className="sw-alert sw-alert-error">
+          <strong>Error</strong>
+          <span>{error}</span>
+          <Button variant="ghost" size="sm" onClick={() => setError('')}>×</Button>
+        </div>
+      )}
       {showHostForm && (
         <section className="sw-panel">
           <div className="sw-panel-head">
             <div><span className="sw-eyebrow">Secure registration</span><h2>Connect a TrueNAS SCALE system</h2></div>
           </div>
           <form className="sw-form-grid" onSubmit={submitHost}>
-            <label className="sw-field"><span>Name</span><input required value={hostForm.name} onChange={(e) => setHostForm({ ...hostForm, name: e.target.value })} placeholder="e.g. storage-prod" /></label>
-            <label className="sw-field"><span>Base URL</span><input required value={hostForm.base_url} onChange={(e) => setHostForm({ ...hostForm, base_url: e.target.value })} placeholder="https://truenas.example.com" /></label>
-            <label className="sw-field"><span>Username</span><input value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} /></label>
-            <label className="sw-field"><span>Password</span><input type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} /></label>
-            <label className="sw-field"><span>API key (optional)</span><input type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} /></label>
+            <Input label="Name" required value={hostForm.name} onChange={(e) => setHostForm({ ...hostForm, name: e.target.value })} placeholder="e.g. storage-prod" />
+            <Input label="Base URL" required value={hostForm.base_url} onChange={(e) => setHostForm({ ...hostForm, base_url: e.target.value })} placeholder="https://truenas.example.com" />
+            <Input label="Username" value={hostForm.username} onChange={(e) => setHostForm({ ...hostForm, username: e.target.value })} />
+            <Input label="Password" type="password" value={hostForm.password} onChange={(e) => setHostForm({ ...hostForm, password: e.target.value })} />
+            <Input label="API key (optional)" type="password" value={hostForm.api_key} onChange={(e) => setHostForm({ ...hostForm, api_key: e.target.value })} />
             <label className="sw-checkbox"><input type="checkbox" checked={hostForm.verify_tls} onChange={(e) => setHostForm({ ...hostForm, verify_tls: e.target.checked })} /> Verify TLS certificate</label>
-            <div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowHostForm(false)}>Cancel</button><button type="submit" className="sw-button sw-button-primary" disabled={busy}>Test and save</button></div>
+            <div className="sw-form-actions">
+              <Button variant="ghost" type="button" onClick={() => setShowHostForm(false)}>Cancel</Button>
+              <Button variant="primary" type="submit" loading={busy} disabled={busy}>Test and save</Button>
+            </div>
           </form>
         </section>
       )}
@@ -360,11 +377,14 @@ export default function TrueNASWorkspace() {
           <div className="sw-modal">
             <div className="sw-panel-head">
               <div><span className="sw-eyebrow">Authenticated mutation</span><h2>Create {current.label}</h2></div>
-              <button className="sw-button" onClick={() => setShowAction(false)}>Close</button>
+              <Button variant="ghost" onClick={() => setShowAction(false)}>Close</Button>
             </div>
             <form onSubmit={runAction}>
               <textarea className="sw-json-editor" value={actionJSON} onChange={(e) => setActionJSON(e.target.value)} spellCheck={false} />
-              <div className="sw-form-actions"><button type="button" className="sw-button" onClick={() => setShowAction(false)}>Cancel</button><button className="sw-button sw-button-primary" disabled={busy}>Submit action</button></div>
+              <div className="sw-form-actions">
+                <Button variant="ghost" type="button" onClick={() => setShowAction(false)}>Cancel</Button>
+                <Button variant="primary" type="submit" loading={busy} disabled={busy}>Submit action</Button>
+              </div>
             </form>
           </div>
         </div>
