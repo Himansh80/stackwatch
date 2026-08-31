@@ -19,13 +19,14 @@
  *   - aria-busy when loading
  *   - Focus ring on :focus-visible
  */
-import { forwardRef, MouseEvent, ReactNode } from 'react';
+import { forwardRef, MouseEvent, ReactNode, ButtonHTMLAttributes } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
-export interface ButtonProps {
+export interface ButtonProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type' | 'size'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   icon?: ReactNode;

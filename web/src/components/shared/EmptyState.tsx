@@ -6,7 +6,7 @@ interface EmptyStateAction {
   onClick: () => void;
 }
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   /** Inline SVG / Lucide-style icon node. Rendered inside a 96×96
    *  accent-tinted bubble so users see it as an illustration, not a glyph. */
   illustration: ReactNode;

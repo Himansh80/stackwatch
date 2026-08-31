@@ -21,8 +21,8 @@
  *   - Pagination: <nav aria-label="Pagination">
  */
 import { ReactNode, useMemo, useState, Key, KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { SkeletonRow } from './SkeletonRow';
-import EmptyState from './EmptyState';
+import SkeletonRow from './SkeletonRow';
+import EmptyState, { type EmptyStateProps } from './EmptyState';
 
 export type SortDirection = 'asc' | 'desc';
 export type CellAlign = 'left' | 'center' | 'right';
@@ -54,6 +54,7 @@ export interface DataTableProps<T> {
   stickyHeader?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyProps?: Partial<EmptyStateProps>;
   className?: string;
 }
 
@@ -73,6 +74,7 @@ export default function DataTable<T>({
   stickyHeader = false,
   emptyTitle = 'No data',
   emptyDescription = 'There are no items to display.',
+  emptyProps,
   className = '',
 }: DataTableProps<T>) {
   // Uncontrolled state (only used if controlled props not provided)
@@ -201,8 +203,10 @@ export default function DataTable<T>({
               <td colSpan={columns.length} className="data-table-empty-cell">
                 {emptyState ?? (
                   <EmptyState
+                    illustration={emptyProps?.illustration}
                     headline={emptyTitle}
                     subhead={emptyDescription}
+                    cta={emptyProps?.cta}
                   />
                 )}
               </td>

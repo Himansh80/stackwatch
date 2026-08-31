@@ -21,6 +21,7 @@ import {
   CogIcon,
   AlertTriangleIcon,
   UsersIcon,
+  ShieldIcon,
 } from '../components/icons';
 
 // ---------- Demo data (unchanged) --------------------------------------
@@ -152,6 +153,7 @@ const steps = [
 // ---------- Topbar (motion-aware Sign in / Sign up CTAs only) ----------
 function LandingTopbar() {
   const reduce = useReducedMotion();
+  const nav = useNavigate();
   return (
     <motion.header
       className="landing-topbar"

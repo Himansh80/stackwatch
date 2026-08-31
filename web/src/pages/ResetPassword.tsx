@@ -136,14 +136,12 @@ export default function ResetPassword() {
           </motion.div>
           <motion.div variants={formRow}>
             <PasswordField
-              label="Confirm new password"
               value={password2}
               onChange={(v) => { setPassword2(v); setError(null); }}
               placeholder="Type your new password again"
               autoComplete="new-password"
               required
               minLength={10}
-              fullWidth
             />
           </motion.div>
           {error && (
