@@ -5,8 +5,12 @@ import CorrelationCard, {
 } from './shared/CorrelationCard';
 import EmptyState from './shared/EmptyState';
 import KpiCard from './shared/KpiCard';
+import Button from './shared/Button';
+import Input from './shared/Input';
+import Modal from './shared/Modal';
+import Textarea from './shared/Textarea';
 import { ApiError, api } from '../lib/api';
-import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motion';
+import { motion, kpiStagger } from '../lib/motion';
 
 /**
  * CorrelationsSection — Tier 8.3 (D9 Phase 3) UI surface for the
@@ -22,7 +26,10 @@ import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motio
  *   - "Manual correlate" button + form modal (POST /correlations/manual)
  *   - Feedback buttons live inline on each card (handled by CorrelationCard)
  *
- * Motion: existing exports (kpiStagger, buttonSpring) — no new variants.
+ * Tier 20 Phase E: the custom slow-query-explain-modal frame +
+ * raw <input>/<textarea> + empty-state-cta/dash-icon-button markup
+ * is replaced with the dashboard's shared <Modal>/<Input>/
+ * <Textarea>/<Button> primitives.
  */
 
 interface CorrelationsSectionProps {
@@ -38,7 +45,6 @@ export default function CorrelationsSection({
   onError,
   onCreated,
 }: CorrelationsSectionProps) {
-  const reduce = useReducedMotion();
   const [sectionBusy, setSectionBusy] = useState(false);
   const isBusy = busy || sectionBusy;
 
@@ -241,96 +247,81 @@ export default function CorrelationsSection({
         )}
 
         <div style={{ marginTop: 12 }}>
-          <motion.button
+          <Button
             type="button"
-            className="empty-state-cta"
+            variant="primary"
+            size="md"
             onClick={() => setModal(true)}
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
             disabled={isBusy}
           >
             + Manual correlate
-          </motion.button>
+          </Button>
         </div>
       </section>
 
-      {modal ? (
-        <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
-          <div className="slow-query-explain-modal-head">
-            <strong>Create manual correlation</strong>
-            <button
+      <Modal open={modal} onClose={() => setModal(false)} title="Create manual correlation" size="md">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submitManual();
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+        >
+          <Textarea
+            label="Alert IDs (comma- or newline-separated, at least 2)"
+            required
+            rows={3}
+            value={alertIDsRaw}
+            onChange={(e) => setAlertIDsRaw(e.target.value)}
+            placeholder="uuid-of-alert-a, uuid-of-alert-b, uuid-of-alert-c"
+            fullWidth
+          />
+          <Input
+            label="Reason"
+            type="text"
+            maxLength={2048}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="same root cause: deployment rollback at 14:32"
+            fullWidth
+          />
+          <Input
+            label="Similarity score (0..1, optional)"
+            type="number"
+            min={0}
+            max={1}
+            step={0.01}
+            value={similarity}
+            onChange={(e) => setSimilarity(e.target.value)}
+            fullWidth
+          />
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
+            Manual correlations are tagged <code>auto_detected=false</code> so the UI
+            distinguishes them from background-detected groups. The first alert_id is
+            treated as the root alert.
+          </p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+            <Button
               type="button"
-              className="slow-query-explain-close"
+              variant="ghost"
+              size="sm"
               onClick={() => setModal(false)}
-              aria-label="Close"
+              disabled={isBusy}
             >
-              ✕
-            </button>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={sectionBusy}
+              disabled={isBusy || !alertIDsRaw.trim()}
+            >
+              {sectionBusy ? 'Creating…' : 'Correlate'}
+            </Button>
           </div>
-          <form
-            className="notebook-create-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submitManual();
-            }}
-          >
-            <label>
-              <span>Alert IDs (comma- or newline-separated, at least 2)</span>
-              <textarea
-                required
-                rows={3}
-                value={alertIDsRaw}
-                onChange={(e) => setAlertIDsRaw(e.target.value)}
-                placeholder="uuid-of-alert-a, uuid-of-alert-b, uuid-of-alert-c"
-              />
-            </label>
-            <label>
-              <span>Reason</span>
-              <input
-                type="text"
-                maxLength={2048}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="same root cause: deployment rollback at 14:32"
-              />
-            </label>
-            <label>
-              <span>Similarity score (0..1, optional)</span>
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={similarity}
-                onChange={(e) => setSimilarity(e.target.value)}
-              />
-            </label>
-            <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
-              Manual correlations are tagged <code>auto_detected=false</code> so the UI
-              distinguishes them from background-detected groups. The first alert_id is
-              treated as the root alert.
-            </p>
-            <div className="incident-create-actions">
-              <button
-                type="button"
-                className="dash-icon-button"
-                onClick={() => setModal(false)}
-                disabled={isBusy}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="empty-state-cta"
-                disabled={isBusy || !alertIDsRaw.trim()}
-              >
-                {sectionBusy ? 'Creating…' : 'Correlate'}
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+        </form>
+      </Modal>
     </>
   );
 }

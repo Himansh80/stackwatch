@@ -1,6 +1,7 @@
 import React, { FormEvent } from 'react';
-import { motion, buttonSpring, useReducedMotion } from '../lib/motion';
 import { ApiError, api } from '../lib/api';
+import Button from './shared/Button';
+import SharedModal from './shared/Modal';
 
 /**
  * ComplianceSectionModals — Tier 9.5 (Phase 5) shared primitives
@@ -17,7 +18,11 @@ import { ApiError, api } from '../lib/api';
  *   ComplianceSectionFormViews.tsx owns the per-form JSX).
  *
  * Exposes:
- *   - <Modal />, <Field />, <ModalActions /> — modal primitives
+ *   - <Modal /> — thin wrapper around the shared Modal (kept as
+ *     a back-compat re-export for ComplianceSection.tsx which
+ *     uses the {title, onClose, children} API).
+ *   - <ModalActions /> — Cancel + Submit button row using shared
+ *     <Button>.
  *   - GenerateReportForm, ScheduleReportForm types + initial*Form()
  *   - handleGenerateReportSubmit() — POST /compliance/reports submit
  *   - handleScheduleReportSubmit() — POST /compliance/schedules submit
@@ -26,10 +31,9 @@ import { ApiError, api } from '../lib/api';
  * The per-modal JSX bodies live in ComplianceSectionFormViews.tsx
  * so this file stays under the 400-LOC cap.
  *
- * Motion: reuses existing exports (buttonSpring) — no new variants.
- * Tokens: reuses --surface / --border / --text / --text-muted /
- * --accent / --red / --green / --amber / .threat-card-* etc. — no
- * new CSS.
+ * Tier 20 Phase E: the local Modal primitive is now a thin
+ * wrapper over the dashboard's shared focus-trapped Modal. The
+ * old raw-div + threat-card markup is gone.
  */
 
 export type ComplianceFramework =
@@ -77,8 +81,14 @@ export function initialScheduleForm(): ScheduleReportForm {
 }
 
 // ------------------------------------------------------------------
-// Modal primitives — mirror AuditSectionModals.tsx so the visual
-// language matches the rest of the Tier 9 surface.
+// Modal — back-compat wrapper around the shared Modal.
+//
+// ComplianceSection.tsx uses the legacy {title, onClose, children}
+// API (no explicit `open` prop). We preserve that by deriving
+// `open` from children presence: if children is null/undefined the
+// modal is closed; otherwise it's open. This keeps ComplianceSection
+// working unchanged while still using the focus-trapped shared
+// Modal underneath.
 // ------------------------------------------------------------------
 
 export function Modal({
@@ -91,69 +101,15 @@ export function Modal({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.45)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        className="threat-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(560px, 92vw)',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <div className="threat-card-top">
-          <strong className="threat-card-type">{title}</strong>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="threat-card-resolve-btn"
-            style={{ marginLeft: 'auto' }}
-          >
-            ×
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <SharedModal open onClose={onClose} title={title} size="md">
+      {children}
+    </SharedModal>
   );
 }
 
-export function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label
-      style={{
-        display: 'block',
-        marginTop: 12,
-        fontSize: 12,
-        color: 'var(--text-muted)',
-      }}
-    >
-      {label}
-      <div style={{ marginTop: 4 }}>{children}</div>
-    </label>
-  );
-}
+// ------------------------------------------------------------------
+// ModalActions — Cancel + Submit button row using shared Button.
+// ------------------------------------------------------------------
 
 export function ModalActions({
   busy,
@@ -164,7 +120,6 @@ export function ModalActions({
   submitLabel: string;
   onClose: () => void;
 }) {
-  const reduce = useReducedMotion();
   return (
     <div
       style={{
@@ -174,27 +129,23 @@ export function ModalActions({
         justifyContent: 'flex-end',
       }}
     >
-      <motion.button
+      <Button
         type="button"
-        className="sw-button sw-button-secondary"
+        variant="secondary"
+        size="sm"
         onClick={onClose}
-        whileHover={reduce ? undefined : buttonSpring.whileHover}
-        whileTap={reduce ? undefined : buttonSpring.whileTap}
-        transition={buttonSpring.transition}
         disabled={busy}
       >
         Cancel
-      </motion.button>
-      <motion.button
+      </Button>
+      <Button
         type="submit"
-        className="empty-state-cta"
-        whileHover={reduce ? undefined : buttonSpring.whileHover}
-        whileTap={reduce ? undefined : buttonSpring.whileTap}
-        transition={buttonSpring.transition}
-        disabled={busy}
+        variant="primary"
+        size="sm"
+        loading={busy}
       >
         {busy ? 'Working…' : submitLabel}
-      </motion.button>
+      </Button>
     </div>
   );
 }
@@ -322,14 +273,3 @@ export async function handleDeleteScheduleSubmit({
     setSectionBusy(false);
   }
 }
-
-export const inputStyle: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  padding: 8,
-  background: 'var(--surface-2)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-md)',
-  color: 'var(--text)',
-  fontFamily: 'inherit',
-};

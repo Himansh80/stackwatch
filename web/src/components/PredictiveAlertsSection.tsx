@@ -2,8 +2,12 @@ import { useCallback, useMemo, useState } from 'react';
 import EmptyState from './shared/EmptyState';
 import KpiCard from './shared/KpiCard';
 import PredictionChart, { ForecastPoint, HistoricalPoint } from './shared/PredictionChart';
+import Button from './shared/Button';
+import Input from './shared/Input';
+import Modal from './shared/Modal';
+import Select, { type SelectOption } from './shared/Select';
 import { ApiError, api } from '../lib/api';
-import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motion';
+import { motion, kpiStagger } from '../lib/motion';
 
 // PredictiveAlert — JSON shape returned by GET /api/v1/predict/alerts.
 // Mirrors the predictiveAlertRow type in handlers_predict_types.go.
@@ -41,11 +45,24 @@ interface PredictiveAlertsSectionProps {
   onError: (msg: string) => void;
 }
 
+const HORIZON_OPTIONS: SelectOption[] = [
+  { value: '6', label: '6h' },
+  { value: '12', label: '12h' },
+  { value: '24', label: '24h (recommended)' },
+  { value: '48', label: '48h' },
+  { value: '72', label: '3 days' },
+  { value: '168', label: '1 week' },
+];
+
 // PredictiveAlertsSection — Tier 8.2 (D9 Phase 2) UI surface.
 // Renders the predictive-alerting section on IntelligencePage.
 // Owns the modal + runForecast / ackAlert logic so the parent
-// page stays under the 400-LOC cap. Motion uses existing exports
-// (kpiStagger, buttonSpring) — no new variants.
+// page stays under the 400-LOC cap.
+//
+// Tier 20 Phase E: the custom slow-query-explain-modal frame +
+// raw <input>/<select> + empty-state-cta/dash-icon-button markup
+// is replaced with the dashboard's shared <Modal>/<Input>/
+// <Select>/<Button> primitives.
 export default function PredictiveAlertsSection({
   alerts,
   windows: initialWindows,
@@ -54,7 +71,6 @@ export default function PredictiveAlertsSection({
   busy,
   onError,
 }: PredictiveAlertsSectionProps) {
-  const reduce = useReducedMotion();
   const [modal, setModal] = useState(false);
   const [metric, setMetric] = useState('');
   const [horizon, setHorizon] = useState(horizonDefault);
@@ -236,17 +252,15 @@ export default function PredictiveAlertsSection({
         )}
 
         <div style={{ marginTop: 12 }}>
-          <motion.button
+          <Button
             type="button"
-            className="empty-state-cta"
+            variant="primary"
+            size="md"
             onClick={() => setModal(true)}
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
             disabled={isBusy}
           >
             + Generate forecast
-          </motion.button>
+          </Button>
         </div>
       </section>
 
@@ -298,14 +312,15 @@ export default function PredictiveAlertsSection({
                       ✓ acknowledged
                     </span>
                   ) : (
-                    <button
+                    <Button
                       type="button"
-                      className="threat-card-resolve-btn"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => void ackAlert(a.id)}
                       disabled={isBusy}
                     >
                       Acknowledge →
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -314,77 +329,59 @@ export default function PredictiveAlertsSection({
         </section>
       ) : null}
 
-      {modal ? (
-        <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
-          <div className="slow-query-explain-modal-head">
-            <strong>Generate forecast</strong>
-            <button
+      <Modal open={modal} onClose={() => setModal(false)} title="Generate forecast" size="md">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void runForecast();
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+        >
+          <Input
+            label="Metric name"
+            type="text"
+            required
+            maxLength={256}
+            value={metric}
+            onChange={(e) => setMetric(e.target.value)}
+            placeholder="disk.used_pct"
+            fullWidth
+          />
+          <Select
+            label="Horizon (hours)"
+            value={String(horizon)}
+            onChange={(e) => setHorizon(parseInt(e.target.value, 10))}
+            options={HORIZON_OPTIONS}
+            fullWidth
+          />
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
+            Linear regression over the last 7 days of metric_points. The fit computes
+            slope + intercept, then projects the next N hours with p10/p90 bands
+            (±1.28σ). If the forecast&apos;s p90 crosses 90% (configurable), an alert is
+            created automatically.
+          </p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+            <Button
               type="button"
-              className="slow-query-explain-close"
+              variant="ghost"
+              size="sm"
               onClick={() => setModal(false)}
-              aria-label="Close"
+              disabled={isBusy}
             >
-              ✕
-            </button>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={sectionBusy}
+              disabled={isBusy || !metric.trim()}
+            >
+              {sectionBusy ? 'Forecasting…' : 'Forecast'}
+            </Button>
           </div>
-          <form
-            className="notebook-create-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void runForecast();
-            }}
-          >
-            <label>
-              <span>Metric name</span>
-              <input
-                type="text"
-                required
-                maxLength={256}
-                value={metric}
-                onChange={(e) => setMetric(e.target.value)}
-                placeholder="disk.used_pct"
-              />
-            </label>
-            <label>
-              <span>Horizon (hours)</span>
-              <select
-                value={horizon}
-                onChange={(e) => setHorizon(parseInt(e.target.value, 10))}
-              >
-                <option value={6}>6h</option>
-                <option value={12}>12h</option>
-                <option value={24}>24h (recommended)</option>
-                <option value={48}>48h</option>
-                <option value={72}>3 days</option>
-                <option value={168}>1 week</option>
-              </select>
-            </label>
-            <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
-              Linear regression over the last 7 days of metric_points. The fit computes
-              slope + intercept, then projects the next N hours with p10/p90 bands
-              (±1.28σ). If the forecast&apos;s p90 crosses 90% (configurable), an alert is
-              created automatically.
-            </p>
-            <div className="incident-create-actions">
-              <button
-                type="button"
-                className="dash-icon-button"
-                onClick={() => setModal(false)}
-                disabled={isBusy}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="empty-state-cta"
-                disabled={isBusy || !metric.trim()}
-              >
-                {sectionBusy ? 'Forecasting…' : 'Forecast'}
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+        </form>
+      </Modal>
     </>
   );
 }

@@ -5,8 +5,10 @@ import RbacAssignmentsPanel, {
   RbacAssignmentRow,
   RbacRoleRef,
 } from './RbacAssignmentsPanel';
+import Button from './shared/Button';
+import Modal from './shared/Modal';
 import { ApiError, api } from '../lib/api';
-import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motion';
+import { motion, kpiStagger } from '../lib/motion';
 
 /**
  * RbacSection — Tier 9.3 (Phase 3) UI surface for the Roles &
@@ -24,8 +26,10 @@ import { motion, buttonSpring, kpiStagger, useReducedMotion } from '../lib/motio
  *   - RbacAssignmentsPanel handles user↔role binding UI (kept in
  *     a separate file to keep this file under the 400-LOC cap).
  *
- * Motion: reuses existing exports (kpiStagger, buttonSpring) — no
- * new variants.
+ * Tier 20 Phase E: motion.button-style markup (motion.button +
+ * buttonSpring + custom styles) is replaced with the dashboard's
+ * shared <Button>. The custom modal frame (slow-query-explain-modal)
+ * is replaced with the shared focus-trapped <Modal>.
  */
 
 export interface RbacRoleRow {
@@ -70,7 +74,6 @@ export default function RbacSection({
   onError,
   onChanged,
 }: RbacSectionProps) {
-  const reduce = useReducedMotion();
   const [sectionBusy, setSectionBusy] = useState(false);
   const isBusy = busy || sectionBusy;
 
@@ -146,6 +149,11 @@ export default function RbacSection({
     [editing, creating, onChanged, onError],
   );
 
+  const closeModal = useCallback(() => {
+    setEditing(null);
+    setCreating(false);
+  }, []);
+
   return (
     <>
       <motion.div
@@ -194,51 +202,39 @@ export default function RbacSection({
             marginTop: 8,
             marginBottom: 12,
             borderBottom: '1px solid var(--border)',
+            alignItems: 'center',
           }}
         >
           {(['builtin', 'custom'] as Tab[]).map((t) => {
             const count = t === 'builtin' ? builtins.length : customs.length;
             const active = tab === t;
             return (
-              <motion.button
+              <Button
                 key={t}
                 type="button"
+                variant={active ? 'primary' : 'ghost'}
+                size="sm"
                 onClick={() => setTab(t)}
-                whileHover={reduce ? undefined : buttonSpring.whileHover}
-                whileTap={reduce ? undefined : buttonSpring.whileTap}
-                transition={buttonSpring.transition}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
-                  color: active ? 'var(--text)' : 'var(--text-muted)',
-                  padding: '6px 12px',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  textTransform: 'capitalize',
-                  fontWeight: active ? 600 : 400,
-                }}
                 aria-pressed={active}
+                style={{ textTransform: 'capitalize' }}
               >
                 {t} <span style={{ opacity: 0.7 }}>({count})</span>
-              </motion.button>
+              </Button>
             );
           })}
-          <motion.button
+          <Button
             type="button"
-            className="empty-state-cta"
+            variant="primary"
+            size="sm"
             style={{ marginLeft: 'auto', marginBottom: 8 }}
             onClick={() => {
               setCreating(true);
               setEditing(null);
             }}
-            whileHover={reduce ? undefined : buttonSpring.whileHover}
-            whileTap={reduce ? undefined : buttonSpring.whileTap}
-            transition={buttonSpring.transition}
             disabled={isBusy}
           >
             + New custom role
-          </motion.button>
+          </Button>
         </div>
 
         <div className="threat-card-list">
@@ -282,9 +278,10 @@ export default function RbacSection({
                 <div className="threat-card-meta">
                   {!role.is_builtin ? (
                     <>
-                      <button
+                      <Button
                         type="button"
-                        className="threat-card-resolve-btn"
+                        variant="secondary"
+                        size="sm"
                         onClick={() => {
                           setEditing(role);
                           setCreating(false);
@@ -293,17 +290,17 @@ export default function RbacSection({
                         disabled={isBusy}
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
-                        className="threat-card-resolve-btn"
+                        variant="danger"
+                        size="sm"
                         onClick={() => void handleDeleteRole(role)}
                         aria-label={`Delete custom role ${role.name}`}
-                        style={{ color: 'var(--red)' }}
                         disabled={isBusy}
                       >
                         Delete
-                      </button>
+                      </Button>
                     </>
                   ) : null}
                   <span
@@ -335,36 +332,19 @@ export default function RbacSection({
         />
       </section>
 
-      {(creating || editing) ? (
-        <div className="slow-query-explain-modal" role="dialog" aria-modal="true">
-          <div className="slow-query-explain-modal-head">
-            <strong>{creating ? 'New custom role' : `Edit ${editing?.name}`}</strong>
-            <button
-              type="button"
-              className="slow-query-explain-close"
-              onClick={() => {
-                setCreating(false);
-                setEditing(null);
-              }}
-              aria-label="Close"
-              disabled={isBusy}
-            >
-              ✕
-            </button>
-          </div>
-          <div style={{ padding: 16 }}>
-            <RbacRoleEditor
-              role={editing ?? undefined}
-              onSave={(d) => void handleSaveRole(d)}
-              onCancel={() => {
-                setCreating(false);
-                setEditing(null);
-              }}
-              busy={isBusy}
-            />
-          </div>
-        </div>
-      ) : null}
+      <Modal
+        open={creating || editing != null}
+        onClose={closeModal}
+        title={creating ? 'New custom role' : `Edit ${editing?.name ?? ''}`}
+        size="md"
+      >
+        <RbacRoleEditor
+          role={editing ?? undefined}
+          onSave={(d) => void handleSaveRole(d)}
+          onCancel={closeModal}
+          busy={isBusy}
+        />
+      </Modal>
     </>
   );
 }

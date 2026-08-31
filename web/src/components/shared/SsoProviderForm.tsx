@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { motion, buttonSpring, useReducedMotion } from '../../lib/motion';
+import Button from './Button';
+import Input from './Input';
+import Textarea from './Textarea';
 
 /**
  * SsoProviderForm — modal form body for creating a new SSO provider.
@@ -11,6 +13,11 @@ import { motion, buttonSpring, useReducedMotion } from '../../lib/motion';
  * on the `type` prop. Owns local form state + submit handler;
  * delegates the actual API call to the parent's onSubmit so the
  * parent can refresh its providers list on success.
+ *
+ * Tier 20 Phase E: the bare <input>/<textarea> + dash-icon-button
+ * /empty-state-cta markup is replaced with the dashboard's shared
+ * <Input>/<Textarea>/<Button> primitives. The parent (SsoSection)
+ * still owns the modal frame + close button.
  */
 
 export type ProviderType = 'oidc' | 'saml';
@@ -113,7 +120,6 @@ export default function SsoProviderForm({
   onCancel,
   busy,
 }: SsoProviderFormProps) {
-  const reduce = useReducedMotion();
   const [draft, setDraft] = useState<SsoProviderDraft>(() => initialDraft(type));
   const [error, setError] = useState('');
 
@@ -143,140 +149,118 @@ export default function SsoProviderForm({
 
   return (
     <form className="notebook-create-form" onSubmit={handleSubmit}>
-      <label>
-        <span>Display name</span>
-        <input
-          type="text"
-          required
-          maxLength={64}
-          value={draft.name}
-          onChange={(e) => update('name', e.target.value)}
-          placeholder="Okta corp"
-          aria-label="Provider name"
-        />
-      </label>
+      <Input
+        label="Display name"
+        type="text"
+        required
+        maxLength={64}
+        value={draft.name}
+        onChange={(e) => update('name', e.target.value)}
+        placeholder="Okta corp"
+        fullWidth
+      />
 
       {type === 'oidc' ? (
         <>
-          <label>
-            <span>Client ID</span>
-            <input
-              type="text"
-              required
-              value={draft.client_id || ''}
-              onChange={(e) => update('client_id', e.target.value)}
-              placeholder="0oab1234cd…"
-              aria-label="Client ID"
-            />
-          </label>
-          <label>
-            <span>Client secret (encrypted at rest)</span>
-            <input
-              type="password"
-              required
-              value={draft.client_secret || ''}
-              onChange={(e) => update('client_secret', e.target.value)}
-              placeholder="••••••••••"
-              aria-label="Client secret"
-            />
-          </label>
-          <label>
-            <span>Discovery URL</span>
-            <input
-              type="url"
-              required
-              value={draft.discovery_url || ''}
-              onChange={(e) => update('discovery_url', e.target.value)}
-              placeholder="https://your-tenant.okta.com/.well-known/openid-configuration"
-              aria-label="Discovery URL"
-            />
-          </label>
-          <label>
-            <span>Redirect URI (optional)</span>
-            <input
-              type="url"
-              value={draft.redirect_uri || ''}
-              onChange={(e) => update('redirect_uri', e.target.value)}
-              placeholder="https://stackwatch.example.com/auth/sso-done"
-              aria-label="Redirect URI"
-            />
-          </label>
-          <label>
-            <span>Scopes (comma-separated)</span>
-            <input
-              type="text"
-              value={draft.scopes || ''}
-              onChange={(e) => update('scopes', e.target.value)}
-              placeholder="openid,email,profile"
-              aria-label="Scopes"
-            />
-          </label>
+          <Input
+            label="Client ID"
+            type="text"
+            required
+            value={draft.client_id || ''}
+            onChange={(e) => update('client_id', e.target.value)}
+            placeholder="0oab1234cd…"
+            fullWidth
+          />
+          <Input
+            label="Client secret (encrypted at rest)"
+            type="password"
+            required
+            value={draft.client_secret || ''}
+            onChange={(e) => update('client_secret', e.target.value)}
+            placeholder="••••••••••"
+            fullWidth
+          />
+          <Input
+            label="Discovery URL"
+            type="url"
+            required
+            value={draft.discovery_url || ''}
+            onChange={(e) => update('discovery_url', e.target.value)}
+            placeholder="https://your-tenant.okta.com/.well-known/openid-configuration"
+            fullWidth
+          />
+          <Input
+            label="Redirect URI (optional)"
+            type="url"
+            value={draft.redirect_uri || ''}
+            onChange={(e) => update('redirect_uri', e.target.value)}
+            placeholder="https://stackwatch.example.com/auth/sso-done"
+            fullWidth
+          />
+          <Input
+            label="Scopes (comma-separated)"
+            type="text"
+            value={draft.scopes || ''}
+            onChange={(e) => update('scopes', e.target.value)}
+            placeholder="openid,email,profile"
+            fullWidth
+          />
         </>
       ) : (
         <>
-          <label>
-            <span>Entity ID</span>
-            <input
-              type="text"
-              required
-              value={draft.entity_id || ''}
-              onChange={(e) => update('entity_id', e.target.value)}
-              placeholder="https://stackwatch.example.com/saml/metadata"
-              aria-label="Entity ID"
-            />
-          </label>
-          <label>
-            <span>SSO URL (IdP SSO endpoint)</span>
-            <input
-              type="url"
-              required
-              value={draft.sso_url || ''}
-              onChange={(e) => update('sso_url', e.target.value)}
-              placeholder="https://your-idp.example.com/saml2/sso"
-              aria-label="SSO URL"
-            />
-          </label>
-          <label>
-            <span>Metadata URL (optional — paste XML below if blank)</span>
-            <input
-              type="url"
-              value={draft.metadata_url || ''}
-              onChange={(e) => update('metadata_url', e.target.value)}
-              placeholder="https://your-idp.example.com/saml/metadata"
-              aria-label="Metadata URL"
-            />
-          </label>
-          <label>
-            <span>Metadata XML (optional — if not using Metadata URL)</span>
-            <textarea
-              value={draft.metadata_xml || ''}
-              onChange={(e) => update('metadata_xml', e.target.value)}
-              placeholder="<EntityDescriptor>…</EntityDescriptor>"
-              aria-label="Metadata XML"
-              rows={4}
-              style={{
-                fontFamily:
-                  'var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-                fontSize: 12,
-              }}
-            />
-          </label>
-          <label>
-            <span>X509 cert (PEM, encrypted at rest)</span>
-            <textarea
-              required
-              value={draft.x509_cert || ''}
-              onChange={(e) => update('x509_cert', e.target.value)}
-              placeholder="-----BEGIN CERTIFICATE-----…"
-              aria-label="X509 cert"
-              rows={4}
-              style={{
-                fontFamily:
-                  'var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-                fontSize: 12,
-              }}
-            />
-          </label>
+          <Input
+            label="Entity ID"
+            type="text"
+            required
+            value={draft.entity_id || ''}
+            onChange={(e) => update('entity_id', e.target.value)}
+            placeholder="https://stackwatch.example.com/saml/metadata"
+            fullWidth
+          />
+          <Input
+            label="SSO URL (IdP SSO endpoint)"
+            type="url"
+            required
+            value={draft.sso_url || ''}
+            onChange={(e) => update('sso_url', e.target.value)}
+            placeholder="https://your-idp.example.com/saml2/sso"
+            fullWidth
+          />
+          <Input
+            label="Metadata URL (optional — paste XML below if blank)"
+            type="url"
+            value={draft.metadata_url || ''}
+            onChange={(e) => update('metadata_url', e.target.value)}
+            placeholder="https://your-idp.example.com/saml/metadata"
+            fullWidth
+          />
+          <Textarea
+            label="Metadata XML (optional — if not using Metadata URL)"
+            value={draft.metadata_xml || ''}
+            onChange={(e) => update('metadata_xml', e.target.value)}
+            placeholder="<EntityDescriptor>…</EntityDescriptor>"
+            rows={4}
+            fullWidth
+            style={{
+              fontFamily:
+                'var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
+              fontSize: 12,
+            }}
+          />
+          <Textarea
+            label="X509 cert (PEM, encrypted at rest)"
+            required
+            value={draft.x509_cert || ''}
+            onChange={(e) => update('x509_cert', e.target.value)}
+            placeholder="-----BEGIN CERTIFICATE-----…"
+            rows={4}
+            fullWidth
+            style={{
+              fontFamily:
+                'var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
+              fontSize: 12,
+            }}
+          />
         </>
       )}
 
@@ -286,28 +270,19 @@ export default function SsoProviderForm({
         </div>
       ) : null}
 
-      <div className="incident-create-actions">
-        <motion.button
-          type="button"
-          className="dash-icon-button"
-          onClick={onCancel}
-          whileHover={reduce ? undefined : buttonSpring.whileHover}
-          whileTap={reduce ? undefined : buttonSpring.whileTap}
-          transition={buttonSpring.transition}
-          disabled={busy}
-        >
+      <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
           Cancel
-        </motion.button>
-        <motion.button
+        </Button>
+        <Button
           type="submit"
-          className="empty-state-cta"
-          whileHover={reduce ? undefined : buttonSpring.whileHover}
-          whileTap={reduce ? undefined : buttonSpring.whileTap}
-          transition={buttonSpring.transition}
-          disabled={busy || !draft.name.trim()}
+          variant="primary"
+          size="sm"
+          loading={busy}
+          disabled={!draft.name.trim()}
         >
           Create provider
-        </motion.button>
+        </Button>
       </div>
     </form>
   );
