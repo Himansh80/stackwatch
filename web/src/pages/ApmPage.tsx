@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
+import Input from '../components/shared/Input';
+import DataTable from '../components/shared/DataTable';
 import { ApiError, api, getToken } from '../lib/api';
 import KpiCard from '../components/shared/KpiCard';
-import StatusPill from '../components/shared/StatusPill';
 import TimeSeriesChart from '../components/shared/TimeSeriesChart';
 import TraceSummary, { TraceSummaryService } from '../components/shared/TraceSummary';
 import EmptyState from '../components/shared/EmptyState';
@@ -182,47 +183,43 @@ export default function ApmPage() {
               <span className="dash-eyebrow">New service</span>
               <h2 className="dash-section-title">Register an APM service</h2>
               <form className="apm-register-form" onSubmit={submitRegister}>
-                <label>
-                  <span>Name</span>
-                  <input
-                    type="text"
-                    value={registerForm.name}
-                    onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
-                    placeholder="checkout-api"
-                    required
-                    maxLength={128}
-                  />
-                </label>
-                <label>
-                  <span>Language</span>
-                  <input
-                    type="text"
-                    value={registerForm.language}
-                    onChange={(e) => setRegisterForm({ ...registerForm, language: e.target.value })}
-                    placeholder="go"
-                    maxLength={64}
-                  />
-                </label>
-                <label>
-                  <span>Framework</span>
-                  <input
-                    type="text"
-                    value={registerForm.framework}
-                    onChange={(e) => setRegisterForm({ ...registerForm, framework: e.target.value })}
-                    placeholder="gin"
-                    maxLength={64}
-                  />
-                </label>
-                <label>
-                  <span>Environment</span>
-                  <input
-                    type="text"
-                    value={registerForm.environment}
-                    onChange={(e) => setRegisterForm({ ...registerForm, environment: e.target.value })}
-                    placeholder="production"
-                    maxLength={64}
-                  />
-                </label>
+                <Input
+                  label="Name"
+                  type="text"
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                  placeholder="checkout-api"
+                  required
+                  maxLength={128}
+                  fullWidth
+                />
+                <Input
+                  label="Language"
+                  type="text"
+                  value={registerForm.language}
+                  onChange={(e) => setRegisterForm({ ...registerForm, language: e.target.value })}
+                  placeholder="go"
+                  maxLength={64}
+                  fullWidth
+                />
+                <Input
+                  label="Framework"
+                  type="text"
+                  value={registerForm.framework}
+                  onChange={(e) => setRegisterForm({ ...registerForm, framework: e.target.value })}
+                  placeholder="gin"
+                  maxLength={64}
+                  fullWidth
+                />
+                <Input
+                  label="Environment"
+                  type="text"
+                  value={registerForm.environment}
+                  onChange={(e) => setRegisterForm({ ...registerForm, environment: e.target.value })}
+                  placeholder="production"
+                  maxLength={64}
+                  fullWidth
+                />
                 {registerErr ? <p className="apm-form-error">{registerErr}</p> : null}
                 <div className="apm-form-actions">
                   <Button
@@ -350,34 +347,36 @@ export default function ApmPage() {
             {deployments.length === 0 ? (
               <p className="dash-section-lede">No deployments recorded yet. POST to <code>/api/v1/apm/deployments</code> to track release markers.</p>
             ) : (
-              <table className="dash-table apm-deployments">
-                <thead>
-                  <tr>
-                    <th>Service</th>
-                    <th>Environment</th>
-                    <th>Version</th>
-                    <th>Commit</th>
-                    <th>Deployed</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deployments.map((d) => (
-                    <tr key={d.id}>
-                      <td>{d.service_name}</td>
-                      <td>{d.environment}</td>
-                      <td>{d.version}</td>
-                      <td><code>{d.commit_sha ? d.commit_sha.slice(0, 7) : '—'}</code></td>
-                      <td>{d.deployed_at ? new Date(d.deployed_at).toLocaleString() : '—'}</td>
-                      <td>
-                        <span className={`apm-pill ${d.rolled_back ? 'apm-pill-error' : 'apm-pill-good'}`}>
-                          {d.rolled_back ? 'rolled back' : 'live'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable
+                columns={[
+                  { key: 'service', header: 'Service', render: (d: Deployment) => d.service_name },
+                  { key: 'environment', header: 'Environment', render: (d: Deployment) => d.environment },
+                  { key: 'version', header: 'Version', render: (d: Deployment) => d.version },
+                  {
+                    key: 'commit',
+                    header: 'Commit',
+                    render: (d: Deployment) => (
+                      <code>{d.commit_sha ? d.commit_sha.slice(0, 7) : '—'}</code>
+                    ),
+                  },
+                  {
+                    key: 'deployed',
+                    header: 'Deployed',
+                    render: (d: Deployment) => (d.deployed_at ? new Date(d.deployed_at).toLocaleString() : '—'),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    render: (d: Deployment) => (
+                      <span className={`apm-pill ${d.rolled_back ? 'apm-pill-error' : 'apm-pill-good'}`}>
+                        {d.rolled_back ? 'rolled back' : 'live'}
+                      </span>
+                    ),
+                  },
+                ]}
+                rows={deployments}
+                rowKey={(d: Deployment) => d.id}
+              />
             )}
           </section>
         </motion.div>

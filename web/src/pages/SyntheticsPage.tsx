@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError, api, getToken } from '../lib/api';
 import Button from '../components/shared/Button';
+import Input from '../components/shared/Input';
+import Select from '../components/shared/Select';
 import KpiCard from '../components/shared/KpiCard';
 import EmptyState from '../components/shared/EmptyState';
 import SlaBadge from '../components/shared/SlaBadge';
@@ -22,6 +24,14 @@ interface SynthTest {
   sla_response_ms: number;
   created_at: string;
 }
+
+const TYPE_OPTIONS = [
+  { value: 'http', label: 'HTTP' },
+  { value: 'tcp', label: 'TCP' },
+  { value: 'icmp', label: 'ICMP' },
+  { value: 'browser', label: 'Browser (stub)' },
+  { value: 'multi_step', label: 'Multi-step (stub)' },
+];
 
 /**
  * SyntheticsPage — Tier 7.4 (D5) observability surface at /synthetics.
@@ -161,92 +171,79 @@ export default function SyntheticsPage() {
               <span className="dash-eyebrow">New test</span>
               <h2 className="dash-section-title">Create a synthetic test</h2>
               <form className="apm-register-form" onSubmit={submitCreate}>
-                <label>
-                  <span>Name</span>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="homepage-uptime"
-                    required
-                    maxLength={128}
-                  />
-                </label>
-                <label>
-                  <span>Type</span>
-                  <select
-                    value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  >
-                    <option value="http">HTTP</option>
-                    <option value="tcp">TCP</option>
-                    <option value="icmp">ICMP</option>
-                    <option value="browser">Browser (stub)</option>
-                    <option value="multi_step">Multi-step (stub)</option>
-                  </select>
-                </label>
-                <label>
-                  <span>URL</span>
-                  <input
-                    type="text"
-                    value={form.url}
-                    onChange={(e) => setForm({ ...form, url: e.target.value })}
-                    placeholder="https://example.com/health"
-                    required
-                    maxLength={2048}
-                  />
-                </label>
-                <label>
-                  <span>Method</span>
-                  <input
-                    type="text"
-                    value={form.method}
-                    onChange={(e) => setForm({ ...form, method: e.target.value })}
-                    placeholder="GET"
-                    maxLength={16}
-                  />
-                </label>
-                <label>
-                  <span>Interval (sec)</span>
-                  <input
-                    type="number"
-                    value={form.interval_seconds}
-                    onChange={(e) => setForm({ ...form, interval_seconds: Number(e.target.value) || 300 })}
-                    min={10}
-                    max={86400}
-                  />
-                </label>
-                <label>
-                  <span>Timeout (ms)</span>
-                  <input
-                    type="number"
-                    value={form.timeout_ms}
-                    onChange={(e) => setForm({ ...form, timeout_ms: Number(e.target.value) || 30000 })}
-                    min={100}
-                    max={120000}
-                  />
-                </label>
-                <label>
-                  <span>SLA uptime %</span>
-                  <input
-                    type="number"
-                    value={form.sla_uptime_pct}
-                    onChange={(e) => setForm({ ...form, sla_uptime_pct: Number(e.target.value) || 99.9 })}
-                    step={0.01}
-                    min={0}
-                    max={100}
-                  />
-                </label>
-                <label>
-                  <span>SLA response (ms)</span>
-                  <input
-                    type="number"
-                    value={form.sla_response_ms}
-                    onChange={(e) => setForm({ ...form, sla_response_ms: Number(e.target.value) || 1000 })}
-                    min={0}
-                    max={120000}
-                  />
-                </label>
+                <Input
+                  label="Name"
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="homepage-uptime"
+                  required
+                  maxLength={128}
+                  fullWidth
+                />
+                <Select
+                  label="Type"
+                  options={TYPE_OPTIONS}
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  fullWidth
+                />
+                <Input
+                  label="URL"
+                  type="text"
+                  value={form.url}
+                  onChange={(e) => setForm({ ...form, url: e.target.value })}
+                  placeholder="https://example.com/health"
+                  required
+                  maxLength={2048}
+                  fullWidth
+                />
+                <Input
+                  label="Method"
+                  type="text"
+                  value={form.method}
+                  onChange={(e) => setForm({ ...form, method: e.target.value })}
+                  placeholder="GET"
+                  maxLength={16}
+                  fullWidth
+                />
+                <Input
+                  label="Interval (sec)"
+                  type="number"
+                  value={form.interval_seconds}
+                  onChange={(e) => setForm({ ...form, interval_seconds: Number(e.target.value) || 300 })}
+                  min={10}
+                  max={86400}
+                  fullWidth
+                />
+                <Input
+                  label="Timeout (ms)"
+                  type="number"
+                  value={form.timeout_ms}
+                  onChange={(e) => setForm({ ...form, timeout_ms: Number(e.target.value) || 30000 })}
+                  min={100}
+                  max={120000}
+                  fullWidth
+                />
+                <Input
+                  label="SLA uptime %"
+                  type="number"
+                  value={form.sla_uptime_pct}
+                  onChange={(e) => setForm({ ...form, sla_uptime_pct: Number(e.target.value) || 99.9 })}
+                  step={0.01}
+                  min={0}
+                  max={100}
+                  fullWidth
+                />
+                <Input
+                  label="SLA response (ms)"
+                  type="number"
+                  value={form.sla_response_ms}
+                  onChange={(e) => setForm({ ...form, sla_response_ms: Number(e.target.value) || 1000 })}
+                  min={0}
+                  max={120000}
+                  fullWidth
+                />
                 <label className="apm-register-checkbox">
                   <input
                     type="checkbox"
@@ -368,14 +365,16 @@ export default function SyntheticsPage() {
                         />
                       </td>
                       <td>
-                        <button
+                        <Button
                           type="button"
-                          className="sw-button sw-button-secondary synth-run-btn"
+                          variant="secondary"
+                          size="sm"
                           onClick={() => runNow(t.id)}
+                          loading={running === t.id}
                           disabled={running === t.id}
                         >
                           {running === t.id ? 'Running…' : 'Run now'}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
