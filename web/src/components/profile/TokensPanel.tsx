@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api } from '../../lib/api';
+import Button from '../shared/Button';
+import Input from '../shared/Input';
 
 interface ApiKey {
   id: string;
@@ -103,9 +105,9 @@ export default function TokensPanel({ open }: TokensPanelProps) {
           <span className="dash-eyebrow">New token (copy now)</span>
           <code className="prof-token-revealed-value">{revealed}</code>
           <div className="prof-token-revealed-actions">
-            <button
-              type="button"
-              className="sw-button sw-button-quiet"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={async () => {
                 try {
                   await navigator.clipboard?.writeText(revealed);
@@ -115,10 +117,10 @@ export default function TokensPanel({ open }: TokensPanelProps) {
               }}
             >
               Copy
-            </button>
-            <button type="button" className="sw-button" onClick={() => setRevealed(null)}>
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setRevealed(null)}>
               I've saved it
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -126,22 +128,22 @@ export default function TokensPanel({ open }: TokensPanelProps) {
         <div className="prof-tokens-error" role="alert">{error}</div>
       )}
       <div className="prof-tokens-create">
-        <input
+        <Input
           type="text"
-          className="sw-input"
           placeholder="Token name (e.g. laptop-cli)"
           value={name}
           onChange={(e) => setName(e.target.value)}
           disabled={creating}
         />
-        <button
-          type="button"
-          className="sw-button sw-button-primary"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => void onCreate()}
           disabled={creating}
+          loading={creating}
         >
           {creating ? 'Creating…' : 'Create token'}
-        </button>
+        </Button>
       </div>
       {loading ? (
         <div className="prof-tokens-empty">Loading tokens…</div>
@@ -160,13 +162,13 @@ export default function TokensPanel({ open }: TokensPanelProps) {
                 {k.revoked_at ? (
                   <span className="prof-badge-bad">Revoked</span>
                 ) : (
-                  <button
-                    type="button"
-                    className="sw-button sw-button-quiet sw-button-danger"
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => void onRevoke(k.id)}
                   >
                     Revoke
-                  </button>
+                  </Button>
                 )}
               </div>
             </li>
